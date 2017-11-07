@@ -1,0 +1,224 @@
+% Simplified version of synfire chain in cortical network  la Abeles, Bienenstock, Diesmann, etc. 
+% https://www.mathworks.com/matlabcentral/fileexchange/13802-synfire
+
+
+clear all
+close all
+
+P = 10;                         % length of network
+N = 10;                         % width of network
+epoch = .11;
+bin_length = .0001;
+V_rest = -.07;
+V_th = -.06;
+V_start = -.061                 % initial potential
+tau_m = 0.01;
+input_strength = .003;          % external input to set chain in motion
+input_jitter = .001;
+input_length = .003;            % duration of external input
+excitatory_noise = .0002;       % strength of excitatory background noise
+inhibitory_noise = .000105;     % strength of inhibitory background noise
+excitatory_jitter = .00003;     % variability of excitatory background noise
+inhibitory_jitter = .00003;     % variability of inhibitory background noise
+conduction_time = .01;
+conduction_jitter = .1;
+convergence_jitter = .000002;
+amplification_factor = .4;      % amplification of convergent input
+
+time_axis = 0:bin_length:epoch;
+bin_number = length(time_axis);
+input_onset = round(bin_number/10);
+input_bins = round(input_length/bin_length);            % duration of external input (bin units)
+conduction_bins = round(conduction_time/bin_length);    % conduction time (bin units)
+input_offset = input_onset + input_bins;
+
+latency = [];                       % latency of first spike in pool
+mean_latency = [];
+standard_deviation = [];
+
+crossco_time = [-epoch:bin_length:epoch]; 
+
+p = 1;     % first pool (receives external input)
+V = V_start*ones(N,bin_number);
+excitatory_background_noise = max(0,normrnd(excitatory_noise,excitatory_jitter,N,bin_number));
+inhibitory_background_noise = max(0,normrnd(inhibitory_noise,inhibitory_jitter,N,bin_number));
+V = V + excitatory_background_noise - inhibitory_background_noise;
+
+
+for n = 1:N    % loop for all neurons in first pool
+
+    occurence_spike = 0;
+
+    for bin = 2:bin_number
+        
+        if bin >= input_onset & bin <= input_offset
+            
+            input = max(0,normrnd(input_strength,input_jitter,1,1));
+            
+        else
+            
+            input = 0;
+            
+        end;
+        
+        if V(n,bin-1) < V_th
+            
+            V_derivative = (V_rest - V(n,bin-1))/tau_m;
+            V(n,bin) = V(n,bin-1) + bin_length*V_derivative + input + excitatory_background_noise(n,bin) - inhibitory_background_noise(n,bin);   % membrane potential
+            
+        else
+            
+            V(n,bin-1) = .03;     % EPSP
+            V(n,bin) = V_rest;
+            
+            if occurence_spike == 0
+                latency = [latency bin];
+            end
+            
+            occurence_spike = 1;
+            
+         end
+            
+     end
+     
+     figure(1)
+     subplot(P,1,p), plot(time_axis,V), axis([0 epoch -.1 .1]), title('Membrane Potentials of Neurons in Various Pool Levels'), ylabel('V_m (V)')     % membrane potential over time (first pool)
+     
+end  
+
+V_1 = V(1,:);
+V_2 = V(2,:);
+for bin = 1:bin_number
+    if V_1(bin) == .03
+        V_1(bin) = 1;
+    else 
+        V_1(bin) = 0;   
+    end
+    if V_2(bin) == .03
+        V_2(bin) = 1;
+    else 
+        V_2(bin) = 0;
+    end
+end
+crossco = xcov(V_1,V_2);
+figure(2)
+subplot(P,1,p), plot(crossco_time,crossco), axis([-epoch epoch -.5 Inf]), title('Cross Correlograms')   % cross correlogram of two first neurons of first pool
+    
+mean_latency = [mean_latency mean(latency)];
+standard_deviation = [standard_deviation std(latency)];
+latency =[];
+
+level = input_offset;   % beginning of second pool
+
+for p = 2:P     % internally driven pools
+    
+    clear V_1, clear V_2
+    
+    potential_cache(:,:) = V(:,:);     % store potential matrix (neurons, bins)
+
+    excitatory_background_noise = max(0,normrnd(excitatory_noise,excitatory_jitter,N,bin_number));
+    inhibitory_background_noise = max(0,normrnd(inhibitory_noise,inhibitory_jitter,N,bin_number));
+    
+    V = V_start*ones(N,bin_number);
+    V = V + excitatory_background_noise - inhibitory_background_noise;
+   
+    input = zeros(N,bin_number);
+
+    for n = 1:N
+        
+        occurence_spike = 0;
+        
+        for bin = level:bin_number
+        
+            potential_transform(n,bin) = potential_cache(n,bin-conduction_bins+round(normrnd(0,conduction_jitter,1,1)));     % introduce conduction delays and conduction jitter
+            
+        end
+        
+        for bin = level:bin_number
+        
+            individual_input(n,bin) = max(0,potential_transform(n,bin));
+    
+        end
+    
+        input = sum(individual_input,1);                        % add all imputs from previous pool
+        amplified_input = input*amplification_factor;           % adjust (amplify) inputs (e.g., to keep model stable)
+        input_rep = repmat(amplified_input,N,1);
+        input_rep_var = normrnd(input_rep,convergence_jitter);
+
+        for bin = 2:bin_number
+        
+            if V(n,bin-1) < V_th
+            
+                V_derivative = (V_rest - V(n,bin-1))/tau_m;
+                
+                if bin >= level
+
+                    V(n,bin) = V(n,bin-1) + bin_length*V_derivative + input_rep_var(n,bin) + excitatory_background_noise(n,bin) - inhibitory_background_noise(n,bin);   % membrane potential (after onset of volley)    
+            
+                else
+                    
+                    V(n,bin) = V(n,bin-1) + bin_length*V_derivative + excitatory_background_noise(n,bin) - inhibitory_background_noise(n,bin);                          % membrane potential (before onset of volley)
+                end
+                
+             else
+            
+                 V(n,bin-1) = .03;   % EPSP
+                 V(n,bin) = V_rest;
+                
+                  if occurence_spike == 0
+                    
+                      latency = [latency bin];
+                    
+                  end
+            
+                  occurence_spike = 1;
+            
+             end
+        
+        end
+   
+        figure(1), subplot(P,1,p), plot(time_axis,V), axis([0 epoch -.1 .1]), ylabel('V_m (V)')    % membrane potential over time (internally driven pools)
+        if p == P
+        xlabel('time (s)')
+        end 
+    
+    end
+    
+    mean_latency = [mean_latency mean(latency)];
+    standard_deviation = [standard_deviation std(latency)];
+    latency =[];
+    
+    level = level + conduction_bins;   % update pool level
+     
+    V_1 = V(1,:);
+    V_2 = V(2,:);
+    for bin = 1:bin_number
+        if V_1(bin) == .03
+            V_1(bin) = 1;
+        else 
+            V_1(bin) = 0;
+        end
+        if V_2(bin) == .03
+            V_2(bin) = 1;
+        else 
+            V_2(bin) = 0;
+        end
+    end
+    crossco = xcov(V_1,V_2);
+    figure(2)
+    subplot(P,1,p), plot(crossco_time,crossco), axis([-epoch epoch -.5 Inf])    % cross correlograms of two first neurons of internally driven pools
+    if p == P
+    xlabel('time (s)')
+    end
+
+end
+
+mean_latency = mean_latency*bin_length                  % print vector of mean latencies of first spikes of pools
+standard_deviation = standard_deviation*bin_length      % print vector of standdard deviations of first spikes of pools
+
+figure(3)
+plot(mean_latency,standard_deviation,'bs','MarkerFaceColor','b','MarkerSize',6)  % standard deviation vs mean latencies of first spikes of pools
+xlabel('mean latency (s)'), ylabel('standard deviation')
+lsline
+cc = corrcoef(mean_latency,standard_deviation);
+correlation_coefficient = cc(1,2)
