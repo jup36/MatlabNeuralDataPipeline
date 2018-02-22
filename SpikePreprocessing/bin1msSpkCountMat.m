@@ -1,5 +1,5 @@
 function [ binMat, binEdges ] = bin1msSpkCountMat( SpkCountMat1ms, binSize, stepSize )
-% bin1msSpkCountMat takes a trial-by-1msBin spikeCountMat and generates 
+% bin1msSpkCountMat takes a trial-by-1msBin spike count matrix and generates 
 %  a binned spikeCountMat (binMat) using the binSize and stepSize specified by the user.   
 %  binEdges contains: the range of each column of the binMat
 
