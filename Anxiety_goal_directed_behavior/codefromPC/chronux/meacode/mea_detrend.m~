@@ -1,0 +1,48 @@
+function lfp=mea_detrend(ns2,params)
+
+if exist(ns2)
+    display('choose LFP to detrend');
+    return;
+end
+
+try 
+    Fs=params.Fs;
+catch
+    display('You didnot not set Fs, by default, it is set to 1000Hz');
+    Fs=1000;
+end
+
+try 
+    mwin=params.mwin;
+catch
+    display('You didnot set Fs, by defaut, it is set to [0.1 0.05]');
+    mwin=[0.1,0.05];
+end
+
+num_trial=length(ns2);
+[num_electrode, t_length]=size(ns2{1});
+for m1=num_trial
+    tmp_trial=ns2{m1};
+    for m2=1:num_electrode
+        tmp_lfp=tmp_trial{m2};
+        data=locdetrend(tmp_lfp
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        

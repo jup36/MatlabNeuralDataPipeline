@@ -1,0 +1,16 @@
+function ind=mea_select(fire_rate,direction, bin)
+if ~exist('fire_rate','var')
+    disp('no input firing rate! By default choose fire_rate in base workspace');
+    try 
+        fire_rate=evalin('base','fire_rate');
+    catch
+        disp('no firing rate');
+        return;
+    end
+end
+
+if ~exist('direction','var')
+    disp('no input direction! By default choose direction in base workspace');
+    try
+        direction=eval('base','direction');
+        catc

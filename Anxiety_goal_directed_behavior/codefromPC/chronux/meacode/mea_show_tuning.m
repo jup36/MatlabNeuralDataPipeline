@@ -1,0 +1,41 @@
+function ha=mea_show_tuning(fire_rate,direction,bin_size)
+
+if ~exist('fire_rate','var')
+    display('no enough input variables');
+    return;
+end
+%no fire_rate
+[num_neuron,num_direction]=size(fire_rate);
+
+if ~exist('direction','var');
+    warning('no input direction, choose direction as a sequence'); %#ok<*WNTAG>
+    direction=1:num_direction;
+end
+%direction
+[sort_direction,sort_ind]=sort(direction);
+sort_rate=fire_rate(:,sort_ind);
+%sort the firing rate based on stimulus
+
+if ~exist('bin_size','var')
+    temp=factor(num_direction);
+    bin_size=temp(1);
+end
+%choose the bin size to make tuning curve smoother
+tmp_pad=mod(num_direction,bin_size);
+if tmp_pad
+    sort_direction((end+1):(end+tmp_pad))=0;
+    sort_rate(:,(end+1):(end+tmp_pad))=0;
+end
+
+num_figure=min(num_neuron,5);
+for m=1:num_figure
+    tmp=sort_rate(m,:);
+    tmp_x=mean(reshape(sort_direction,bin_size,[]));
+    tmp_y=mean(reshape(tmp,bin_size,[]));
+    subplot(num_figure,1,m);
+    plot(tmp_x,tmp_y,'-','color','r','linewidth',3);
+end
+
+return;
+    
+    
