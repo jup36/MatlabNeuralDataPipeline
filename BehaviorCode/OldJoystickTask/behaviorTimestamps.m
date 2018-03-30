@@ -2,14 +2,9 @@ function [filePath,binFile] = behaviorTimestamps(filePath,varargin)
 % behaviorTimestamps takes nidq.bin files, and extracts behavioral events, 
 %   and saves the outcome. 
 
-defaultPath = '/Volumes/RAID2/parkj/NeuralData/';
+p = parse_input_beh(filePath, varargin ); % parse input
 
-if nargin==0
-   filePath = uigetdir(defaultPath); % open file selection dialog box 
-   binFile = dir(fullfile(filePath,'*.nidq.bin')); % look for nidq.bin file    
-else 
-    binFile = dir(fullfile(filePath,'*.nidq.bin')); % look for nidq.bin file 
-end
+binFile = dir(fullfile(p.Results.filePath,'*.nidq.bin')); % look for nidq.bin file    
 
 if length(binFile)>1 || isempty(binFile)    
     error('File could not be found or multiple nidq.bin files exist!');
@@ -18,20 +13,19 @@ end
 binName = binFile.name;
 
 % Parse the corresponding metafile
-meta = ReadMeta(binFile.name, filePath); % get the meta data (structure)
+meta = ReadMeta(binName, p.Results.filePath); % get the meta data (structure)
 
 % Read the binary data (entire samples)
 nSamp         = SampRate(meta);          % sampling rate (default: 25kHz) 
 totalTimeSecs = str2double(meta.fileTimeSecs); % total duration of file in seconds
-etrSamples    = nSamp * totalTimeSecs;   % entire samples acquired during recording (sampling rate x recording duration in sec)
 
 % Specify the relevant behavioral channel numbers
-NumbNeuralProbe = 0; % Specify how many probes were used (e.g. zero if no NI neural probe was used)
-XposCh  = 64*NumbNeuralProbe+33;  % channel # for X position (default channel numbers for 64 channel recording)
-YposCh  = 64*NumbNeuralProbe+37;  % channel # for Y position
-soleCh  = 64*NumbNeuralProbe+3;   % channel # for solenoid (water reward delivery) 
-lickCh  = 64*NumbNeuralProbe+5;   % channel # for lick port
-laserCh = 64*NumbNeuralProbe+7;   % channel # for laser (laser TTL) 
+%NumbNeuralProbe = 0; % Specify how many probes were used (e.g. zero if no NI neural probe was used)
+XposCh  = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.XposCh;  % channel # for X position (default channel numbers for 64 channel recording)
+YposCh  = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.YposCh;  % channel # for Y position
+soleCh  = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.soleCh;  % channel # for solenoid (water reward delivery) 
+lickCh  = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.lickCh;  % channel # for lick port
+laserCh = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.laserCh; % channel # for laser (laser TTL) 
 
 % preallocate the behavioral data arrays
 Xpos    = zeros(1,floor(totalTimeSecs*1000)); % the time resolution will be 1000Hz (1ms) after decimation
@@ -41,7 +35,7 @@ sole    = zeros(1,floor(totalTimeSecs*1000)); %
 laser   = zeros(1,floor(totalTimeSecs*1000)); %
 
 for i = 0:totalTimeSecs-1 % read second-by-second incrementally to avoid a memory issue
-    tempDataArray = ReadBin(i*nSamp, nSamp, meta, binName, filePath); % read bin data for each second
+    tempDataArray = ReadBin(i*nSamp, nSamp, meta, binName, p.Results.filePath); % read bin data for each second
     tempXpos  = decimate(tempDataArray(XposCh,:),nSamp/1000); % decimate the data
     tempYpos  = decimate(tempDataArray(YposCh,:),nSamp/1000);
     templick  = decimate(tempDataArray(lickCh,:),nSamp/1000);
@@ -72,9 +66,21 @@ else    % in case of recording via NI board
     laser = GainCorrectNI(laser, 1, meta); % gain-corrected voltage trace for laser
 end
 
+%% reward (digital pulses for solenoid activation) detection 
+[~,soleStd,~] = meanstdsem(abs(sole)');       % std of the lick input signal
+rewThres      = mean(abs(sole))+soleStd;      % this seems to work as a reasonable threshold for detecting lick stim
+rewIdx        = find(abs(sole)>rewThres);     % find points crossing the lick threshold
+valRewIdx     = rewIdx(diff([0,rewIdx])>500);  % this prevents redundant detections
+% hold on; plot(sole); plot(valRewIdx,rewThres,'or'); hold off
 
 %% Position/velocity data
-positionData = [Xpos; Ypos]; % joystick position data
+if p.Results.artifactRmv % in case artifact remove is true
+    denoiseXpos=denoiseByTemplateSubtraction(Xpos,valRewIdx);
+    denoiseYpos=denoiseByTemplateSubtraction(Ypos,valRewIdx);
+    positionData = [denoiseXpos; denoiseYpos]; % denoised (without the solenoid artifact) joystick position data
+else
+    positionData = [Xpos; Ypos]; % joystick position data
+end
 
 % get reach properties
 [ reachStart, reachStop, reach0, pos1, pos2, xpos1, ypos1, xpos2, ypos2 ] = getReachTimesJP( positionData );     % all reach traces, aligned to start (pos1), to stop (pos2)
@@ -84,14 +90,6 @@ vel2 = diff(pos2, 1, 2); % reach velocity aligned to reach stop (differentiation
 % plot(reach0) % reachMW is the amplitude readout of the whole session
 
 %% Get other task events - reward delivery, licks, laser stimulation
-% reward (digital pulses for solenoid activation) detection 
-[~,soleStd,~] = meanstdsem(abs(sole)');       % std of the lick input signal
-rewThres      = mean(abs(sole))+soleStd;      % this seems to work as a reasonable threshold for detecting lick stim
-rewIdx        = find(abs(sole)>rewThres);     % find points crossing the lick threshold
-valRewIdx     = rewIdx(diff([0,rewIdx])>500);  % this prevents redundant detections
-% validataion with plot
-% hold on; plot(sole); plot(valRewIdx,rewThres,'or'); hold off
-
 % lick (digital pulses for lick) detection 
 [~,lickStd,~] = meanstdsem(abs(lick)');          % std of the lick input signal
 lickThres     = mean(abs(lick))+lickStd;         % this seems to work as a reasonable threshold for detecting lick stim
@@ -170,6 +168,39 @@ end
 % Save relevant BehVariables
 cd(filePath)
 save('BehVariables', 'Xpos', 'Ypos', 'positionData', 'lick', 'sole', 'laser','lickTraces', 'reach0', 'pos1', 'pos2', 'xpos1', 'ypos1', 'xpos2', 'ypos2', 'vel1', 'vel2', 'ts') % append the position/velocity data variables
+
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%
+    % NESTED HELPER FUNCTIONS
+    %%%%%%%%%%%%%%%%%%%%%%%%%
+
+    function p = parse_input_beh( filePath, varargin )
+    % parse input, and extract name-value pairs
+
+        p = inputParser; % create parser object
+
+        default_numbNeuralProbe = 0; % Specify how many NIboard probes were used (e.g. zero if no NI neural probe was used)
+        default_XposCh = 33; % channel # for X position (default channel numbers for 64 channel recording)
+        default_YposCh = 37; % channel # for Y position
+        default_soleCh = 3;  % channel # for solenoid (water reward delivery)
+        default_lickCh = 5;  % channel # for lick port
+        default_laserCh = 7; % channel # for laser (laser TTL)
+        default_numbTagLasers = 30; % the number of tagging trials given at the end of the experiment
+        default_artifactRmv = true; % if true, removes the solenoid artifact from Xpos and Ypos channels by template subtraction
+
+        addRequired(p,'filePath'); 
+        addParameter(p,'numbNeuralProbe',default_numbNeuralProbe)
+        addParameter(p,'XposCh',default_XposCh)
+        addParameter(p,'YposCh',default_YposCh)
+        addParameter(p,'soleCh',default_soleCh)
+        addParameter(p,'lickCh',default_lickCh)
+        addParameter(p,'laserCh',default_laserCh)
+        addParameter(p,'numbTagLasers',default_numbTagLasers)
+        addParameter(p,'default_artifactRmv',default_artifactRmv)
+
+        parse(p,filePath,varargin{:})
+
+    end
 
 end
 
