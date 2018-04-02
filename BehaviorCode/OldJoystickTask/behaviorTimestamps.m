@@ -1,6 +1,12 @@
-function [filePath,binFile] = behaviorTimestamps(filePath,varargin)
-% behaviorTimestamps takes nidq.bin files, and extracts behavioral events, 
-%   and saves the outcome. 
+function behaviorTimestamps(filePath,varargin)
+%behaviorTimestamps takes filePath in which the nidq.bin file exists, and using
+% the nidq.bin and nidq.meta files, occurrences of a set of behavioral events - 
+% reward delivery, joystick movement trajectories, licks, laser delivery
+% are detected and stored in the filePath.
+% Inputs to the function can be provided as name-value pair arguments.
+% e.g. Run, 
+% behaviorTimestamps(filePath,'numbNeuralProbe',0,'numbChEachProbe',64,...
+% ...,'XposCh',33,'YposCh',37,'soleCh',3,'lickCh',5,'laserCh',7,'numbTagLasers',30,'artifactRmv',true)
 
 p = parse_input_beh(filePath, varargin ); % parse input
 
@@ -78,7 +84,7 @@ if p.Results.artifactRmv % in case artifact remove is true
     denoiseXpos=denoiseByTemplateSubtraction(Xpos,valRewIdx);
     denoiseYpos=denoiseByTemplateSubtraction(Ypos,valRewIdx);
     positionData = [denoiseXpos; denoiseYpos]; % denoised (without the solenoid artifact) joystick position data
-else
+else % in case artifact remove is not selected
     positionData = [Xpos; Ypos]; % joystick position data
 end
 
@@ -119,7 +125,7 @@ laserThres     = mean(abs(laser))+laserStd;           % this seems to work as a 
 laserIdx       = find(abs(laser)>laserThres);         % find points crossing the laser threshold
 valLaserIdx    = laserIdx(diff([0,laserIdx])>1000);   % this prevents redundant detections
 tagLaserIdx    = zeros(1,length(valLaserIdx));        % preallocate index for optotag laser 
-%tagLaserIdx(end-29:end)=1;                           % index for optotag laser (e.g. last 30 trials)
+tagLaserIdx(end-p.Results.numbTagLasers+1:end)=1;     % index for optotag laser (e.g. last 30 trials)
 tagLaser       = valLaserIdx(logical(tagLaserIdx));   % laser trials for opto-tagging: usually 10 trials are given at the end
 stmLaser       = valLaserIdx(~logical(tagLaserIdx));  % randomly selected reach-evoked opto-stimulations 
 % validation with plot
@@ -167,19 +173,18 @@ end
 
 % Save relevant BehVariables
 cd(filePath)
-save('BehVariables', 'Xpos', 'Ypos', 'positionData', 'lick', 'sole', 'laser','lickTraces', 'reach0', 'pos1', 'pos2', 'xpos1', 'ypos1', 'xpos2', 'ypos2', 'vel1', 'vel2', 'ts') % append the position/velocity data variables
+save('BehVariables','Xpos','Ypos','positionData','lick','sole','laser','lickTraces','reach0','pos1','pos2','xpos1','ypos1','xpos2','ypos2','vel1','vel2','ts','p' ) % append the position/velocity data variables
 
 
-    %%%%%%%%%%%%%%%%%%%%%%%%%
-    % NESTED HELPER FUNCTIONS
-    %%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%
+% NESTED HELPER FUNCTIONS
+%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    function p = parse_input_beh( filePath, varargin )
-    % parse input, and extract name-value pairs
-
-        p = inputParser; % create parser object
-
-        default_numbNeuralProbe = 0; % Specify how many NIboard probes were used (e.g. zero if no NI neural probe was used)
+    function p = parse_input_beh( filePath, vargs ) % note that a nested function must use vargs not varargin when varargin was used for the main function 
+        % parse input, and extract name-value pairs
+                
+        default_numbNeuralProbe = 0;  % Specify how many NIboard probes were used (e.g. zero if no NI neural probe was used)
+        default_numbChEachProbe = 64; % Specify the number of sites on the NIboard probe
         default_XposCh = 33; % channel # for X position (default channel numbers for 64 channel recording)
         default_YposCh = 37; % channel # for Y position
         default_soleCh = 3;  % channel # for solenoid (water reward delivery)
@@ -187,19 +192,21 @@ save('BehVariables', 'Xpos', 'Ypos', 'positionData', 'lick', 'sole', 'laser','li
         default_laserCh = 7; % channel # for laser (laser TTL)
         default_numbTagLasers = 30; % the number of tagging trials given at the end of the experiment
         default_artifactRmv = true; % if true, removes the solenoid artifact from Xpos and Ypos channels by template subtraction
-
-        addRequired(p,'filePath'); 
+        
+        p = inputParser; % create parser object
+        addRequired(p,'filePath');
         addParameter(p,'numbNeuralProbe',default_numbNeuralProbe)
+        addParameter(p,'numbChEachProbe',default_numbChEachProbe)
         addParameter(p,'XposCh',default_XposCh)
         addParameter(p,'YposCh',default_YposCh)
         addParameter(p,'soleCh',default_soleCh)
         addParameter(p,'lickCh',default_lickCh)
         addParameter(p,'laserCh',default_laserCh)
         addParameter(p,'numbTagLasers',default_numbTagLasers)
-        addParameter(p,'default_artifactRmv',default_artifactRmv)
-
-        parse(p,filePath,varargin{:})
-
+        addParameter(p,'artifactRmv',default_artifactRmv)
+        
+        parse(p,filePath,vargs{:})
+        
     end
 
 end
