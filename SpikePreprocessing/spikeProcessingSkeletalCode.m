@@ -33,7 +33,6 @@ pcaPSTH( filePath, 'binSpkCountSTRIT01_121317', 'reward',...
 'reachWinEdges',-2e3+1:2e3,'reachOnTime',0,'reachDur',750,'tagWinEdges',-5e3+1:5e3,'tagOnTime',0,'tagDur',500,'lowFRcut',0.5,'colorAxis',[-3 3]);
 % Use IndividualUnitPlotGramm.m to plot individual unit PSTHs based on the outcome of 'stimEffect'.  
 
-
 %% examine laser stim effects on reach behavior
 [stimR] = stimEffectReach(filePath); 
 
@@ -41,4 +40,5 @@ pcaPSTH( filePath, 'binSpkCountSTRIT01_121317', 'reward',...
 runDCA( filePath, 'binSpkCountCTXIT01_121317pcaPSTHreward200ms', 'binSpkCountSTRIT01_121317pcaPSTHreward200ms', 100, 'IT01_121317_DCA_reward200ms' )
 
 %% run GPFA
+gpfaPreprocessing( filePath )
 runGPFA( filePath )
