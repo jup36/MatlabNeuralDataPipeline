@@ -38,7 +38,7 @@ allValSamps1=find(vel>cutoffd);   % velocities exceeding the cutoff
 allValSamps1=allValSamps1(allValSamps1<(length(reachSG)-300)); % this line is just to exclude the data points at the tail
 allValidSamps=[];
 
-for jj = 1:length(allValSamps1)   % all points exceeding the velocity cutoff
+for jj = 1:length(allValSamps1)   % all points exceeding the position cutoff
     if length(allValidSamps)==0   % in case of the 1st high-velocity data point
         if sum(reachSG(allValSamps1(jj):allValSamps1(jj)+200)>cutoff)>20 % this part is just to sort out high-velocity reaches from the short jerks which is not really a reach
            allValidSamps=[allValidSamps, allValSamps1(jj)];              % if it satisfies the condition for a legitimate reach, then register it as a reach
@@ -82,7 +82,9 @@ ypos1=[];   % y position data aligned to reachStart normalized to the y position
 for i = reachStart
     if i > 1000
         if i+1499 > length(reachMW) % in case the reach trajectory end exceeds the length of the time series (this must happen only for the last reach)
-            %pos1=[pos1; reachMW(i-200:end)-reachMW(i)]; % position data corresponding to each reach from 200-ms before to 1500-ms after each reach start
+            pos1=[pos1; nan(1,200+1499+1)]; % just put NaNs of the same length
+            xpos1=[xpos1; nan(1,200+1499+1)]; % just put NaNs of the same length
+            ypos1=[ypos1; nan(1,200+1499+1)]; % just put NaNs of the same length
         else % in case the reach trajectory is within the length of the time series
             pos1  = [pos1; reachMW(i-200:i+1499)-reachMW(i)]; % position data corresponding to each reach from 200-ms before to 1500-ms after each reach start
             xpos1 = [xpos1; XposMW(i-200:i+1499)-XposMW(i)];  % x position data aligned to reachStart normalized to the x position at the reach start 
@@ -132,6 +134,11 @@ for i =reachStop
         pos2  = [pos2; reachMW(i-1499:i+200)-reachMW(i)];
         xpos2 = [xpos2; XposMW(i-1499:i+200)-XposMW(i)];
         ypos2 = [ypos2; YposMW(i-1499:i+200)-YposMW(i)];
+    else
+        pos2  =[pos2; nan(1,200+1499+1)]; % just put NaNs of the same length
+        xpos2 =[xpos2; nan(1,200+1499+1)]; % just put NaNs of the same length
+        ypos2 =[ypos2; nan(1,200+1499+1)]; % just put NaNs of the same length
+        
     end
 end
 

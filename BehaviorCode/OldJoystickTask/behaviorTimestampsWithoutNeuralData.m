@@ -1,4 +1,4 @@
-function behaviorTimestamps(filePath,varargin)
+function behaviorTimestampsWithoutNeuralData(filePath,varargin)
 %behaviorTimestamps takes filePath in which the nidq.bin file exists, and using
 % the nidq.bin and nidq.meta files, occurrences of a set of behavioral events - 
 % reward delivery, joystick movement trajectories, licks, laser delivery
@@ -112,6 +112,7 @@ if p.Results.reachBeforeLastReward
     positionData = positionData(:,1:valRewIdx(end));
 else
 end
+
 % get reach properties
 [ reachStart, reachStop, reach0, pos1, pos2, xpos1, ypos1, xpos2, ypos2 ] = getReachTimesJP( positionData );     % all reach traces, aligned to start (pos1), to stop (pos2)
 
@@ -143,15 +144,12 @@ clearvars i
 % validation with plot
 %hold on; plot(lick); plot(valLickIdx,lick(valLickIdx),'or'); hold off
 
-% laser (digital pulses for laser) detection 
+% laser (TTL pulses for laser) detection 
 [~,laserStd,~] = meanstdsem(abs(laser)');             % std of the laser input signal
 laserThres     = mean(abs(laser))+laserStd;           % this seems to work as a reasonable threshold for detecting laser stim
 laserIdx       = find(abs(laser)>laserThres);         % find points crossing the laser threshold
 valLaserIdx    = laserIdx(diff([0,laserIdx])>1000);   % this prevents redundant detections
-tagLaserIdx    = zeros(1,length(valLaserIdx));        % preallocate index for optotag laser 
-tagLaserIdx(end-p.Results.numbTagLasers+1:end)=1;     % index for optotag laser (e.g. last 30 trials)
-tagLaser       = valLaserIdx(logical(tagLaserIdx));   % laser trials for opto-tagging: usually 10 trials are given at the end
-stmLaser       = valLaserIdx(~logical(tagLaserIdx));  % randomly selected reach-evoked opto-stimulations 
+stmLaser       = valLaserIdx;  % randomly selected reach-evoked opto-stimulations 
 
 if p.Results.reachBeforeLastReward
    stmLaser = stmLaser(stmLaser<valRewIdx(end)); % only take stmLaser occurred before the last reward delivery
@@ -188,7 +186,6 @@ ts.stmReachStop  = reachStop(logical(stimReachIdx));  % reachStop of stim on tri
 ts.reward     = valRewIdx;      % reward deliveries
 ts.lick       = valLickIdx;     % licks
 ts.laser      = valLaserIdx;    % laser stimulations all lasers
-ts.tagLaser   = tagLaser;       % laser stimulations for opto-tagging
 ts.stmLaser   = stmLaser;       % randomly selected reach-evoked opto-stimulations 
 ts.stmLaserReach = stmLaser(logical(stimReachLaserIdx)); % stim trials occurred during full reaches
 ts.pseudoLaser = valpseudoLaserIdx; % pseudoLaser TTL pulses (without actual laser deliveries)
@@ -212,10 +209,9 @@ end
 cd(filePath)
 save('BehVariables','Xpos','Ypos','positionData','lick','sole','laser','lickTraces','reach0','pos1','pos2','xpos1','ypos1','xpos2','ypos2','vel1','vel2','ts','p', 'pseudoLaser' ) % append the position/velocity data variables
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%
-% NESTED HELPER FUNCTIONS
-%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% NESTED HELPER FUNCTIONS %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     function p = parse_input_beh( filePath, vargs ) % note that a nested function must use vargs not varargin when varargin was used for the main function 
         % parse input, and extract name-value pairs
@@ -224,7 +220,7 @@ save('BehVariables','Xpos','Ypos','positionData','lick','sole','laser','lickTrac
         default_numbChEachProbe = 64; % Specify the number of sites on the NIboard probe
         default_XposCh = 33; % channel # for X position (default channel numbers for 64 channel recording)
         default_YposCh = 37; % channel # for Y position
-        default_pseudoLaserCh = 39; % channel # for pseudoLaser Pulses (without actual laser delivery) 
+        default_pseudoLaserCh = 39; % channel # for pseudoLaser Pulses (without actual laser delivery)
         default_soleCh = 3;  % channel # for solenoid (water reward delivery)
         default_lickCh = 5;  % channel # for lick port
         default_laserCh = 7; % channel # for laser (laser TTL)
