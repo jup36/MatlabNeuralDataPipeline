@@ -1,0 +1,11 @@
+function [out, names] = pcaadd();
+
+global clustdata;
+global clustattrib;
+
+cd(clustattrib.currentfilepath);
+load(clustattrib.datafile);
+
+amps = clustdata.params(:,2:5);
+
+names = {'this','that'};
