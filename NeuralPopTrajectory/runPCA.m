@@ -15,9 +15,9 @@ pcaFileFolder = fullfile(p.Results.filePath,'mat_results','run*'); % file folder
 pcaRunNumber  = length(dir(pcaFileFolder))+1; % get the right pcaRunNumber to run neuralTraj.m, and save the result in the 'mat_results" folder under the current filePath. 
 % this is just to avoid assigning 10 to the pcaRunNumber, which for some
 % reason would just keep skipping w/o running (BUG in the 'neuralTraj.m' )
-if pcaRunNumber >= 10
-    pcaRunNumber = pcaRunNumber+1;
-end
+% if pcaRunNumber >= 10
+%     pcaRunNumber = pcaRunNumber+1;
+% end
 
 load(p.Results.fileName, 'S', 'pc'); % load the raw data structure, and results of the pca analysis using 'pcaPSTH.m' 
 
