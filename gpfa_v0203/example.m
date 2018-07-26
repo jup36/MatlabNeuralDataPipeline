@@ -125,7 +125,7 @@ fprintf('\n');
 
 % Plot prediction error versus state dimensionality.
 % Results files are loaded from mat_results/runXXX/, where XXX is runIdx.
-kernSD = 30; % select kernSD for two-stage methods
+kernSD = 50; % select kernSD for two-stage methods
 plotPredErrorVsDim(runIdx, kernSD);
 % NOTES:
 % - Using this figure, we i) compare the performance (i.e,,
