@@ -1,0 +1,55 @@
+%Problem set 6 
+
+clear all; close all; clear functions; clc
+
+%%
+addpath(genpath('/Volumes/RAID2/parkj/MATLAB'));
+
+%% load signal and timestamps, modify these!
+filedirectory = '/Volumes/RAID2/parkj/MATLAB/Neural_signal_processing_BY/PS6';    % directory for 'behavcell' data of all doses is saved 
+cd(filedirectory)       
+load('ps6_data');    % spike snippet data 
+
+%% Initialize model parameters  
+gammank = cell(1,100);    % responsibility
+
+for i = 1:100   % # of iteration
+    %% E-step: Evaluate responsibilities given current parameter values (calculate the responsibility)
+    if i == 1   % at the first iteration use the initialized parameters
+        for j = 1:3     % assume that there are K=3 neurons contributing spikes to the recorded waveform
+            for n = 1:length(Spikes)    % number of spikes
+                tmp = Spikes(:,n)-InitParams1.mu(:,j);
+                logP(n,j) =  log(exp((-1/2)*tmp'*inv(InitParams1.Sigma)*tmp) / sqrt((2*pi)^31*det(InitParams1.Sigma))*(InitParams1.pi(j)));  % log of the multivariate gaussian probability
+            end
+        end
+        clearvars tmp
+        
+    elseif i >= 2    % from the second iteration use the updated parameters
+        for j = 1:3     % assume that there are K=3 neurons contributing spikes to the recorded waveform
+            for n = 1:length(Spikes)    % number of spikes
+                tmp = Spikes(:,n)-params.muk{1,i-1}(:,j);
+                logP(n,j) =  log(exp((-1/2)*tmp'*inv(params.sigmak{1,i-1}{1,j})*tmp) / sqrt((2*pi)^31 * det(params.sigmak{1,i-1}{1,j}))*params.pik{1,i-1}(1,j));    % log of the multivariate gaussian probability
+            end
+        end
+        clearvars tmp  
+    end
+    
+    % let Aj = log(N(X|Mu,Sigma)*pij)
+    [jmax] = max(logP,[],2);    % jmax = argmax(Aj)
+    denom = jmax + log(sum(exp(logP-repmat(jmax,[1 3])),2));    % sum N(Xn|muj,sigmaj)*pij across all j
+    gammank{1,i} = exp(logP - repmat(denom,[1 3]));     % update responsibility
+    loglike(i) = sum(denom);    % update the log data likelihood, ensure its convergence
+    
+    % plot the data log likelihood: log P({x}|theta)
+    
+    %% M-step: Maximize the expected log joint distribution (summed across all N data points) with respect to the model parameters
+    for jj = 1:3    % K=3 neurons
+        params.Nk{1,i}(1,jj) = sum(gammank{1,i}(:,jj));  % new estimation of the Nk
+        params.muk{1,i}(:,jj) = Spikes*gammank{1,i}(:,jj)/ params.Nk{1,i}(1,jj);   % new estimation of the muk
+        tmp = Spikes-repmat(params.muk{1,i}(:,jj),[1 length(Spikes)]);   % Xn - muk
+        params.sigmak{1,i}{1,jj} = (repmat(gammank{1,i}(:,jj)',[31 1]).*tmp*tmp')/params.Nk{1,i}(1,jj);   % new estimation of the sigmak
+        params.pik{1,i}(1,jj) = params.Nk{1,i}(1,jj)/length(Spikes);    % Nk/N
+    end
+    
+    fprintf('completed the iteration #%d\n', i);     % report the progress (completion of each cross-validation sample)  
+end
