@@ -14,8 +14,7 @@ for i=1:52;Etype{i} = 'A';end;
 for i=53:98;Etype{i} = 'B';end;
 for i=99:168;Etype{i} = 'C';end;
 % Store the data in a proper table format to do repeated measures analysis
-all_table = table(Etype, Treatment, data(:, 1), data(:, 2), ...
-    data(:, 3), ...
+all_table = table(Etype, Treatment, data(:, 1), data(:, 2), data(:, 3), ...
     'VariableNames', {'Etype', 'Treatment', 'pre', 'during', 'post'});
 % Define the within subject parameter (pre, during, post)
 Time = [0 1 2]; % 0: pre, 1: during, 2: post
