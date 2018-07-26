@@ -44,7 +44,7 @@ function result = neuralTraj(runIdx, dat, varargin)
   end
   % Make a directory for this runIdx if it doesn't already exist
   runDir = sprintf('mat_results/run%03d', runIdx);
-  if isdir(runDir)
+  if ~isempty(dir(runDir)) % jp changed this not to use isdir which is prone to an error 
     fprintf('Using existing directory %s...\n', runDir);
   else
     fprintf('Making directory %s...\n', runDir);
@@ -110,8 +110,8 @@ function result = neuralTraj(runIdx, dat, varargin)
     end
 
     % Check if training data covariance is full rank
-    yAll = [seqTrain.y];
-    yDim  = size(yAll, 1);
+    yAll = [seqTrain.y];   % concatenate y across trials to get the neuron-by-(trial*timeBins)
+    yDim  = size(yAll, 1); % dim: # of neurons
     
     if rank(cov(yAll')) < yDim
       fprintf('ERROR: Observation covariance matrix is rank deficient.\n');
