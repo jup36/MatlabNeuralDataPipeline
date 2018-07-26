@@ -1,0 +1,973 @@
+function TNC_GM_SortSpikes(ftFile,iSeg,iShank,M,varargin)      
+    % ftFile, iSeg, iShank and M = required positional arguments
+    % iNode                      = optional, position-specific argument
+    % lowerM, verbose, algorithm = optional parameters
+    %
+    % Example of usage:
+    % TNC_GM_SortSpikes('WT4RD1LSTR002_2012_02_21_ft.mat','2','3',3,'ms',16,'verbose',1)
+    % Sixth argument indicates whether or not to perform continuation from solution
+    %       obtained for lower M (=0 - no continuation; > 0 - continuation from a given #) 
+    % Seventh argument is node ID, used only in the name of output file
+    %  
+    global start;
+
+    tic;
+
+    try  
+        p = TNC_OOP_SpikeSortingInputParser;     % call constructor
+        p.parse(ftFile, iSeg, iShank, M, varargin{:});
+
+        % Required inputs:
+        ftFile         =       p.Results.ftFile;
+        options.iseg   = int32(p.Results.iSeg);
+        options.ishank = int32(p.Results.iShank);
+        options.M      = int32(p.Results.M);
+
+        % Optional, but position specific inputs
+        options.inode  = int32(p.Results.iNode);
+
+        % Optional parameters
+        options.method       = p.Results.method;
+        options.guess_method = p.Results.guess_method;
+        options.algorithm    = p.Results.algorithm;
+        compiled_code = 0;
+        if isnumeric(iSeg)        % original Matlab code     
+            options.verbose  = p.Results.verbose;
+            options.debug    = p.Results.debug;
+            options.dispOn   = p.Results.dispOn;
+            options.model    = p.Results.model;
+            options.power    = p.Results.power;
+            options.fakeData = p.Results.fakeData;
+            options.MaxIter  = p.Results.MaxIter;
+        else 
+            compiled_code = 1;    % compiled code    
+            options.verbose  = int32(str2double(p.Results.verbose));
+            options.debug    = int32(str2double(p.Results.debug));
+            options.dispOn   = int32(str2double(p.Results.dispOn));
+            options.model    = int32(str2double(p.Results.model));
+            options.power    =       str2double(p.Results.power);
+            options.fakeData = int32(str2double(p.Results.fakeData));
+            options.MaxIter  = int32(str2double(p.Results.MaxIter));
+        end
+    catch
+        output_usage_message();
+        return
+    end
+
+    options.min_eps = 1.e-8;
+    if check_inputs(options) ~= 1
+        return;
+    end
+
+    if length(strfind(ftFile, '_ft')) == 0
+        disp(['Input file is not of ft type']);
+        return
+    end
+    disp(['options.verbose =' num2str(options.verbose )]);
+    if options.verbose
+        disp(['ftFile=' ftFile ' iseg=' num2str(options.iseg) ' ishank=' num2str(options.ishank) ...
+              ' M=' num2str(options.M) ' inode=' num2str(options.inode) ' method=' options.method ...
+              ' guess_method=' options.guess_method ' algorithm=' options.algorithm ... 
+              ' model=' num2str(options.model) ' dispOn=' num2str(options.dispOn) ...
+              ' fakeData=' num2str(options.fakeData) ' debug=' num2str(options.debug)]);
+    end
+
+    ftData = load(char(ftFile)); 
+    scale = 300.;
+    disp(['iseg=' num2str(options.iseg) ' ishank=' num2str(options.ishank)]);
+    disp(['size(ftData.featStruct.seg(iseg).shank(ishank).params)=' ...
+           num2str(size(ftData.featStruct.seg(options.iseg).shank(options.ishank).params))]);
+    KMAX = (size(ftData.featStruct.seg(options.iseg).shank(options.ishank).params,2)-1)/4;
+    options.iE = (1:KMAX);
+%   if options.verbose
+        disp(['size(params)=' num2str(size(ftData.featStruct.seg(options.iseg).shank(options.ishank).params)) ...
+              ' KMAX=' num2str(KMAX)]);
+%   end
+    
+    DATA = ftData.featStruct.seg(options.iseg).shank(options.ishank).params(:,2*KMAX+1+options.iE)/scale;
+    % Exclude positive DATA values:
+    DATA(DATA > 0) = 0.;
+
+%   disp(['size(params0=' num2str(size(ftData.featStruct.seg(options.iseg).shank(options.ishank).params))]);
+%   cols = 2*KMAX+1+options.iE;
+%   cols
+    disp(['options.fakeData=' num2str(options.fakeData)]);
+    K = size(DATA, 2);
+    if options.fakeData
+        options.coord.x_neurons = ftData.featStruct.x_neurons;
+        options.coord.y_neurons = ftData.featStruct.y_neurons;
+        options.coord.z_neurons = ftData.featStruct.z_neurons;
+    end
+    prefixName = ftFile(1:(length(ftFile)-7));
+    options.prefixName = prefixName;
+    start = 1;
+    disp('Start ...');
+
+    myflag = true;
+    Iter = 0;
+    while myflag && Iter <= options.MaxIter 
+        Iter = Iter + 1;
+%       try
+            [init_guess, MU, SIGMA] = TNC_GM_InitialGuess(DATA, options);
+            [fmin, xmin, PI, MU, SIGMA] = get_global_opt_solution(init_guess, MU, SIGMA, DATA, options);
+            myflag = false;
+%       catch
+%           disp('get_global_opt_solution failed...');
+%       end
+    end
+    output_gm_data(xmin, fmin, PI, MU, SIGMA, prefixName, ftData.featStruct, options);
+
+    toc;
+
+    % Make sure the code will terminate
+    if compiled_code
+        exit;
+    end
+
+    return
+
+% ---------------------------------------------------------------------
+
+function output_usage_message()
+    disp(['nargin=' num2str(nargin)]);
+    disp('Usage: TNC_GM_SortSpikes(ftFile,iseg,ishank,M [,inode] [,parameters])');
+    disp('Required arguments:');
+    disp('    ftFile       - name of an input file');
+    disp('    iSeg         - index of the time segment to be processed');
+    disp('    iShank       - index of the shank to be processed');
+    disp('    M            - number of Gaussian components');
+    disp('Optional argument:')
+    disp('    iNode        - cluster node id (used only in cluster processing');
+    disp('Optional parameters, specified as parameter-value pairs:');
+    disp('    method       - computational method to be used');
+    disp('                   default=em (Expectation Maximization)');
+    disp('                   other available options: ms (MultiStart)');
+    disp('                   and kk (KlustaKwick)');
+    disp('    algorithm      to be used by MultiStart method;');
+    disp('                   default = interior-point');
+    disp('    power          when doing triangulation procedure, the external');
+    disp('                   potential is assumed to drop as this power');
+    disp('                   of distance (default = 1)');
+    disp('    MaxIter      - max number of iterations to be performed');
+    disp('                   (default = Inf)');
+    disp('    debug        - weather or not to keep intermediate data files ');
+    disp('                   and shell scripts after cluster processing');
+    disp('    verbose      - weather or not to increase verbosity of output (default=0)');
+    disp('    dispOn       - weather or not to display covariance matrix (default=0)');
+    disp('    fakeData     - weather or not the input data is fake (default=0)')
+    return
+
+% ---------------------------------------------------------------------
+
+function status = check_inputs(options)
+    status = 1;
+    if strcmp(options.guess_method, 'random') && options.inode <= 0
+        disp('With random initial guess, positive node # must be specified');
+        status = 0;
+    end
+
+% ---------------------------------------------------------------------
+
+function [fmin, xmin, PI, MU, SIGMA] = get_global_opt_solution(initial_guess, ...
+                                       MU, SIGMA, DATA, my_options)
+
+    K = (length(my_options.iE));
+
+    % Variables: MU, SIGMA^2, X, Y, Z for each cell 
+    
+    % Upper and lower bounds
+    [lb, ub] = get_bound_constraints(my_options.M, K, my_options.model);
+
+    % Equality constraints
+    [Aeq, beq] = get_equality_constraints(my_options.M, K, my_options.model);
+ 
+    % Inequality constraints
+    if my_options.M > 1
+        [Aineq, bineq] = get_inequality_constraints(my_options.M, K, my_options.model);
+    else
+        Aineq = [];
+        bineq = [];
+    end
+
+    % Initial guess 
+    [x0] = initial_guess;
+
+    % Optimization using a specified method
+    if strcmp(my_options.method, 'ms') % MultiStart
+        % algorithm = ['interior-point' 'sqp' 'active-set' 'trust-region-reflective'];
+        disp('Applying MultiStart algorithm ...');
+        options = optimoptions(@fmincon, 'Algorithm', my_options.algorithm);
+        options.MaxIter = my_options.MaxIter;
+        options.MaxFunEvals = Inf;
+%       options.MaxFunEvals = 2;
+%       options.InitBarrierParam = 1.e-5;
+        disp(['M=' num2str(my_options.M) ' length(x0)=' num2str(length(x0)) ...
+              ' length(lb)=' num2str(length(lb)) ' length(ub)=' num2str(length(ub)) ...
+              ' length(Aeq)=' num2str(length(Aeq)) ]);
+        problem = createOptimProblem('fmincon', 'x0', x0(1,:), ...
+                                     'objective',@(x) objective_fun(x, DATA, my_options),...
+                                     'lb',lb,'ub',ub,'Aeq', Aeq, 'beq', beq, ...
+                                     'options',options);
+        ms = MultiStart('TolFun',0.01,'TolX',0.001);
+        x0_object = CustomStartPointSet(x0);
+        [xmin, fmin, ~]  = run(ms,problem, x0_object);             
+    elseif strcmp(my_options.method, 'em') % Simulated Annealing (only bound constraints!)
+        % Only bound constraints are allowed
+        disp('Applying Expectation-Maximization algorithm ...');
+        my_options.TolFun = 0.1;
+        my_options.TolX   = 1.e-8;  
+        [xmin, fmin, PI, MU, SIGMA] = ExpectationMaximization(x0, MU, SIGMA, DATA, my_options);     
+    elseif strcmp(my_options.method, 'kk') % Simulated Annealing (only bound constraints!)
+        % Only bound constraints are allowed
+        disp('Applying KlustaKwik algorithm ...');
+        disp(['size(DATA)=' num2str(size(DATA))]);
+        [xmin, fmin] = KlustaKwik(DATA, my_options);
+    else
+        disp([ 'Incorrectly specified name of global opt method: ' method ]);
+        return;
+    end
+
+%-------------------------------------------------------------------------------
+
+function  [lb, ub] = get_bound_constraints(M, K, model)
+
+    if model ~= 2
+        lb = ones(1, 6*M);
+        ub = ones(1, 6*M);
+    else
+        lb = ones(1, 6*M+K);
+        ub = ones(1, 6*M+K);
+    end
+    lb_one = [0 -2.0  1.e-6  -50 -50   0]; % PI, MU, SIGMA, X, Y, Z
+    ub_one = [1  0   10       50 250  50]; % PI, MU, SIGMA, X, Y, Z
+    for m=1:M
+        lb((1+(m-1)*6):(m*6)) = lb_one;
+        ub((1+(m-1)*6):(m*6)) = ub_one;
+    end                              
+    if model == 2       
+        min_eps =  1.e-9;
+        max_eps = 10;
+        lb(end-K+1:end) = min_eps*ones(1,K);
+        ub(end-K+1:end) = max_eps*ones(1,K);
+    end    
+
+%-------------------------------------------------------------------------------
+
+function [Aeq, beq] = get_equality_constraints(M, K, model)
+    if model == 2       
+        Aeq = zeros(1,M*6+K);
+    else
+        Aeq = zeros(1,M*6);
+    end
+    Aeq(1,1+(0:(M-1))*6) = 1; % sum of PIs = 1, or A(1,1)*X(1)+A(1,7)*x(7)+...= 1
+    beq = 1;
+
+%-------------------------------------------------------------------------------
+
+function [Aineq, bineq] = get_inequality_constraints(M, K, model)
+    if model == 2       
+        Aineq = zeros(M-1,M*6+K); 
+    else
+        Aineq = zeros(M-1,M*6);
+    end
+    for m=1:(M-1)
+        Aineq(m,1+(m-1)*6) =  1;  
+        Aineq(m,1+ m   *6) = -1; % MU_m <= MU_m+1 
+    end
+    bineq = -zeros(1, M-1);
+
+%-------------------------------------------------------------------------------
+
+% Compute the Gussian mixture likelihood function
+% Data is supposed to be stored in ftFile
+% X is a vector of parameters of the model:
+% X = [ MU_VECT, SIGMA_VECT, XC_VECT, YC_VECT, ZC_VECT ]
+
+function[fmin] = objective_fun(X, DATA, options)
+    persistent num_iterations;
+    persistent previous_fmin;
+    persistent best_fmin;
+    persistent best_xmin;
+    global start;
+
+    if start == 1
+        num_iterations = 0;
+        previous_fmin = 0.;
+        best_fmin = inf;
+        start = 0;
+        best_xmin = zeros(length(X));
+    end
+
+    K = int32(length(options.iE));
+    [PI, ALPHA, MU_MATR, SIGMA_MATR, SIGMA_DET, SIGMA_MATR_INV, EPS] = ...
+        get_apparent_variables(X, K, options);
+    M  = (length(PI));
+   
+    fmin = - TNC_GM_GaussMixLogLikelihood(PI,MU_MATR,SIGMA_MATR,SIGMA_MATR_INV,...
+                                          DATA);
+
+    if  best_fmin > fmin
+        best_fmin = fmin;
+        best_xmin = X;
+    end   
+    if fmin ~= previous_fmin || strcmp(options.method,'em')
+        num_iterations = num_iterations + 1;
+        previous_fmin = fmin;
+        disp(' ');
+        disp(['Iteration# ' num2str(num_iterations) ' M= ' num2str(M) ...
+              ' method= ' options.method ' algorithm= ' options.algorithm ' model=' num2str(options.model) ]);    
+        disp(['Fmin=' num2str(fmin) ' best Fmin=' num2str(best_fmin) ' sum(PI)=' num2str(sum(PI))]);
+        if options.verbose >= 1
+            disp('     X= '); 
+            for i=1:((length(X)-(options.model-1)*K)/6)
+                disp(['           ' num2str(X(int32(1:6)+(i-1)*6))]);
+            end
+            if options.model == 2       
+                disp(['           ' num2str(X((length(X)-K+1):length(X)))]);
+            end
+            disp('best X= ');
+            for i=1:((length(best_xmin)-(options.model-1)*K)/6)
+                disp(['           ' num2str(best_xmin(int32(1:6)+(i-1)*6))]);
+            end
+            if options.model == 2       
+                disp(['           ' num2str(best_xmin((length(best_xmin)-K+1):length(best_xmin)))]);
+            end
+        end
+    end
+
+%-------------------------------------------------------------------------------
+
+function[fmin] = objective_fun_em(X, PI, MU_MATR, SIGMA_MATR, DATA, options)
+    LX = int32(length(X));
+    K  = int32(length(options.iE));
+    M  = int32(length(PI));
+    SIGMA_MATR_INV = zeros(K, K*M);
+    DET = zeros(1, M);
+    for m=1:M
+        SIGMA1 = SIGMA_MATR(:,(K*(m-1)+1):(K*m));
+        DET(m) = det(SIGMA1);
+%       DET(m)
+        SIGMA_MATR_INV(:,(K*(m-1)+1):(K*m)) = inv(SIGMA1);
+    end
+
+    fmin = - TNC_GM_GaussMixLogLikelihood(PI,MU_MATR,SIGMA_MATR,SIGMA_MATR_INV,...
+                                          DATA);
+
+%-------------------------------------------------------------------------------
+
+function output_gm_data(xmin, fmin, PI, MU, SIGMA, targetName, featStruct, options)
+    K = length(MU);
+    if options.model == 2       
+        M = int32(length(xmin)-K)/6;
+    else
+        M = int32(length(xmin)  )/6;
+    end
+    iseg   = options.iseg;
+    ishank = options.ishank;
+    gmStruct.program = 'TNC_GM_SortSpikes.m';
+    gmStruct.model = options.model;
+    gmStruct.paramNames = {'PI', 'MU' 'SIGMA' 'XC' 'YC' 'ZC'};
+    gmStruct.num_components = M;
+    gmStruct.method = options.method;
+    gmStruct.seg(iseg).shank(ishank).PI    = PI;
+    gmStruct.seg(iseg).shank(ishank).MU    = MU;
+    gmStruct.seg(iseg).shank(ishank).SIGMA = SIGMA;
+    gmStruct.seg(iseg).shank(ishank).XC    = xmin(4+(0:(M-1))*6);
+    gmStruct.seg(iseg).shank(ishank).YC    = xmin(5+(0:(M-1))*6);
+    gmStruct.seg(iseg).shank(ishank).ZC    = xmin(6+(0:(M-1))*6);
+    gmStruct.seg(iseg).shank(ishank).xmin  = xmin;
+    gmStruct.seg(iseg).shank(ishank).fmin  = fmin;
+    if options.model == 2       
+        eps_beg = int32(length(xmin)-K+1);
+        eps_end = int32(length(xmin));
+        disp(['iseg=' num2str(options.iseg) ' ishank=' num2str(options.ishank) ' eps_beg=' num2str(eps_beg) ' eps_end=' num2str(eps_end) ]);
+        gmStruct.seg(int32(options.iseg)).shank(int32(options.ishank)).EPS = xmin(eps_beg:eps_end);
+    end
+    if options.fakeData
+        gmStruct.coord.x_neurons = featStruct.x_neurons;
+        gmStruct.coord.y_neurons = featStruct.y_neurons;
+        gmStruct.coord.z_neurons = featStruct.z_neurons;
+    end
+    disp(['targetName=' targetName]);
+    if options.inode > 0
+        output_name = strcat(targetName,'_seg',num2str(options.iseg), ...
+                             '_shank',num2str(options.ishank),'_mc',num2str(M),...
+                             '_gm_', num2str(options.inode));
+    else
+         output_name = strcat(targetName,'_seg',num2str(options.iseg), ...
+                             '_shank',num2str(options.ishank),'_mc',num2str(M),...
+                             '_gm');
+    end
+    disp(['save ' output_name ' gmStruct']);
+    eval(['save ' output_name ' gmStruct']);
+
+%-------------------------------------------------------------------------------
+
+function [ SIGMA_MATR ] = get_covariance_matrix(K, SIGMA0, ALPHA1, EPS)
+    SIGMA_MATR = zeros(K, K);
+    for k=1:K
+        for j=1:K
+            SIGMA_MATR(k,j) = SIGMA0*ALPHA1(k)*ALPHA1(j);
+            if k == j
+                SIGMA_MATR(k,j) = SIGMA_MATR(k,j) + max(EPS(k), 1.e-9);
+            end
+        end
+    end
+
+%-------------------------------------------------------------------------------
+
+function [PI, SIGMA, SIGMA_DET, SIGMA_INV, EPS] = preprocessing(K, M, x0, MU, ...
+                                                                SIGMA, options)
+    if options.verbose >= 2
+        disp(' ');
+        K
+        M
+        disp(['initial guess:']);
+        MU
+        SIGMA
+        disp(' ');
+    end
+
+    % Do pre-processing
+    if options.model == 1
+        SIGMA_DET = zeros(1, M);
+        PI        = zeros(1, M);
+        SIGMA_INV = zeros(K, K*M);
+        EPS       = zeros(1,K) + 1;
+    
+        PI(1:M)   = x0(1+(0:(M-1))*6);
+        for m = 1:M
+            SIGMA_DET(m) = det(SIGMA(:,((m-1)*K+1):(m*K)));
+            if SIGMA_DET(m) == 0
+                SIGMA(:,((m-1)*K+1):(m*K)) = SIGMA(:,((m-1)*K+1):(m*K)) + 1.e-9*eye(K);
+            end
+        end
+
+        for m = 1:M
+            SIGMA_INV(1:K,((m-1)*K+1):(m*K)) = inv(SIGMA(1:K,((m-1)*K+1):(m*K)));
+        end
+
+    else
+        [PI, ALPHA, ~ , ~, SIGMA_DET, SIGMA_INV, EPS]  = get_apparent_variables(x0, K, options);
+    end
+
+    if options.verbose >= 2
+        disp(['After pre-processing:']);
+        MU
+        SIGMA
+        if options.model == 2
+            ALPHA
+        end
+        disp('size(SIGMA_DET)=');
+        size(SIGMA_DET)
+        SIGMA_DET
+        SIGMA_INV
+    end
+
+    if options.verbose >= 2
+        disp(['After pre-processing:']);
+        MU
+        SIGMA
+        if options.model == 2
+            ALPHA
+        end
+        disp('size(SIGMA_DET)=');
+        size(SIGMA_DET)
+        SIGMA_DET
+        SIGMA_INV
+    end
+
+%-------------------------------------------------------------------------------
+
+function [best_PI, best_MU, best_SIGMA, best_xmin, best_fmin, iter] = ...
+              perform_iterations(x0, f0, PI, MU, SIGMA, SIGMA_INV, DATA, options)    
+    K         = size(MU, 1);
+    M         = size(PI, 1);
+    prev_xmin = Inf*ones(1, int32(length(x0)));
+    prev_fmin = Inf;
+    xmin      = x0;
+    fmin      = f0;
+    best_fmin = Inf;
+    iter = 1;
+    stop = 0;
+    while abs(fmin - prev_fmin)  > options.TolFun && iter < options.MaxIter ...
+          && ~stop
+
+        disp(['Iteration# ' num2str(iter) ' M= ' num2str(options.M) ...
+              ' method= ' options.method ' model=' num2str(options.model)]);
+        [Y, GAMMA] = Expectation_step(PI, MU, SIGMA, SIGMA_INV, DATA, options);
+        if options.verbose
+            Y_unique = unique(Y);
+            counts = zeros(1, length(Y_unique));
+            for i=1:length(Y_unique)
+                counts(i) = length(find(Y == Y_unique(i)));
+            end
+            disp(['Y_unique=', num2str(Y_unique) ' counts=' num2str(counts)]);
+        end
+%       disp('Before Maximization_step');
+%       MU
+%       SIGMA
+        [PI,MU,SIGMA,DET] = Maximization_step(Y, GAMMA, DATA, options);
+%       disp('After Maximization_step');
+%       SIGMA
+%       DET
+        [MU0,SIGMA0,EPS,SIGMA,SIGMA_DET,SIGMA_INV] ...
+                      = TNC_GM_RefineModelParameters(MU,SIGMA,options);
+%       disp('After Refinement');
+%       SIGMA
+%       SIGMA_DET         
+        if options.verbose >= 2
+            MU0
+            SIGMA0
+            EPS
+            SIGMA
+            SIGMA_DET
+            SIGMA_INV
+        end
+        prev_xmin = xmin;
+        prev_fmin = fmin;
+        xmin      = get_intrinsic_variables(PI,MU0,SIGMA0,EPS,MU,options);
+        fmin      = objective_fun_em(xmin, PI, MU, SIGMA, DATA, options);
+        if best_fmin > fmin 
+           best_fmin = fmin;
+           best_xmin = xmin;
+           best_PI   = PI;
+           best_MU   = MU;
+           best_SIGMA = SIGMA;
+        end
+        if options.verbose
+            disp(['prev_fmin=' num2str(prev_fmin) ' fmin=' num2str(fmin) ...
+                  ' abs(fmin - prev_fmin)=' num2str(abs(fmin - prev_fmin)) ...
+                  ' TolFun=' num2str(options.TolFun)]);
+            disp(' ' );
+        end
+
+        if options.verbose >= 2
+            MU_MATR
+        end
+
+        disp(['Fmin=' num2str(fmin) ' best Fmin=' num2str(best_fmin) ]);
+        disp(' ');
+        if options.verbose >= 2
+            disp('     xmin= ');
+            for i=1:int32((length(xmin)-(options.model-1)*K)/6)
+                disp(['           ' num2str(xmin(int32(1:6)+(i-1)*6))]);
+            end
+            if options.model == 2
+                disp(['           ' num2str(xmin((length(xmin)-K+1):length(xmin)))]);
+            end
+            disp('best xmin= ');
+            for i=1:((length(best_xmin)-(options.model-1)*K)/6)
+                disp(['           ' num2str(best_xmin(int32(1:6)+(i-1)*6))]);
+            end
+            if options.model == 2
+                disp(['           ' num2str(best_xmin((length(best_xmin)-K+1):length(best_xmin)))]);
+            end
+            disp(' ');
+        end
+
+        if options.fakeData
+            estimate_coord_accuracy(K, M, xmin, options);
+            disp(' ');
+        end
+        
+        % Stop iterations if objective starts to increase
+        if fmin - best_fmin > 0.1*abs(best_fmin)
+            stop = 1;   
+        end
+        iter = iter + 1;
+    end
+
+    if options.dispOn > 0
+        disp(['size(SIGMA)=' num2str(size(SIGMA))]);
+        M = size(MU, 2);
+        m = 1;
+        SIGMA1 = SIGMA(:,(K*(m-1)+1):(K*m));
+        colormap('hot');
+        imagesc(SIGMA);
+        colorbar;
+    end
+
+    disp(' ');
+    if abs(fmin - prev_fmin) <= options.TolFun
+        disp(['Iterations converged with change in fmin= ' num2str(abs(fmin - prev_fmin)) ...
+              ' < TolFun= ' num2str(options.TolFun)]);
+    end
+
+%-------------------------------------------------------------------------------
+
+function [xmin, fmin, PI, MU, SIGMA] = ExpectationMaximization(x0, MU, SIGMA, DATA, options)      
+    global start;
+
+    K  = int32(size(MU,1));           
+    M  = int32(options.M);            
+ 
+    % Do pre-processing 
+    [PI, SIGMA, SIGMA_DET, SIGMA_INV, EPS] = preprocessing(K, M, x0, MU, SIGMA, options);
+    disp('After pre-processing:');
+    SIGMA_DET 
+    f0 = objective_fun_em(x0, PI, MU, SIGMA, DATA, options);
+    disp(['Initial fmin=' num2str(f0)]);
+    MU
+    disp(' ' );
+
+    % Do iterations
+    % NOTE: don't use an additional condition 
+    %       || norm(xmin - prev_xmin) > options.TolX  !!!
+    start = 1;
+%   disp('Before perform_iterations');
+%   MU
+    [PI, MU, SIGMA, xmin, fmin, iter] = ...
+              perform_iterations(x0, f0, PI, MU, SIGMA, SIGMA_INV, DATA, options);
+
+    disp(' ');
+    disp(['Initial fmin=' num2str(f0)]);
+    disp(['Final   fmin=' num2str(fmin) ' (M=' num2str(M) ', node=' num2str(options.inode) ')']);
+    disp(['        xmin=' num2str(xmin)]);
+    if options.verbose
+        disp(['      PI  =' num2str(PI)]);
+        disp( '      MU  =' );
+        MU
+        disp( '      SIGMA=');
+        SIGMA
+    end
+    disp(' ');
+
+%-------------------------------------------------------------------------------
+
+function [PI, ALPHA, MU_MATR, SIGMA, SIGMA_DET, SIGMA_INV, EPS] = ...
+         get_apparent_variables(X, K, options)
+
+    LX   = int32(length(X));
+    M    = int32((length(X)-(options.model-1)*K)/6);
+
+    SIGMA_DET = zeros(1, M);
+    PI        = zeros(1, M);
+    MU0       = zeros(1, M);
+    SIGMA0    = zeros(1, M);
+    XC        = zeros(1, M);
+    YC        = zeros(1, M);
+    ZC        = zeros(1, M);
+
+    PI(1:M)     = X(1+(0:(M-1))*6);
+    MU0(1:M)    = X(2+(0:(M-1))*6);
+    SIGMA0(1:M) = X(3+(0:(M-1))*6);
+    XC(1:M)     = X(4+(0:(M-1))*6); % cell X-coordinate
+    YC(1:M)     = X(5+(0:(M-1))*6); % cell Y-coordinate
+    ZC(1:M)     = X(6+(0:(M-1))*6); % cell Z-coordinate
+    EPS = zeros(1,K) + 1;
+    if options.model == 2       
+        EPS= X(int32(6*M) + int32(1:K));
+    end
+
+    MU_MATR   = zeros(K, M);
+    SIGMA     = zeros(K, K*M);
+    SIGMA_INV = zeros(K, K*M);
+ 
+    iE = [1:K];
+    if K == 8
+        [XE, YE, ZE] = TNC_GM_ElectrodeCoordinates('Buzsaki64', iE);
+    else
+        [XE, YE, ZE] = TNC_GM_ElectrodeCoordinates('tetrode', iE);
+    end
+    ALPHA_VECT = []; % vector of length M*K
+    for m=1:M
+        dist = [];
+        for k=1:K
+            ce_dist = sqrt((XC(m)-XE(k))^2+(YC(m)-YE(k))^2+(ZC(m)-ZE(k))^2);
+            dist = [dist ce_dist];
+        end
+        mean_dist = mean(dist);         
+%       disp(['mean_dist=' num2str(mean_dist) ' dist=' num2str(dist)]);
+        ALPHA_ADD = [];
+        for k=1:K
+            my_alpha = mean_dist./dist(k);
+            ALPHA_ADD = [ALPHA_ADD my_alpha];
+%           disp(['    k=' num2str(k) ' my_alpha=' num2str(my_alpha) ' ALPHA_ADD=' num2str(ALPHA_ADD)]);
+        end
+        ALPHA_VECT = [ALPHA_VECT ALPHA_ADD];
+    end
+    ALPHA = reshape(ALPHA_VECT, K,M);
+
+    % Matrix of means
+    for m = 1:M
+        MU_MATR(:,m) = MU0(m).*ALPHA(:,m);
+    end
+
+    % Covariance matrixes for all components = M matrices of size K x K
+    for m = 1:M
+        SIGMA(:,((m-1)*K+1):(m*K)) = get_covariance_matrix(K,SIGMA0(m),ALPHA(:,m),EPS);
+%       disp(['m=' num2str(m) ' det(SIGMA)=' det(SIGMA(:,((m-1)*K+1):(m*K)))]);
+        SIGMA_DET(m) = det(SIGMA(:,((m-1)*K+1):(m*K)));
+    end
+    
+    % Inverse covariance matrixes for all components
+    for m = 1:M
+        SIGMA_INV(1:K,((m-1)*K+1):(m*K)) = inv(SIGMA(1:K,((m-1)*K+1):(m*K)));
+    end
+
+%-------------------------------------------------------------------------------
+
+% Compute "responsibilities" of different Gaussian components
+%                            for each data point
+% GAMMA is N x M matrix of "responsibilities"
+%                       of different components for a given data point
+% NOTE: use formula (9.13) from:
+%       Christopher M. Bishop, "Pattern Recognition and Machine Learning"
+%       Springer, 2006
+%
+
+function [Y, GAMMA ] = Expectation_step(PI, MU, SIGMA, SIGMA_INV, DATA, options)
+    N = (size(DATA, 1));
+    M = (length(PI));
+    K = (size(MU,   1));
+
+    Y     = zeros(1, N);
+    GAMMA = zeros(N, M);
+    SIGMA_DET = zeros(1, M); 
+    for m=1:M
+        SIGMA_DET(m) = det(SIGMA(:,(K*(m-1)+1):(K*m)));
+    end
+    if options.verbose >= 2
+        disp('In Expectation_step:');
+        SIGMA
+        SIGMA_DET
+    end
+
+    % Compute 'responsibilities' of different clusters for given datapoint
+    % Determine class labels Y 
+    for n=1:N
+        Xn = DATA(n,:);
+        Num = zeros(1,M);
+        for m=1:M
+            MU1 = MU(:,m)';
+            Num(m) = PI(m)*TNC_GM_MultiVarGauss(Xn, MU1, SIGMA_INV(:,(K*(m-1)+1):(K*m)), SIGMA_DET(m)); 
+            arg= (Xn-MU1)*SIGMA_INV(:,(K*(m-1)+1):(K*m))*(Xn-MU1)';
+%           disp(['n=' num2str(n) ' m=' num2str(m) ' MU1=' num2str(MU1) ' Xn=' num2str(Xn) ' arg=' num2str(arg) ' Num=' num2str(Num(m))]);
+        end
+        Denom = sum(Num);
+        if ~isnan(Denom)
+            for m=1:M 
+                if ~isnan(Num(m)/Denom)
+                    [val ind] = max(Num);
+                    GAMMA(n,m) = Num(m)/Denom;
+                end
+            end
+        end
+        if max(GAMMA(n,:)) > 1.e-9
+            Y(n) = find(GAMMA(n,:) == max(GAMMA(n,:)));
+        else
+            Y(n) = 1;
+        end
+    end
+
+%-------------------------------------------------------------------------------
+
+% Compute next approximation to parameters of Gaussian Mixture MOdel
+% using as input the "responsibilities" of different Gaussian components
+% for each data point
+%
+% PI is M-vector of mixing coefficients
+% MU is K x M matrix of mean values
+% SIGMA is K x K*M matrix of covariances
+%
+% NOTE: use formulas (9.17), (9.18), (9.19) and (9.22) from:
+%       Christopher M. Bishop, "Pattern Recognition and Machine Learning"
+%       Springer, 2006
+%
+
+function [PI, MU, SIGMA, DET]  = Maximization_step(Y, GAMMA, DATA, options)
+    N = (size(DATA,  1));
+    M = (size(GAMMA, 2));
+    K = (size(DATA,  2));
+
+    Nm    = zeros(1, M);
+    PI    = zeros(1, M);
+    MU    = zeros(K, M);
+    SIGMA = zeros(K, K*M);
+    DET   = zeros(1, M);
+    use_classification = 0;
+%   if length(unique(Y)) == M
+%       use_classification = 1;
+%   end
+    if options.verbose
+        disp(['use_classification=' num2str(use_classification)]);
+    end
+    for m=1:M
+        % Compute mean values 
+        for n=1:N
+            if ~use_classification || Y(n) == m
+                Xn      = DATA(n,:);
+                Nm(m)   = Nm(m)   + GAMMA(n,m);  
+                if isnan(GAMMA(n,m))
+                    disp(['GAMMA=NaN for n=' num2str(n) ' m=' num2str(m)]);
+                else
+                    MU(:,m) = MU(:,m) + GAMMA(n,m)*Xn';
+                end
+            end
+        end
+        if Nm(m) == 0
+            Nm(m) = options.min_eps;
+        end
+        MU(:,m) = MU(:,m)./Nm(m);
+
+        % Compute covariance matrix
+        for n=1:N
+            if ~use_classification || Y(n) == m
+                Xn  = DATA(n,:);
+                SIGMA(:,(K*(m-1)+1):(K*m)) = SIGMA(:,(K*(m-1)+1):(K*m)) + ...
+                                             GAMMA(n,m).*(Xn - MU(:,m)')'*(Xn-MU(:,m)');
+            end
+        end
+
+        % Regularized covariance matrix
+        SIGMA(:,(K*(m-1)+1):(K*m)) = SIGMA(:,(K*(m-1)+1):(K*m))./Nm(m) ...
+                                     + diag(options.min_eps.*ones(1, K));
+        DET(m) = det(SIGMA(:,(K*(m-1)+1):(K*m)));
+    end
+    for m=1:M
+        PI(m) = Nm(m) / sum(Nm);
+    end
+
+%-------------------------------------------------------------------------------
+
+function X = get_intrinsic_variables(PI, MU0, SIGMA0, EPS, MU, options)
+
+    M  = (size(MU0, 2));
+    K  = (size(EPS, 2));
+    LX = int32(6*M + (options.model - 1)*K);
+    X  = zeros(1, LX);
+    
+    XC = zeros(1, M);
+    YC = zeros(1, M);
+    ZC = zeros(1, M);
+
+    % Compute vector MUO
+    if K == 8
+        [XE, YE, ZE] = TNC_GM_ElectrodeCoordinates('Buzsaki64', [1:K]);
+    else
+        [XE, YE, ZE] = TNC_GM_ElectrodeCoordinates('tetrode', [1:K]);
+    end
+    for m=1:M
+        if K == 4
+            tetrode = reshape([XE, YE, ZE], K, 3);
+            [XC(m), YC(m), ZC(m)] = TNC_GM_Triangulation(MU(:,m)', tetrode', options);
+            if options.verbose
+                disp(['m=' num2str(m) ' MU=' num2str(MU(:,m)') ' XC(m), YC(m), ZC(m)=']);
+                [XC(m), YC(m), ZC(m)] 
+            end
+        elseif K == 8
+            tetrode1 = reshape([XE([1 3 5 7]), YE([1 3 5 7]), ZE([1 3 5 7])], 4, 3);
+            tetrode2 = reshape([XE([2 4 6 8]), YE([2 4 6 8]), ZE([2 4 6 8])], 4, 3);
+            [XC1, YC1, ZC1] = TNC_GM_Triangulation(MU([1 3 5 7],m)', tetrode1', options);
+            [XC2, YC2, ZC2] = TNC_GM_Triangulation(MU([1 3 5 7],m)', tetrode1', options);
+            XC(m) = (XC1 + XC2)/2;
+            YC(m) = (YC1 + YC2)/2;
+            ZC(m) = (ZC1 + ZC2)/2;
+        else
+            disp('TNC_GM_SortSpikes: K must be a multiple of 4');
+            return
+        end
+        if options.verbose
+            disp(['m=' num2str(m) ' MU=' num2str(MU(:,m)') ...
+                  ' power=' num2str(options.power) ...
+                  ' X,Y,Z=' num2str([XC(m), YC(m), ZC(m)])]);
+        end
+    end
+    X(1+(0:(M-1))*6) = PI;
+    X(2+(0:(M-1))*6) = MU0;
+    X(3+(0:(M-1))*6) = SIGMA0;
+    X(4+(0:(M-1))*6) = XC;
+    X(5+(0:(M-1))*6) = YC;
+    X(6+(0:(M-1))*6) = ZC;
+    if options.model == 2       
+        X(6*M + (1:K)) = EPS(1:K);
+    end
+
+%-------------------------------------------------------------------------------
+
+function estimate_coord_accuracy(K, M, X, options)
+    xc_true = options.coord.x_neurons;
+    yc_true = options.coord.y_neurons;
+    zc_true = options.coord.z_neurons;
+    for m=1:M
+        xc = X(4+(m-1)*6);
+        yc = X(5+(m-1)*6);
+        zc = X(6+(m-1)*6);
+        best_dist = inf;
+        best_accuracy = inf;
+        best_xc  = inf;
+        best_yc  = inf;
+        best_zc  = inf;
+        for i=1:length(options.coord.x_neurons)
+            dist = sqrt((xc-xc_true(i))^2 + ...
+                        (yc-yc_true(i))^2 + ...
+                        (zc-zc_true(i))^2);      
+            if (best_dist > dist)
+                best_dist = dist;
+                best_xc = xc_true(i);
+                best_yc = yc_true(i);
+                best_zc = zc_true(i); 
+            end
+        end 
+        coord_error = [abs(xc-best_xc) abs(yc-best_yc) abs(zc-best_zc)];
+        disp(['m=' num2str(m) ' true xc,yc,zc=' num2str([best_xc best_yc best_zc]) ...
+              ' coord. error=' num2str(coord_error)...
+              ' % error=' num2str(100*max(coord_error)/max([abs(best_xc) abs(best_yc) abs(best_zc)]))]);
+    end    
+
+%-------------------------------------------------------------------------------
+
+function [xmin, fmin] = KlustaKwik(DATA, my_options)
+    K = size(DATA, 2);
+    tonic_data = getenv('TONIC_DATA');
+    prefixPath = [ tonic_data '/' my_options.prefixName ];
+    input_tfile = create_input_textfile(DATA, prefixPath);
+    disp(['input_file=' input_tfile ]); 
+    output_file = run_KlustaKwik(prefixPath);
+    Y = read_output_file(output_file);
+    M = length(unique(Y));
+    disp(' ');
+    disp(['num_clusters=' num2str(M)]);
+    disp(' ');
+    xmin = [];
+    fmin = 0;
+
+%-------------------------------------------------------------------------------
+
+function fileName = create_input_textfile(DATA, prefixName)
+    K = size(DATA, 2);
+    N = size(DATA, 1);
+    fileName = [ prefixName '.fet.1' ];
+    fid = fopen(fileName, 'w');
+    fprintf(fid, '%d\n', K);
+    for n=1:N
+        for k=1:K
+            fprintf(fid, '%f ', DATA(n, k));
+        end
+        fprintf(fid, '\n');
+    end
+    fclose(fid);
+
+%-------------------------------------------------------------------------------
+
+function output_file = run_KlustaKwik(prefixName)           
+    tonic_data = getenv('TONIC_DATA');
+    executable_path = [ tonic_data '/KlustaKwik' ];
+    command = [ executable_path ' ' prefixName ' 1'];
+    status = unix(command);
+    output_file = [ prefixName '.clu.1' ];
+    disp(['output_file=' output_file ]); 
+
+%-------------------------------------------------------------------------------
+
+function Y = read_output_file(output_file)
+    Y = [];
+    fid = fopen(output_file,'r'); %# open csv file for reading
+    while ~feof(fid)
+        line = fgets(fid); %# read line by line
+        y = sscanf(line,'%d'); %# sscanf can read only numeric data :(
+        Y = [Y y];
+    end
+    fclose(fid);
+
