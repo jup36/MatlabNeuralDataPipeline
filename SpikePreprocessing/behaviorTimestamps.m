@@ -7,12 +7,16 @@ function behaviorTimestamps(filePath,varargin)
 % e.g. Run, 
 % behaviorTimestamps(filePath,'numbNeuralProbe',0,'numbChEachProbe',64,...
 % ...,'XposCh',33,'YposCh',37,'soleCh',3,'lickCh',5,'laserCh',7,'numbTagLasers',30,'artifactRmv',true)
+% modified on 5/17/18 to process the pseudoLaser signal (pseudoLaser pulses without actual laser delivery)
+% modified on 6/7/18 to clear solenoid artifact from the other channels
 
+%addpath(genpath('/Volumes/RAID2/parkj/MATLAB'))
 p = parse_input_beh(filePath, varargin ); % parse input
+%p = parse_input_beh(filePath, {} ); % use this line instead when running line-by-line 
 
 cd(p.Results.filePath)
 
-if exist('BehVariables.mat', 'file')==2 % if the BehVariables.mat file already exists in the filePath
+if ~isempty(dir('BehVariables.mat')) % if the BehVariables.mat file already exists in the filePath
     answer = questdlg('BehVariable.mat already exists, Would you like to replace it?','Choice','Replace','Cancel','Cancel');
     switch answer
         case 'Replace'            
@@ -43,6 +47,7 @@ YposCh  = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.YposCh; 
 soleCh  = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.soleCh;  % channel # for solenoid (water reward delivery) 
 lickCh  = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.lickCh;  % channel # for lick port
 laserCh = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.laserCh; % channel # for laser (laser TTL) 
+pseudoLaserCh = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.pseudoLaserCh; % channel # for pseudoLaser (laser TTL triggerred by joystick displacement crossing the laser stim threshold with and without the actual laser delivery) 
 
 % preallocate the behavioral data arrays
 Xpos    = zeros(1,floor(totalTimeSecs*1000)); % the time resolution will be 1000Hz (1ms) after decimation
@@ -50,19 +55,22 @@ Ypos    = zeros(1,floor(totalTimeSecs*1000)); %
 lick    = zeros(1,floor(totalTimeSecs*1000)); %
 sole    = zeros(1,floor(totalTimeSecs*1000)); %
 laser   = zeros(1,floor(totalTimeSecs*1000)); %
+pseudoLaser = zeros(1,floor(totalTimeSecs*1000)); %
 
 for i = 0:totalTimeSecs-1 % read second-by-second incrementally to avoid a memory issue
     tempDataArray = ReadBin(i*nSamp, nSamp, meta, binName, p.Results.filePath); % read bin data for each second
-    tempXpos  = decimate(tempDataArray(XposCh,:),nSamp/1000); % decimate the data
-    tempYpos  = decimate(tempDataArray(YposCh,:),nSamp/1000);
-    templick  = decimate(tempDataArray(lickCh,:),nSamp/1000);
-    tempsole  = decimate(tempDataArray(soleCh,:),nSamp/1000);
-    templaser = decimate(tempDataArray(laserCh,:),nSamp/1000);
+    tempXpos  = decimate(tempDataArray(XposCh,:),round(nSamp/1000)); % decimate the data
+    tempYpos  = decimate(tempDataArray(YposCh,:),round(nSamp/1000));
+    templick  = decimate(tempDataArray(lickCh,:),round(nSamp/1000));
+    tempsole  = decimate(tempDataArray(soleCh,:),round(nSamp/1000));
+    templaser = decimate(tempDataArray(laserCh,:),round(nSamp/1000));
+    temppseudoLaser = decimate(tempDataArray(pseudoLaserCh,:),round(nSamp/1000));
     Xpos(1,i*1000+1:(i+1)*1000) = tempXpos; % accumulated the decimated data
     Ypos(1,i*1000+1:(i+1)*1000) = tempYpos;
     lick(1,i*1000+1:(i+1)*1000) = templick;
     sole(1,i*1000+1:(i+1)*1000) = tempsole;
     laser(1,i*1000+1:(i+1)*1000) = templaser;
+    pseudoLaser(1,i*1000+1:(i+1)*1000) = temppseudoLaser;
     clearvars temp*
     fprintf('processed %d\n', i+1) 
 end
@@ -75,12 +83,14 @@ if strcmp(meta.typeThis, 'imec') % in case recording via imec
     lick = GainCorrectIM(lick, 1, meta);   % gain-corrected voltage trace for lick
     sole = GainCorrectIM(sole, 1, meta);   % gain-corrected voltage trace for solenoid
     laser = GainCorrectIM(laser, 1, meta); % gain-corrected voltage trace for laser
+    pseudoLaser = GainCorrectIM(pseudoLaser, 1, meta); % gain-corrected voltage trace for pseudolaser
 else    % in case of recording via NI board
     Xpos = GainCorrectNI(Xpos, 1, meta);   % gain-corrected voltage trace for Xpos 
     Ypos = GainCorrectNI(Ypos, 1, meta);   % gain-corrected voltage trace for Ypos 
     lick = GainCorrectNI(lick, 1, meta);   % gain-corrected voltage trace for lick 
     sole = GainCorrectNI(sole, 1, meta);   % gain-corrected voltage trace for solenoid
     laser = GainCorrectNI(laser, 1, meta); % gain-corrected voltage trace for laser
+    pseudoLaser = GainCorrectNI(pseudoLaser, 1, meta); % gain-corrected voltage trace for pseudolaser
 end
 
 %% reward (digital pulses for solenoid activation) detection 
@@ -89,6 +99,7 @@ rewThres      = mean(abs(sole))+soleStd;      % this seems to work as a reasonab
 rewIdx        = find(abs(sole)>rewThres);     % find points crossing the lick threshold
 valRewIdx     = rewIdx(diff([0,rewIdx])>500);  % this prevents redundant detections
 % hold on; plot(sole); plot(valRewIdx,rewThres,'or'); hold off
+fprintf('Rewards detected: %d\n', length(valRewIdx)); 
 
 %% Position/velocity data
 if p.Results.artifactRmv % in case artifact remove is true
@@ -105,6 +116,7 @@ else
 end
 % get reach properties
 [ reachStart, reachStop, reach0, pos1, pos2, xpos1, ypos1, xpos2, ypos2 ] = getReachTimesJP( positionData );     % all reach traces, aligned to start (pos1), to stop (pos2)
+fprintf('Reaches detected: %d\n', length(reachStart));
 
 vel1 = diff(pos1, 1, 2); % reach velocity aligned to reach start(differentiation of pos1) 
 vel2 = diff(pos2, 1, 2); % reach velocity aligned to reach stop (differentiation of pos2)
@@ -112,64 +124,90 @@ vel2 = diff(pos2, 1, 2); % reach velocity aligned to reach stop (differentiation
 
 %% Get other task events - reward delivery, licks, laser stimulation
 % lick (digital pulses for lick) detection 
+
+if p.Results.filterLickCh
+   filtLick = filter1('hp',lick,'fs',1000,'fc',p.Results.highPassFilterFC);
+   lick = filtLick;  
+end
+
 [~,lickStd,~] = meanstdsem(abs(lick)');          % std of the lick input signal
-lickThres     = mean(abs(lick))+lickStd;         % this seems to work as a reasonable threshold for detecting lick stim
+lickThres     = mean(abs(lick))+2.5*lickStd;     % this seems to work as a reasonable threshold for detecting lick stim
 lickIdx       = find(abs(lick)>lickThres);       % find points crossing the lick threshold
 valLickIdx    = lickIdx(diff([0,lickIdx])>10);   % this prevents redundant detections
-
-%this part visualizes the detected lick traces for validation
-valLickCount = 0;
-for i = 1:length(valLickIdx)
-    %hold on;
-    if valLickIdx(i)-100>0 && valLickIdx(i)+100<length(lick)
-        valLickCount = valLickCount + 1;
-        lickTraces(valLickCount,:) = lick(1,valLickIdx(i)-100:valLickIdx(i)+100);
-        %plot(valLickIdx(i)-100:valLickIdx(i)+100,lickTraces(valLickCount,:),'m')
-        %plot(valLickIdx(i), lick(valLickIdx(i)),'c*')
-    else
-        
-    end
-end
-clearvars i
+fprintf('Licks detected: %d\n', length(valLickIdx));
+% %this part visualizes the detected lick traces for validation
+% valLickCount = 0;
+% for i = 1:length(valLickIdx)
+%     %hold on;
+%     if valLickIdx(i)-100>0 && valLickIdx(i)+100<length(lick)
+%         valLickCount = valLickCount + 1;
+%         lickTraces(valLickCount,:) = lick(1,valLickIdx(i)-100:valLickIdx(i)+100);
+%         %plot(valLickIdx(i)-100:valLickIdx(i)+100,lickTraces(valLickCount,:),'m')
+%         %plot(valLickIdx(i), lick(valLickIdx(i)),'c*')
+%     else
+%         
+%     end
+% end
+% clearvars i
 % validation with plot
 %hold on; plot(lick); plot(valLickIdx,lick(valLickIdx),'or'); hold off
 
-% laser (digital pulses for laser) detection 
-[~,laserStd,~] = meanstdsem(abs(laser)');             % std of the laser input signal
-laserThres     = mean(abs(laser))+laserStd;           % this seems to work as a reasonable threshold for detecting laser stim
-laserIdx       = find(abs(laser)>laserThres);         % find points crossing the laser threshold
-valLaserIdx    = laserIdx(diff([0,laserIdx])>1000);   % this prevents redundant detections
-tagLaserIdx    = zeros(1,length(valLaserIdx));        % preallocate index for optotag laser 
-tagLaserIdx(end-p.Results.numbTagLasers+1:end)=1;     % index for optotag laser (e.g. last 30 trials)
-tagLaser       = valLaserIdx(logical(tagLaserIdx));   % laser trials for opto-tagging: usually 10 trials are given at the end
-stmLaser       = valLaserIdx(~logical(tagLaserIdx));  % randomly selected reach-evoked opto-stimulations 
-% validation with plot
-%hold on; plot(laser); plot(stmLaser,laserThres,'or'); plot(tagLaser,laserThres,'og'); hold off; 
-
-% detect reaches with stim on (also the simulations delivered during reach or not)
-stimReachIdx = zeros(length(reachStart),1);     % index for stim on or not to be used for reachStart or reachStop
-stimReachLaserIdx = zeros(length(stmLaser),1);  % index for stmLaser to be delivered during completed reach or not
-
-for i = 1:length(reachStart)
+if p.Results.laserUsed
+    % laser (TTL pulses for laser) detection
+    [~,laserStd,~] = meanstdsem(abs(laser)');             % std of the laser input signal
+    laserThres     = mean(abs(laser))+laserStd;           % this seems to work as a reasonable threshold for detecting laser stim
+    laserIdx       = find(abs(laser)>laserThres);         % find points crossing the laser threshold
+    valLaserIdx    = laserIdx(diff([0,laserIdx])>1000);   % this prevents redundant detections
+    tagLaserIdx    = zeros(1,length(valLaserIdx));        % preallocate index for optotag laser
+    tagLaserIdx(end-p.Results.numbTagLasers+1:end)=1;     % index for optotag laser (e.g. last 30 trials)
+    tagLaser       = valLaserIdx(logical(tagLaserIdx));   % laser trials for opto-tagging: usually 10 trials are given at the end
+    stmLaser       = valLaserIdx(~logical(tagLaserIdx));  % randomly selected reach-evoked opto-stimulations
     
-    tmpStmLaserId = find(stmLaser > reachStart(i),1,'first'); % the first stim on after the current reach start
-    if stmLaser(tmpStmLaserId) <= reachStop(i)
-       stimReachIdx(i) = true; % mark it as a stimulated trial
-       stimReachLaserIdx(tmpStmLaserId) = true; % mark it as a stimulation delivered during a complete reach
-    end  
+    if p.Results.reachBeforeLastReward
+        stmLaser = stmLaser(stmLaser<valRewIdx(end)); % only take stmLaser occurred before the last reward delivery
+    else
+    end
+    
+    % validation with plot
+    %hold on; plot(laser); plot(stmLaser,laserThres,'or'); plot(tagLaser,laserThres,'og'); hold off;
+    
+    % pseudoLaser detection
+    rezeroPseudoLaser = pseudoLaser - mean(pseudoLaser); % re-zero pseudoLaser It's a nice practice to rezero the digital signals
+    [~,rezeroPseudoLaserStd,~] = meanstdsem(abs(rezeroPseudoLaser)');         % std of the laser input signal
+    pseudoLaserThres     = mean(abs(rezeroPseudoLaser))+rezeroPseudoLaserStd; % this seems to work as a reasonable threshold for detecting laser stim
+    pseudoLaserIdx       = find(abs(rezeroPseudoLaser)>pseudoLaserThres);     % find points crossing the laser threshold
+    valpseudoLaserIdx    = pseudoLaserIdx(diff([0,pseudoLaserIdx])>2000);     % this prevents redundant detections
+    
+    % detect reaches with stim on (also the simulations delivered during reach or not)
+    stimReachIdx = zeros(length(reachStart),1);     % index for stim on or not to be used for reachStart or reachStop
+    stimReachLaserIdx = zeros(length(stmLaser),1);  % index for stmLaser to be delivered during completed reach or not
+    
+    for i = 1:length(reachStart)
+        
+        tmpStmLaserId = find(stmLaser > reachStart(i),1,'first'); % the first stim on after the current reach start
+        if stmLaser(tmpStmLaserId) <= reachStop(i)
+            stimReachIdx(i) = true; % mark it as a stimulated trial
+            stimReachLaserIdx(tmpStmLaserId) = true; % mark it as a stimulation delivered during a complete reach
+        end
+    end
 end
+        
 
 % Build a structure for timestamps
 ts.reachStart = reachStart;     % reachStart
 ts.reachStop  = reachStop;      % reachStop
-ts.stmReachStart = reachStart(logical(stimReachIdx)); % reachStart of stim on trials
-ts.stmReachStop  = reachStop(logical(stimReachIdx));  % reachStop of stim on trials
 ts.reward     = valRewIdx;      % reward deliveries
 ts.lick       = valLickIdx;     % licks
-ts.laser      = valLaserIdx;    % laser stimulations all lasers
-ts.tagLaser   = tagLaser;       % laser stimulations for opto-tagging
-ts.stmLaser   = stmLaser;       % randomly selected reach-evoked opto-stimulations 
-ts.stmLaserReach = stmLaser(logical(stimReachLaserIdx)); % stim trials occurred during full reaches
+
+if p.Results.laserUsed
+    ts.laser      = valLaserIdx;    % laser stimulations all lasers
+    ts.stmLaser   = stmLaser;       % randomly selected reach-evoked opto-stimulations
+    ts.stmLaserReach = stmLaser(logical(stimReachLaserIdx)); % stim trials occurred during full reaches
+    ts.pseudoLaser = valpseudoLaserIdx; % pseudoLaser TTL pulses (without actual laser deliveries)
+    ts.stmReachStart = reachStart(logical(stimReachIdx)); % reachStart of stim on trials
+    ts.stmReachStop  = reachStop(logical(stimReachIdx));  % reachStop of stim on trials
+    ts.tagLaser = tagLaser; % laser for tagging
+end
 
 % Reach rewarded or not
 ts.reachRew = zeros(length(ts.reachStart),1); % 1st column: reward logic
@@ -188,9 +226,11 @@ end
 
 % Save relevant BehVariables
 cd(filePath)
-save('BehVariables','Xpos','Ypos','positionData','lick','sole','laser','lickTraces','reach0','pos1','pos2','xpos1','ypos1','xpos2','ypos2','vel1','vel2','ts','p' ) % append the position/velocity data variables
-
-
+if p.Results.laserUsed
+    save('BehVariables','Xpos','Ypos','positionData','lick','sole','reach0','pos1','pos2','xpos1','ypos1','xpos2','ypos2','vel1','vel2','ts','p', 'laser', 'pseudoLaser' ) % append the position/velocity data variables
+else
+    save('BehVariables','Xpos','Ypos','positionData','lick','sole','reach0','pos1','pos2','xpos1','ypos1','xpos2','ypos2','vel1','vel2','ts','p' ) % append the position/velocity data variables
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % NESTED HELPER FUNCTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -202,12 +242,16 @@ save('BehVariables','Xpos','Ypos','positionData','lick','sole','laser','lickTrac
         default_numbChEachProbe = 64; % Specify the number of sites on the NIboard probe
         default_XposCh = 33; % channel # for X position (default channel numbers for 64 channel recording)
         default_YposCh = 37; % channel # for Y position
+        default_pseudoLaserCh = 39; % channel # for pseudoLaser Pulses (without actual laser delivery)
         default_soleCh = 3;  % channel # for solenoid (water reward delivery)
         default_lickCh = 5;  % channel # for lick port
         default_laserCh = 7; % channel # for laser (laser TTL)
         default_numbTagLasers = 30; % the number of tagging trials given at the end of the experiment
         default_artifactRmv = true; % if true, removes the solenoid artifact from Xpos and Ypos channels by template subtraction
-        default_reachBeforeLastReward = true;
+        default_reachBeforeLastReward = true; % logical to detect reaches before the last reward delivery
+        default_laserUsed = true; % logical to indicate whether laser stimulation was used during the session or not
+        default_highPassFilterFC = 300; % 300Hz e.g., a highPass filter can be applied to denoise a channel
+        default_filterLickCh = false; 
         
         p = inputParser; % create parser object
         addRequired(p,'filePath');
@@ -215,12 +259,16 @@ save('BehVariables','Xpos','Ypos','positionData','lick','sole','laser','lickTrac
         addParameter(p,'numbChEachProbe',default_numbChEachProbe)
         addParameter(p,'XposCh',default_XposCh)
         addParameter(p,'YposCh',default_YposCh)
+        addParameter(p,'pseudoLaserCh', default_pseudoLaserCh)
         addParameter(p,'soleCh',default_soleCh)
         addParameter(p,'lickCh',default_lickCh)
         addParameter(p,'laserCh',default_laserCh)
         addParameter(p,'numbTagLasers',default_numbTagLasers)
         addParameter(p,'artifactRmv',default_artifactRmv)
         addParameter(p,'reachBeforeLastReward',default_reachBeforeLastReward)
+        addParameter(p,'laserUsed', default_laserUsed)
+        addParameter(p,'highPassFilterFC', default_highPassFilterFC)
+        addParameter(p,'filterLickCh', default_filterLickCh)
         
         parse(p,filePath,vargs{:})
         
