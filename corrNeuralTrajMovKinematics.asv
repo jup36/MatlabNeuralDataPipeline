@@ -82,20 +82,19 @@ for f = 0:folds-1
         nTrj.sortedFoldMaxVel{f+1} = nTrj.trjMat(:,:,sortMaxVel(f*trFolds+1:(f+1)*trFolds,2)); % take the trials of the current fold sorted by the max velocity
         nTrj.sortedFoldLickCnt{f+1} = nTrj.trjMat(:,:,sortLickCnt(f*trFolds+1:(f+1)*trFolds,2)); % take the trials of the current fold sorted by the lick counts
     elseif f==folds-1 % take all the remaining trials for the final fold
-        nTrj.sortedFoldMaxPos{f+1} = nTrj.trjMat(:,:,sortMaxPos(f*trFolds+1:end,2)); % take the trials of the current fold sorted by the max position
-        nTrj.sortedFoldMaxVel{f+1} = nTrj.trjMat(:,:,sortMaxVel(f*trFolds+1:end,2)); % take the trials of the current fold sorted by the max velocity
-        nTrj.sortedFoldLickCnt{f+1} = nTrj.trjMat(:,:,sortLickCnt(f*trFolds+1:end,2)); % take the trials of the current fold sorted by the lick counts
+        nTrj.sortedFoldMaxPos{f+1} = nTrj.trjMat(:,:,sortMaxPos(f*trFolds+1:end,2)); % take the trial-aver the current fold sorted by the max position
+        nTrj.sortedFoldMaxVel{f+1} = nTrj.trjMat(:,:,sortMaxVel(f*trFolds+1:end,2)); % take the trial-average within the current fold sorted by the max velocity
+        nTrj.sortedFoldLickCnt{f+1} = nTrj.trjMat(:,:,sortLickCnt(f*trFolds+1:end,2)); % take the trial-average within the current fold sorted by the lick counts
     end
 end
-clearvars f
 
 eventMarkers = [1, arrayfun(@(x) find(x==nTrj.relativeTimeBins), eventMarkersRelative)]; % find the time bins corresponding to the event markers using the relative eventMarkers (e.g. [-1050 0]) given as the input
 neuralTrajCmap  = summer(folds); % get the colormap for fold-by-fold trial-averaged neural trajectories
 eventMarkerCmap = cool(length(eventMarkers)+1); % get the colormap for all the events to be marked
 
-nTrj.trAvgSortedFoldMaxPos = cellfun(@(x) nanmean(x(1:3,:,:),3), nTrj.sortedFoldMaxPos, 'UniformOutput', false); % take the trial-averaged neural trajectories of each fold based on the maxPos
-nTrj.trAvgSortedFoldMaxVel = cellfun(@(x) nanmean(x(1:3,:,:),3), nTrj.sortedFoldMaxVel, 'UniformOutput', false); % take the trial-averaged neural trajectories of each fold based on the maxPos
-nTrj.trAvgSortedFoldLickCnt = cellfun(@(x) nanmean(x(1:3,:,:),3), nTrj.sortedFoldLickCnt, 'UniformOutput', false); % take the trial-averaged neural trajectories of each fold based on the maxPos
+nTrj.trAvgSortedFoldMaxPos = cellfun(@(x) nanmean(x(1:3,:,:),3), nTrj.sortedFoldMaxPos, 'UniformOutput', false); % 
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % NESTED HELPER FUNCTIONS %
