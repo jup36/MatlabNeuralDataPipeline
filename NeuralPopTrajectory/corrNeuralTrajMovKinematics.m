@@ -1,4 +1,4 @@
-function [] = corrNeuralTrajMovKinematics(filePath, fileNameNeural, fileNameBeh)
+function corrNeuralTrajMovKinematics()
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
