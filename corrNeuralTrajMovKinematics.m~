@@ -54,7 +54,7 @@ for dim = 1:size(nTrj.trjMat,1) % increment dimensions
     trialByTimePCscore =  squeeze(nTrj.trjMat(dim,:,:))'; % get the trial-by-timeBin PC score matrix for the current dimension
     % correlation movement kinematics & neural trjectories
     [nTrj.rMaxPos(:,dim),nTrj.pMaxPos(:,dim)] = corr(trialByTimePCscore,[bTrj.maxReachPos]'); % correlation between PC score in the current dim across all time bins and maxReachPos
-    [nTrj.rMaxVel(:,dim),nTrj.pMaxVel(:,dim)] = corr(trialByTimePCscore,[bTrj.maxReachVel]'); % correlation between PC score in the current dim across all time bins and maxReachVel
+    [nTrj.nTrj.rMaxVel(:,dim),nTrj.pMaxVel(:,dim)] = corr(trialByTimePCscore,[bTrj.maxReachVel]'); % correlation between PC score in the current dim across all time bins and maxReachVel
     [rPosBbyBtotal,pPosBbyBtotal] = corr(trialByTimePCscore,reshape([bTrj.reachPos]',[],length(behTS))');  % correlation between PC score in the current dim across all time bins and timeBin-by-timeBin reachPos
     nTrj.rPosBbyB(:,dim) = diag(rPosBbyBtotal); % take rho of the matching time bins
     nTrj.pPosBbyB(:,dim) = diag(pPosBbyBtotal); % take pVal of the matching time bins
@@ -73,7 +73,7 @@ figure; imagescJP(nTrj.rMaxPos',cmap,[-0.8 0.8]); pbaspect([1 1 1]); colorbar; t
 print(strcat(saveNameTag,'_corrPCscrDimMaxPos'),'-dpdf');
 figure; imagescJP(nTrj.rMaxVel',cmap,[-0.8 0.8]); pbaspect([1 1 1]); colorbar; title('corrPCscrDimMasVel'); set(gca,'yTick',1:1:size(nTrj.rMaxVel',1)); % plot the corr between nTrj and maxVel dim-by-dim
 print(strcat(saveNameTag,'_corrPCscrDimMaxVel'),'-dpdf');
-figure; imagescJP(nTrj.rLick',cmap,[-0.8 0.8]); pbaspect([1 1 1]); colorbar; title('corrPCscrDimLickCnt'); set(gca,'yTick',1:1:size(nTrj.rLick',1)); % plot the corr between nTrj and lickCount dim-by-dim
+figure; imagescJP(rLick',cmap,[-0.8 0.8]); pbaspect([1 1 1]); colorbar; title('corrPCscrDimLickCnt'); set(gca,'yTick',1:1:size(rMaxVel',1)); % plot the corr between nTrj and lickCount dim-by-dim
 print(strcat(saveNameTag,'_corrPCscrDimLickCnt'),'-dpdf');
 
 %% plot rank-folded neural population trajectories
