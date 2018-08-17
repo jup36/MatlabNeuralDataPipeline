@@ -8,16 +8,20 @@ function corrNeuralTrajMovKinematics(filePath, fileNameNeuralTrj, fileNameBeh, s
 % Finally, the neural population trajectories of all folds are drawn using the top three dims.  
 
 %filePath = '/Volumes/RAID2/parkj/NeuralData/ITphys/IT01_Ldms_M1_121317/Matfiles';
-cd(filePath)
 %fileNameNeuralTrj = 'IT01Str_121317_pca_reward_5D_50msBin.mat';
 %fileNameBeh = 'BehVariables.mat';
 %saveNameTag = 'IT01Str_121317_pca_reward_5D_50msBin'; 
 %eventMarkersRelative = [-1050 0]; % time points to mark on the neural trajectories
 %reachTimeWin = [-2500 0]; % timeWin to focus movement kinematics of  
 %lickTimeWin = [0 2000];   % timeWin to focus lick counts of 
-
+cd(filePath)
 p = parse_input_corrNeuralTrajMovKinematics( filePath, fileNameNeuralTrj, fileNameBeh, saveNameTag, eventMarkersRelative, reachTimeWin, lickTimeWin, varargin );
 % p = parse_input_corrNeuralTrajMovKinematics( filePath, fileNameNeuralTrj, fileNameBeh, saveNameTag, eventMarkersRelative, reachTimeWin, lickTimeWin, {} );
+
+for f = 1:p.Results.trialFolds
+    folds{1,f} = num2str(f); % get the fold labels in string
+end
+clearvars f
 
 %% load/organize neural trjectories pca- or gpfa-based
 neuralTrajFile = dir(fullfile(filePath,fileNameNeuralTrj));
@@ -54,7 +58,7 @@ for dim = 1:size(nTrj.trjMat,1) % increment dimensions
     trialByTimePCscore =  squeeze(nTrj.trjMat(dim,:,:))'; % get the trial-by-timeBin PC score matrix for the current dimension
     % correlation movement kinematics & neural trjectories
     [nTrj.rMaxPos(:,dim),nTrj.pMaxPos(:,dim)] = corr(trialByTimePCscore,[bTrj.maxReachPos]'); % correlation between PC score in the current dim across all time bins and maxReachPos
-    [nTrj.nTrj.rMaxVel(:,dim),nTrj.pMaxVel(:,dim)] = corr(trialByTimePCscore,[bTrj.maxReachVel]'); % correlation between PC score in the current dim across all time bins and maxReachVel
+    [nTrj.rMaxVel(:,dim),nTrj.pMaxVel(:,dim)] = corr(trialByTimePCscore,[bTrj.maxReachVel]'); % correlation between PC score in the current dim across all time bins and maxReachVel
     [rPosBbyBtotal,pPosBbyBtotal] = corr(trialByTimePCscore,reshape([bTrj.reachPos]',[],length(behTS))');  % correlation between PC score in the current dim across all time bins and timeBin-by-timeBin reachPos
     nTrj.rPosBbyB(:,dim) = diag(rPosBbyBtotal); % take rho of the matching time bins
     nTrj.pPosBbyB(:,dim) = diag(pPosBbyBtotal); % take pVal of the matching time bins
@@ -69,11 +73,25 @@ clearvars dim
 cd(fullfile(filePath,'Figure'))
 
 cmap = TNC_CreateRBColormap(100,'rb'); % generate a colormap for imagesc psth
-figure; imagescJP(nTrj.rMaxPos',cmap,[-0.8 0.8]); pbaspect([1 1 1]); colorbar; title('corrPCscrDimMaxPos'); set(gca,'yTick',1:1:size(nTrj.rMaxPos',1)); % plot the corr between nTrj and maxPos dim-by-dim
+figure; 
+imagescJP(nTrj.rMaxPos',cmap,[-0.8 0.8]); 
+pbaspect([1 1 1]); colorbar; 
+title(strcat('CorrPCscrDimMaxPos_',saveNameTag),'Interpreter', 'none'); 
+set(gca,'yTick',1:1:size(nTrj.rMaxPos',1)); % plot the corr between nTrj and maxPos dim-by-dim
 print(strcat(saveNameTag,'_corrPCscrDimMaxPos'),'-dpdf');
-figure; imagescJP(nTrj.rMaxVel',cmap,[-0.8 0.8]); pbaspect([1 1 1]); colorbar; title('corrPCscrDimMasVel'); set(gca,'yTick',1:1:size(nTrj.rMaxVel',1)); % plot the corr between nTrj and maxVel dim-by-dim
+
+figure; 
+imagescJP(nTrj.rMaxVel',cmap,[-0.8 0.8]); 
+pbaspect([1 1 1]); colorbar; 
+title(strcat('CorrPCscrDimMasVel_',saveNameTag),'Interpreter', 'none'); 
+set(gca,'yTick',1:1:size(nTrj.rMaxVel',1)); % plot the corr between nTrj and maxVel dim-by-dim
 print(strcat(saveNameTag,'_corrPCscrDimMaxVel'),'-dpdf');
-figure; imagescJP(rLick',cmap,[-0.8 0.8]); pbaspect([1 1 1]); colorbar; title('corrPCscrDimLickCnt'); set(gca,'yTick',1:1:size(rMaxVel',1)); % plot the corr between nTrj and lickCount dim-by-dim
+
+figure; 
+imagescJP(nTrj.rLick',cmap,[-0.8 0.8]); 
+pbaspect([1 1 1]); colorbar; 
+title(strcat('CorrPCscrDimLickCnt_',saveNameTag),'Interpreter', 'none'); 
+set(gca,'yTick',1:1:size(nTrj.rLick',1)); % plot the corr between nTrj and lickCount dim-by-dim
 print(strcat(saveNameTag,'_corrPCscrDimLickCnt'),'-dpdf');
 
 %% plot rank-folded neural population trajectories
@@ -110,20 +128,80 @@ trAvgSortedFoldMaxVel = cellfun(@(x) nanmean(x(1:3,:,:),3), nTrj.sortedFoldMaxVe
 trAvgSortedFoldLickCnt = cellfun(@(x) nanmean(x(1:3,:,:),3), nTrj.sortedFoldLickCnt, 'UniformOutput', false); % take the trial-averaged neural trajectories of each fold based on the maxPos
 
 plot3DneuralTrajAndEventMarkers( trAvgSortedFoldMaxPos, neuralTrajCmap, eventMarkers, eventMarkerCmap, p.Results.lineWidth, p.Results.markerSize );  % plot the neural trajectories rank-ordered by the maxPos
+title(strcat('trAvgSortedFoldMaxPos_',saveNameTag),'Interpreter', 'none')
 if p.Results.saveNtrjFigs
     print(strcat(saveNameTag,'_trAvgSortedFoldMaxPos'),'-dpdf');
 end
 
 plot3DneuralTrajAndEventMarkers( trAvgSortedFoldMaxVel, neuralTrajCmap, eventMarkers, eventMarkerCmap, p.Results.lineWidth, p.Results.markerSize );  % plot the neural trajectories rank-ordered by the maxVel
+title(strcat('trAvgSortedFoldMaxVel_',saveNameTag),'Interpreter', 'none')
 if p.Results.saveNtrjFigs
     print(strcat(saveNameTag,'_trAvgSortedFoldMaxVel'),'-dpdf');
 end
 
 plot3DneuralTrajAndEventMarkers( trAvgSortedFoldLickCnt, neuralTrajCmap, eventMarkers, eventMarkerCmap, p.Results.lineWidth, p.Results.markerSize ); % plot the neural trajectories rank-ordered by the lickCnt
+title(strcat('trAvgSortedFoldLickCnt_',saveNameTag),'Interpreter', 'none')
 if p.Results.saveNtrjFigs
     print(strcat(saveNameTag,'_trAvgSortedFoldLickCnt'),'-dpdf');
 end 
 
+%% plot rank-folded neural population trajectories
+x = nTrj.relativeTimeBins; % x axis
+for dim = 1:size(nTrj.sortedFoldMaxVel{1},1) % increment dimensions
+    % get trajectories of the current dimension for each trial fold to be trial-by-timeBins 
+    y = cellfun(@(x) permute(squeeze(x(dim,:,:)),[2 1]), nTrj.sortedFoldMaxVel, 'UniformOutput', false)'; % trajectories permuted to be trial-by-timeBins
+    
+    c = []; 
+    for f = 1:length(y)
+        cFold = num2str(zeros(size(y{f},1),1)+f); 
+        c = [c;cFold]; 
+    end
+    c = cellstr(c); 
+    
+    clear g
+    g(1,1)=gramm('x',x,'y',y,'color',c);
+    
+    
+end
+clearvars dim y
+
+N=50;
+nx=40;
+cval={'A' 'B' 'C'};
+cind=randi(3,N,1);
+c=cval(cind);
+x=linspace(0,3,nx);
+y=arrayfun(@(c)sin(x*c)+randn(1,nx)/10+x*randn/5,cind,'UniformOutput',false);
+
+clear g
+g(1,1)=gramm('x',x,'y',y,'color',c);
+g(1,2)=copy(g(1));
+g(2,1)=copy(g(1));
+g(2,2)=copy(g(1));
+
+g(1,1).geom_point();
+g(1,1).set_title('geom_point()');
+
+g(1,2).geom_line();
+g(1,2).set_title('geom_line()');
+
+g(2,1).stat_smooth();
+g(2,1).set_point_options('base_size',3);
+g(2,1).set_title('stat_smooth()');
+
+g(2,2).stat_summary();
+g(2,2).set_title('stat_summary()');
+
+g.set_title('Visualization of repeated trajectories ');
+
+figure('Position',[100 100 800 550]);
+g.draw();
+
+
+
+
+
+%% save
 cd(filePath)
 save(strcat(saveNameTag,'_nTrj_bTrj_Corr'),'nTrj','bTrj','p') % save the outcomes
 
@@ -143,10 +221,12 @@ save(strcat(saveNameTag,'_nTrj_bTrj_Corr'),'nTrj','bTrj','p') % save the outcome
         end
         hold off;
         pbaspect([1 1 1]); grid on;
-        s=inputname(1); % take the input variable name as a string
-        title(s); 
+        %s=inputname(1); % take the input variable name as a string
+        %title(strcat(s)); 
         xlabel('Dim1'); ylabel('Dim2'); zlabel('Dim3')
     end
+    
+
 
     function p = parse_input_corrNeuralTrajMovKinematics( filePath, fileNameNeuralTrj, fileNameBeh, saveNameTag, eventMarkersRelative, reachTimeWin, lickTimeWin, vargs ) % note that a nested function must use vargs not varargin when varargin was used for the main function
         %parse input, and extract name-value pairs for the main function 'corrNeuralTrajMovKinematics.m'

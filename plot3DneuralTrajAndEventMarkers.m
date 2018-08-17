@@ -15,7 +15,7 @@ for fd = 1:length(neuralTrajCell)
 end
 hold off;
 pbaspect([1 1 1]); grid on;
-s=inputname(1); % take the input variable name as a string
-title(s);
+%s=inputname(1); % take the input variable name as a string
+%title(s);
 xlabel('Dim1'); ylabel('Dim2'); zlabel('Dim3')
 end

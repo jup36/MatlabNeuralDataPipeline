@@ -91,6 +91,7 @@ for u = 1:size(neural,2)   % increment units
     binSpk.SpkGCountMatBase{u,1} = tmpBaseBinGCountMat; % store the baseline binned spike count matrix into binSpk structure
     binSpk.currEvt{u,1}     = [currEvt,validEvts];      % store the task events and the logical for valid trials (with spikes counted)
     binSpk.Site{u,1}        = neural{3,u};              % store the site, from which the current unit was recorded
+    binSpk.isStr{u,1}       = neural{5,u};              % store the logic, indicating whether the unit's str or ctx
     
     % get the mean and the std SC across trials (these stats are to be used for z-score calculation, thus use the gaussian convolved spike trains)
     tmpBinGCountMat = cell2mat(binSpk.SpkGCountMat{u,1});
@@ -166,6 +167,7 @@ for u = 1:size(neural,2)   % increment units
     binSpkOut.params{u,1} = binSpk.params{u,1};
     binSpkOut.geometry{u,1} = binSpk.geometry{u,1};
     binSpkOut.meanWF{u,1} = binSpk.meanWF{u,1};
+    binSpkOut.isStr{u,1} = binSpk.isStr{u,1}; 
     
 end % end of unit iteration
 
