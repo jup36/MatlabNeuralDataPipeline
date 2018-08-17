@@ -77,7 +77,7 @@ for f = 1:length(fileName) % increment files
     % select units with max PCs corresponding to the user-defined top PCs
     if p.Results.useAllUnits
         pc.pcUnitCutLogic = ones(size(pc.pcUnitSort,1),1); % use all units
-    
+        
     elseif p.Results.PCsLogic
         pc.pcUnitCutLogic = pc.pcUnitSort(:,3)<=p.Results.PCs;
         pc.pcUnitSort = pc.pcUnitSort(pc.pcUnitCutLogic,:); % select units whose max PC scores are of the set top PCs
@@ -117,7 +117,7 @@ if p.Results.rmvNaNtrials % in case dealing NaN trials by excluding trials
             end
             clearvars b
         end
-        clearvars f  
+        clearvars f
     else
         error('There might be a unit(s) with too many NaN trials!!')
     end
@@ -145,7 +145,7 @@ else
 end
 
 %% Generate plots and Save Data
-for f = 1:length(fileName) 
+for f = 1:length(fileName)
     % imagesc the trial-averaged z-score psths of valid units (subjected to PCA)
     figure; imagescJP(file(f).S.binSpkZ(file(f).pc.pcUnitSort(:,1),:),cmap,p.Results.cAxis); pbaspect([1 1 1]); % plot the trial-averaged z-scored PSTHs
     % plot relevant pc loadings
@@ -157,19 +157,19 @@ for f = 1:length(fileName)
     end
     hold off; pbaspect([1 1 1]); clearvars i
     legend(pcLoadingLabel);
-     
+    
     %% Save variables
     cd(filePath)
     saveName = strcat(fileName{f},'pcaPSTH',varName,num2str(p.Results.binSize),'ms');
-    S = file(f).S; 
+    S = file(f).S;
     pc = file(f).pc;
-    sortedBinSpkCell = file(f).sortedBinSpkCell; 
-   
+    sortedBinSpkCell = file(f).sortedBinSpkCell;
+    
     save(saveName,'sortedBinSpkCell','pc','S','p');
     %clearvars S pc sortedBinSpkCell
 end
 
-end % end of the function 
+end % end of the function
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % NESTED HELPER FUNCTIONS %

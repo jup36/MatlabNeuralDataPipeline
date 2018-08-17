@@ -99,6 +99,7 @@ end
 %% Save pcaResult separately (in addition to the automatic save by 'neuralTraj')
 pcaResult.p = p; % to save the structure p containing input parameters under the pcaResult
 pcaResult.unitIdx = unitIdxPCA; % to save the index of units used in pca 
+pcaResult.isStriatum = S.isStr; % to save the index for striatal units or not
 
 if p.Results.fullCrossVal 
     pcaResult.nonCrossValDataSaveDir = fullfile(p.Results.filePath, sprintf('mat_results/run%03d', pcaRunNumber)); % save the directory where the corresponding data are saved automatically by the neuralTraj.m
