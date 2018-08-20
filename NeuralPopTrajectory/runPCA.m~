@@ -68,8 +68,7 @@ else
         pcaDat(tr).trialId = tr; % trial ID
         pcaDat(tr).spikes = unitTimeTrial(unitIdxPCA,:,tr); % neuron x timeBin mat for the trial, to include pca-sorted units only, pc.pcUnitSort(pc.pcUnitSort(:,3)==1,1)
         if p.Results.baseSubtrt % in case detrending by subtracting the mean baseline activity (By default, the mean spike count across time bins corresponding to the leftmost 1-sec is taken as the baseline activity)
-            pcaDat(tr).spikes = pcaDat(tr).spikes - mean(pcaDat(tr).spikes(:,1:floor(1000/S.params{1,1}.binSize)),2); 
-        end
+       
     end
 end
 clearvars tr
