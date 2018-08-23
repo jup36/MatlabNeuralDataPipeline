@@ -60,7 +60,7 @@ if isfield(S,'nonNaNtrialId') % in case the nanNaNtrialId has been already sorte
         pcaDat(tr).trialId = S.nonNaNtrialId(tr,1); % trial ID
         pcaDat(tr).spikes = unitTimeTrial(unitIdxPCA,:,S.nonNaNtrialId(tr,1)); % neuron x timeBin mat for the trial, to include pca-sorted units only, pc.pcUnitSort(pc.pcUnitSort(:,3)==1,1)
         if p.Results.baseSubtrt % in case detrending by subtracting the mean baseline activity (By default, the mean spike count across time bins corresponding to the leftmost 1-sec is taken as the baseline activity)
-            pcaDat(tr).spikes = pcaDat(tr).spikes - mean(pcaDat(tr).spikes(:,1:floor(1000/S.params{1,1}.binSize)),2); 
+            pcaDat(tr).spikes = pcaDat(tr).spikes - mean(pcaDat(tr).spikes(:,1:floor(1000/S.params{1,1}.binSize)),2); % just subtract the mean spike count within the leftmost 1-s window from each 1-ms time bin 
         end       
     end
 else
@@ -68,13 +68,14 @@ else
         pcaDat(tr).trialId = tr; % trial ID
         pcaDat(tr).spikes = unitTimeTrial(unitIdxPCA,:,tr); % neuron x timeBin mat for the trial, to include pca-sorted units only, pc.pcUnitSort(pc.pcUnitSort(:,3)==1,1)
         if p.Results.baseSubtrt % in case detrending by subtracting the mean baseline activity (By default, the mean spike count across time bins corresponding to the leftmost 1-sec is taken as the baseline activity)
-       
+            pcaDat(tr).spikes = pcaDat(tr).spikes - mean(pcaDat(tr).spikes(:,1:floor(1000/S.params{1,1}.binSize)),2); % just subtract the mean spike count within the leftmost 1-s window from each 1-ms time bin
+        end
     end
 end
 clearvars tr
 
 %% Extract neural trajectories 
-pcaResult = neuralTraj(pcaRunNumber, pcaDat, 'datFormat', 'spikes', 'method', 'pca', 'xDim', p.Results.pcaDim, 'binWidth', p.Results.pcaBinSize, 'kernSDList', p.Results.pcaKernSD);
+pcaResult = neuralTraj(pcaRunNumber, pcaDat, 'datFormat', 'spikes', 'method', 'pca', 'xDim', p.Results.pcaDim, 'binWidth', p.Results.pcaBinSize, 'kernSDList', p.Results.pcaKernSD, 'useSqrt', p.Results.sqrtSC);
 
 % Perform cross-validation for different state dimensionalities.
 % Results are saved in mat_results/runXXX/, where XXX is runIdx.
@@ -140,8 +141,9 @@ save(saveName, 'pcaResult', 'pcaDat')
         default_pcaKernSD  = 50;  % default SD for kernel smoothing in PCA
         default_fullCrossVal= false; % default boolean to run full cross validation or not 
         default_xcorThresholdPer = 0.2; % default cross-correlation spike cooccurrence tolerance (i.e., 20% of the total spike count of the fewer spiking unit of the pair)
-        default_crossValFolds = 4;   % the number of cross-validation fold
-        default_baseSubtrt = true; % the logical to subtract the baseline activity (spike count) or not 
+        default_crossValFolds = 4; % the number of cross-validation fold
+        default_baseSubtrt = true; % the logical to subtract the baseline activity (spike count) or not () 
+        default_sqrtSC = false;    % the logical to take sqrt 
         
         p = inputParser; % create parser object
         addRequired(p,'filePath'); % file directory
