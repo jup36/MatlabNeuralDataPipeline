@@ -111,7 +111,7 @@ else % in case artifact remove is not selected
 end
 
 if p.Results.reachBeforeLastReward
-    positionData = positionData(:,1:valRewIdx(end));
+    positionData = positionData(:,1:valRewIdx(end)+5000); % give a 5-sec room at the tail
 else
 end
 % get reach properties
