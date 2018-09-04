@@ -5,6 +5,8 @@ function [ pcaResult, pcaDat ] = runPCA( filePath, fileName, saveNameTag, vararg
 % The output structure 'pcaDat' must be in the dimension of Trials with 2 fields (trialId, spikes). 
 % Each entry (trial) of the field 'spikes' must be Neuron-by-Timebins matrix. 
 % pc loadings (weights) saved as 'pcaResult.kern.estParams.L'
+% Has been modified to re-zero the binned spike counts by just subtracting the mean spike count of the leftmost 1-sec
+% Ensure not to use sqrt after rezeroing to avoid imaginary numbers. 
 
 p = parse_input_runPCA( filePath, fileName, saveNameTag, varargin );
 % p = parse_input_runPCA( filePath, fileName, saveNameTag, {} ); % use this when running line-by-line

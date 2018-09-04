@@ -1,4 +1,4 @@
-function corrNeuralTrajMovKinematicsStrCtx(filePath, fileNameNeuralTrj, fileNameBeh, saveNameTag, eventMarkersRelative, reachTimeWin, lickTimeWin, varargin)
+function [ nTrj, bTrj ] = corrNeuralTrajMovKinematicsStrCtx(filePath, fileNameNeuralTrj, fileNameBeh, saveNameTag, eventMarkersRelative, reachTimeWin, lickTimeWin, varargin)
 %corrNeuralTrajMovKinematics opens/loads the trial-by-trial neural
 % population trajectories extracted using either pca or gpfa and movement kinematic
 % variables saved in the 'behvariables.mat'. First, the correlation between the neural trajectory (e.g. PC scores across all dimensions)
@@ -82,8 +82,11 @@ for pop = 1:length(nTrj.prjTrjMat) % increment neural populations (e.g. str and 
     end
     
     % image rMaxPos dim-by-dim across time bins and save it
+    nTrjRmaxPos = zeros(size(nTrj.rMaxPos{pop},1), size(nTrj.rMaxPos{pop},2)); 
+    nTrjRmaxPos(nTrj.pMaxPos{pop}(:,:)<p.Results.alpha) = nTrj.rMaxPos{pop}(nTrj.pMaxPos{pop}(:,:)<p.Results.alpha); 
+    
     figure;
-    imagescJP(nTrj.rMaxPos{pop}',cmap,[-0.8 0.8]); % image the rMaxPos
+    imagescJP(nTrjRmaxPos',cmap,[-0.8 0.8]); % image the rMaxPos
     pbaspect([1 1 1]);
     figTtlFmt = 'corrPCscrDimMaxPosNeuralPop#%d'; % figure title format
     figTtl = sprintf(figTtlFmt,pop); % format figure title into string
@@ -93,8 +96,11 @@ for pop = 1:length(nTrj.prjTrjMat) % increment neural populations (e.g. str and 
     print(strcat(saveNameTag,'_',figTtl),'-dpdf');
     
     % image rMaxVel dim-by-dim across time bins and save it
+    nTrjRmaxVel = zeros(size(nTrj.rMaxVel{pop},1), size(nTrj.rMaxVel{pop},2)); 
+    nTrjRmaxVel(nTrj.pMaxVel{pop}(:,:)<p.Results.alpha) = nTrj.rMaxVel{pop}(nTrj.pMaxVel{pop}(:,:)<p.Results.alpha); 
+    
     figure;
-    imagescJP(nTrj.rMaxVel{pop}',cmap,[-0.8 0.8]); % image the rMaxPos
+    imagescJP(nTrjRmaxVel',cmap,[-0.8 0.8]); % image the rMaxVel
     pbaspect([1 1 1]);
     figTtlFmt = 'corrPCscrDimMaxVelNeuralPop#%d'; % figure title format
     figTtl = sprintf(figTtlFmt,pop); % format figure title into string
@@ -104,8 +110,11 @@ for pop = 1:length(nTrj.prjTrjMat) % increment neural populations (e.g. str and 
     print(strcat(saveNameTag,'_',figTtl),'-dpdf');
     
     % image rLick dim-by-dim across time bins and save it
+    nTrjRLick = zeros(size(nTrj.rLick{pop},1), size(nTrj.rLick{pop},2)); 
+    nTrjRLick(nTrj.pLick{pop}(:,:)<p.Results.alpha) = nTrj.rLick{pop}(nTrj.pLick{pop}(:,:)<p.Results.alpha); 
+    
     figure;
-    imagescJP(nTrj.rLick{pop}',cmap,[-0.8 0.8]); % image the rMaxPos
+    imagescJP( nTrjRLick',cmap,[-0.8 0.8]); % image the rLick
     pbaspect([1 1 1]);
     figTtlFmt = 'corrPCscrDimLickCntNeuralPop#%d'; % figure title format
     figTtl = sprintf(figTtlFmt,pop); % format figure title into string
@@ -212,6 +221,7 @@ save(strcat(saveNameTag,'_nTrj_bTrj_Corr'),'nTrj','bTrj','p') % save the outcome
         default_lineWidth  = 2;  % default lineWidth to be used to plot the neural trajectories
         default_markerSize = 10; % default markerSize to be used to plot the neural trajectories
         default_saveNTjcFigs = false; % By default, there's no need to save the 3-d nTrj figures
+        default_alpha = 0.05; % default alpha value to just plot the significant correlations between neural population trajectories and the behavioral kinematics
         
         p = inputParser; % create parser object
         
@@ -227,6 +237,7 @@ save(strcat(saveNameTag,'_nTrj_bTrj_Corr'),'nTrj','bTrj','p') % save the outcome
         addParameter(p,'lineWidth', default_lineWidth)   % the lineWidth to be used to plot nTrjs
         addParameter(p,'markerSize', default_markerSize) % the markerSzie to be used to plot nTrjs
         addParameter(p,'saveNtrjFigs', default_saveNTjcFigs) % By default, there's no need to save the 3-d nTrj figures
+        addParameter(p,'alpha', default_alpha) % By default, the alpha level of 0.01 is used as the criterion for significant correlations
         
         parse(p, filePath, fileNameNeuralTrj, fileNameBeh, saveNameTag, eventMarkersRelative, reachTimeWin, lickTimeWin, vargs{:})
         
