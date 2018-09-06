@@ -7,7 +7,7 @@
         default_strCtxBorder = 2000;   % default cortex-striatum border (depth from the pial surface, i.e., sites positioned deeper than this border will be considered striatal)
         default_numbSiteProbe = [384]; % default number of sites per probe(s) (can be an arrary, if there are multiple probes used
         default_psthPlotFlag = false;  % default logic indicating psth draw or not 
-        default_reachWin = [2e3 2e3];  % default time window for reach psth
+        default_reachWin = [2e3 3e3];  % default time window for reach psth
         default_rewardWin = [3e3 1e3]; % default time window for reward psth
         default_tagLaserWin = [5e3 5e3]; % default time window for tagLaser psth
         

@@ -36,33 +36,46 @@ nTrj.neuralTrajFile = neuralTrajFile; % to keep track of the neural trajectory f
 %% load/organize behavioral data 'BehVariables.mat'
 behFile = dir(fullfile(filePath,fileNameBeh));
 load(behFile.name, 'ts', 'reach0','lick')
-behTS = ts.reward(nTrj.trialId); % nTrj.trialId (*seqTrain.trialId) contains non-NaN trials only
+
+if ~contains(fileNameNeuralTrj,'reward') && contains(fileNameNeuralTrj,'reach')
+    behTS = ts.reachStart(nTrj.trialId); % nTrj.trialId (*seqTrain.trialId) contains non-NaN trials only
+elseif ~contains(fileNameNeuralTrj,'reach') && contains(fileNameNeuralTrj,'reward')
+    behTS = ts.reward(nTrj.trialId); % nTrj.trialId (*seqTrain.trialId) contains non-NaN trials only
+else
+    error('Make sure if correct neural data has been input!')
+end
+
 lickBin = zeros(1,length(lick)); % licks
 lickBin(ts.lick) = 1; % licks
 
+valTrialIdx = zeros(length(behTS),1);
 for t = 1:length(behTS) % increment trials, take the trial-by-trial position/velocity data and bin them to match the neural trjectories (e.g. 50 ms)
-    timeWin = behTS(t)+pcaResult.p.Results.timeRange; % the time window, e.g. -3 to 2 sec relative to the behavioral timestamp
-    bTrj(t).reachPos = smooth(decimate(reach0(timeWin(1):timeWin(2)-1),pcaResult.p.Results.pcaBinSize),3)'; % get decimated behavioral trjectories on the same timescale of the neural trjectories
-    bTrj(t).reachVel = smooth(diff([bTrj(t).reachPos(1) bTrj(t).reachPos]),3)'; % get reach velocities (from reach0)
-    bTrj(t).maxReachPos = max(bTrj(t).reachPos(nTrj.reachTimeBins)); % max reach position within the time window of interest
-    bTrj(t).maxReachVel = max(bTrj(t).reachVel(nTrj.reachTimeBins)); % max reach velocity within the time window of interest
-    bTrj(t).trialId = t;
-    bTrj(t).lick = bin1msSpkCountMat(lickBin(timeWin(1):timeWin(2)-1),pcaResult.p.Results.pcaBinSize,pcaResult.p.Results.pcaBinSize); %
-    bTrj(t).lickCount =  sum(bTrj(t).lick(nTrj.lickTimeBins)); % lick Counts within the lickTimeBins
+    if max(behTS(t)+pcaResult.p.Results.timeRange)<=length(reach0) && min(behTS(t)+pcaResult.p.Results.timeRange)>0
+        valTrialIdx(t)=1;
+        timeWin = behTS(t)+pcaResult.p.Results.timeRange; % the time window, e.g. -3 to 2 sec relative to the behavioral timestamp
+        bTrj(t).reachPos = smooth(decimate(reach0(timeWin(1):timeWin(2)-1),pcaResult.p.Results.pcaBinSize),3)'; % get decimated behavioral trjectories on the same timescale of the neural trjectories
+        bTrj(t).reachVel = smooth(diff([bTrj(t).reachPos(1) bTrj(t).reachPos]),3)'; % get reach velocities (from reach0)
+        bTrj(t).maxReachPos = max(bTrj(t).reachPos(nTrj.reachTimeBins)); % max reach position within the time window of interest
+        bTrj(t).maxReachVel = max(bTrj(t).reachVel(nTrj.reachTimeBins)); % max reach velocity within the time window of interest
+        bTrj(t).trialId = t;
+        bTrj(t).lick = bin1msSpkCountMat(lickBin(timeWin(1):timeWin(2)-1),pcaResult.p.Results.pcaBinSize,pcaResult.p.Results.pcaBinSize); %
+        bTrj(t).lickCount =  sum(bTrj(t).lick(nTrj.lickTimeBins)); % lick Counts within the lickTimeBins
+    else
+    end
 end
 clearvars t
 %imagesc((reshape([bTrj.lick]', length(nTrj.relativeTimeBins), length(nTrj.trialId)))');
 
 %% correlation between neural population trjectories and movement kinematics
 for dim = 1:size(nTrj.trjMat,1) % increment dimensions
-    trialByTimePCscore =  squeeze(nTrj.trjMat(dim,:,:))'; % get the trial-by-timeBin PC score matrix for the current dimension
+    trialByTimePCscore =  squeeze(nTrj.trjMat(dim,:,valTrialIdx==1))'; % get the trial-by-timeBin PC score matrix for the current dimension
     % correlation movement kinematics & neural trjectories
     [nTrj.rMaxPos(:,dim),nTrj.pMaxPos(:,dim)] = corr(trialByTimePCscore,[bTrj.maxReachPos]'); % correlation between PC score in the current dim across all time bins and maxReachPos
     [nTrj.rMaxVel(:,dim),nTrj.pMaxVel(:,dim)] = corr(trialByTimePCscore,[bTrj.maxReachVel]'); % correlation between PC score in the current dim across all time bins and maxReachVel
-    [rPosBbyBtotal,pPosBbyBtotal] = corr(trialByTimePCscore,reshape([bTrj.reachPos]',[],length(behTS))');  % correlation between PC score in the current dim across all time bins and timeBin-by-timeBin reachPos
+    [rPosBbyBtotal,pPosBbyBtotal] = corr(trialByTimePCscore,reshape([bTrj.reachPos]',[],sum(valTrialIdx))');  % correlation between PC score in the current dim across all time bins and timeBin-by-timeBin reachPos
     nTrj.rPosBbyB(:,dim) = diag(rPosBbyBtotal); % take rho of the matching time bins
     nTrj.pPosBbyB(:,dim) = diag(pPosBbyBtotal); % take pVal of the matching time bins
-    [rVelBbyBtotal,pVelBbyBtotal] = corr(trialByTimePCscore,reshape([bTrj.reachVel]',[],length(behTS))');  % corr timeBin-by-timeBin
+    [rVelBbyBtotal,pVelBbyBtotal] = corr(trialByTimePCscore,reshape([bTrj.reachVel]',[],sum(valTrialIdx))');  % corr timeBin-by-timeBin
     nTrj.rVelBbyB(:,dim) = diag(rVelBbyBtotal); % take rho of the matching time bins
     nTrj.pVelBbyB(:,dim) = diag(pVelBbyBtotal); % take pVal of the matching time bins
     % correlation lick counts & neural trjectories

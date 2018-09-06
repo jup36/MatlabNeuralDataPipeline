@@ -146,6 +146,6 @@ function result = neuralTraj(runIdx, dat, varargin)
   end
   
   result = [];  
-  if (nargout == 1) & (numFolds == 0) & exist([fname '.mat'], 'file')
+  if (nargout == 1) && (numFolds == 0) && exist([fname '.mat'], 'file')
     result = load(fname);
   end

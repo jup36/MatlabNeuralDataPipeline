@@ -70,12 +70,12 @@ function twoStageEngine(seqTrain, seqTest, fname, varargin)
       kern(k).LL        = LL;
           
     elseif isequal(typ, 'pca')
-      [pcDirs, pcScores] = pca(Y');
+      [kern(k).pcDirs, pcScores, kern(k).eigVals, ~, kern(k).expVar ] = pca(Y');
       
       kern(k).seqTrain = segmentByTrial(kern(k).seqTrain,... 
       pcScores(:,1:xDim)', 'xpost');  
            
-      kern(k).estParams.L = pcDirs(:, 1:xDim);
+      kern(k).estParams.L = kern(k).pcDirs(:, 1:xDim);
       kern(k).estParams.d = mean(Y, 2);      
     end    
     
@@ -103,4 +103,4 @@ function twoStageEngine(seqTrain, seqTest, fname, varargin)
   vars  = who;
   fprintf('Saving %s...\n', fname);
   save(fname, vars{~ismember(vars, {'X', 'Y', 'LL', 'estParams',... 
-  'seqTrain', 'seqTest', 'pcDirs', 'pcScores', 'res'})});
+  'seqTrain', 'seqTest', 'res'})}); % this is to avoid redundant data storage that are already in the structure 'kern'
