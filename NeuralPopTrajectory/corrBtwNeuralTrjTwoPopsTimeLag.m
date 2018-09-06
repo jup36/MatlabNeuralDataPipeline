@@ -1,4 +1,4 @@
-function [ nTrjCorrCell11, nTrjCorrCell22, nTrjCorrCell12 ] = corrBtwNeuralTrjTwoPopsTimeLag( filePath, nTrjFile1, nTrjFile2, varName )
+function [ nTrjCorrCell11, nTrjCorrCell22, nTrjCorrCell12 ] = corrBtwNeuralTrjTwoPopsTimeLag( filePath, nTrjFile1, nTrjFile2, varName, neuralRegion1, neuralRegion2, eventName, cAxisValue )
 %This function computes trial-to-trial correlations of PC scores of all pairwise combinations of PC dimensions across all time bins 
 % comprising the activity covariance of two neural populations. 
 % The matlab function 'corr' operates on all columnwise combinations by
@@ -23,65 +23,51 @@ end
 %% get the corr dim-by-dim bin-by-bin bewteen PCs within each population 
 % neural population1
 nTrjCorrCell11 = cell(5,5,2); % cell array to store the timelagged correlation matrices (rho and p values)
-
+nTrjCorrCell11Name = strcat('nTrjCorr',neuralRegion1,neuralRegion1,eventName,'Rho');
+formatSpecTitle = 'PC%d%d'; 
 for d = 1:size(nTrjMat1,1) % increment dimension (e.g. 5-d)
     tempTrj1 = squeeze(nTrjMat1(d,:,:))'; % trial-by-timeBin mat for each dim
     for dd = 1:size(nTrjMat1,1) % increment dimension  
          tempTrj2 = squeeze(nTrjMat1(dd,:,:))'; % trial-by-timeBin mat for each dim                        
-         [nTrjCorrCell11{d,dd,1},nTrjCorrCell11{d,dd,2}] = corr(tempTrj1,tempTrj2); 
-         %tempCorrMat2 = corr(reshape(repmat(tempTrj1,size(tempTrj2,2),1),size(tempTrj1,1),[]), repmat(tempTrj2,1,size(tempTrj1,2)));      
+         [nTrjCorrCell11{d,dd,1},nTrjCorrCell11{d,dd,2}] = corr(tempTrj1,tempTrj2);     
+         pcId = sprintf(formatSpecTitle,d,dd); 
+         titleImg = [nTrjCorrCell11Name, pcId]; 
+         surfMatrix( filePath, nTrjCorrCell11{d,dd,1}, nTrjCorrCell11{d,dd,2}, cAxisValue, 'parula', titleImg )
     end
 end
 clearvars temp*
 
 % neural population2
 nTrjCorrCell22 = cell(5,5,2); % cell array to store the timelagged correlation matrices (rho and p values)
+nTrjCorrCell22Name = strcat('nTrjCorr',neuralRegion2,neuralRegion2,eventName,'Rho');
 
 for d = 1:size(nTrjMat2,1) % increment dimension (e.g. 5-d)
     tempTrj1 = squeeze(nTrjMat2(d,:,:))'; % trial-by-timeBin mat for each dim
     for dd = 1:size(nTrjMat2,1) % increment dimension  
          tempTrj2 = squeeze(nTrjMat2(dd,:,:))'; % trial-by-timeBin mat for each dim                        
          [nTrjCorrCell22{d,dd,1},nTrjCorrCell22{d,dd,2}] = corr(tempTrj1,tempTrj2); 
-         %tempCorrMat2 = corr(reshape(repmat(tempTrj1,size(tempTrj2,2),1),size(tempTrj1,1),[]), repmat(tempTrj2,1,size(tempTrj1,2)));      
+         pcId = sprintf(formatSpecTitle,d,dd);          
+         titleImg = [nTrjCorrCell22Name, pcId];    
+         surfMatrix( filePath, nTrjCorrCell22{d,dd,1}, nTrjCorrCell22{d,dd,2}, cAxisValue, 'parula', titleImg )   
     end
 end
 clearvars temp*
 
 %% get the corr dim-by-dim bin-by-bin between PCs between the two populations
 nTrjCorrCell12 = cell(5,5,2); % cell array to store the timelagged correlation matrices (rho and p values)
+nTrjCorrCell12Name = strcat('nTrjCorr',neuralRegion1,neuralRegion2,eventName,'Rho');
 
 for d = 1:size(nTrjMat1,1) % increment dimension (e.g. 5-d)
     tempTrj1 = squeeze(nTrjMat1(d,:,:))'; % trial-by-timeBin mat for each dim
     for dd = 1:size(nTrjMat2,1) % increment dimension  
          tempTrj2 = squeeze(nTrjMat2(dd,:,:))'; % trial-by-timeBin mat for each dim                        
          [nTrjCorrCell12{d,dd,1},nTrjCorrCell12{d,dd,2}] = corr(tempTrj1,tempTrj2); 
-         %tempCorrMat2 = corr(reshape(repmat(tempTrj1,size(tempTrj2,2),1),size(tempTrj1,1),[]), repmat(tempTrj2,1,size(tempTrj1,2)));      
+         pcId = sprintf(formatSpecTitle,d,dd);          
+         titleImg = [nTrjCorrCell12Name, pcId];    
+         surfMatrix( filePath, nTrjCorrCell12{d,dd,1}, nTrjCorrCell12{d,dd,2}, cAxisValue, 'parula', titleImg )   
     end
 end
 
-% figure; 
-% hold on; plot(1:100, 1:100, ':r', 'LineWidth', 2)
-% imagesc(nTrjCorrCell12{1,2,1}); pbaspect([1 1 1 ])
-% plot(1:100, 1:100, ':r', 'LineWidth', 2)
-% axis tight; 
-% set(gca, 'TickDir', 'out')
-% hold off; 
-% 
-% figure; 
-% hold on; plot(1:100, 1:100, ':r', 'LineWidth', 2)
-% imagesc(nTrjCorrCell12{3,2,1}); pbaspect([1 1 1 ])
-% plot(1:100, 1:100, ':r', 'LineWidth', 2)
-% axis tight; 
-% set(gca, 'TickDir', 'out')
-% hold off; 
-% 
-% figure; 
-% hold on; plot(1:100, 1:100, ':r', 'LineWidth', 2)
-% imagesc(nTrjCorrCell22{1,2,1}); pbaspect([1 1 1 ])
-% plot(1:100, 1:100, ':r', 'LineWidth', 2)
-% axis tight; 
-% set(gca, 'TickDir', 'out')
-% hold off; 
 
 end
 
