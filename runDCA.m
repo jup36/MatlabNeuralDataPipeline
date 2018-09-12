@@ -1,4 +1,4 @@
-function [] = runDCA( filePath, X1fileName, X2fileName, numbTrialShuffle, saveName )
+function runDCA( filePath, X1fileName, X2fileName, numbTrialShuffle, saveName )
 %runDCA performs distance covariance analysis using 'dca.m' from Byron's
 % group. 
 % Trial shuffle control data is generated using only the matching time

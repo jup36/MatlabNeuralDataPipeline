@@ -1,4 +1,4 @@
-function [ binSpkOut, binSpk, params ] = psthBINcell( fileInfo, regionInfo, neural, behav, baseEvt, binsize, psthWin, stableTrials, psthPlotFlag, probeDepth )
+function [ binSpkOut, binSpk, params ] = psthBINcell( fileInfo, regionInfo, neural, behav, baseEvt, binsize, psthWin, stableTrials, psthPlotFlag )
 %This function generates spike count vectors with the bin size and the size of the psth window specified by the user
 % INPUT:
 %   neural: neural spike times data as a cell (5-by-# of units)
@@ -56,17 +56,17 @@ for u = 1:size(neural,2)   % increment units
         if currEvt(tr)+psthWin(1,2) < length(delta) % in case the current trial's psth doesn't go out of the upper bound
             if currEvt(tr)-psthWin(1,1) > 0
                 valEvtCnt = valEvtCnt + 1; % valid event (event that occurred between the first and last spikes of each unit) count
-                binSpk.SpkCountMat{u,1}{tr,1}  = sparse(histcounts(neural{1,u}, currEvt(tr) + params.binEdges));      % histogram bin counts; 
+                %binSpk.SpkCountMat{u,1}{tr,1}  = sparse(histcounts(neural{1,u}, currEvt(tr) + params.binEdges));      % histogram bin counts; 
                 binSpk.SpkGCountMat{u,1}{tr,1} = tmpSmooth(1,currEvt(tr)-psthWin(1,1)+1:currEvt(tr)+psthWin(1,2));    % event bin counts from the Gaussian convolved delta function;        % histogram bin counts; 
                 binSpk.SpkTimes{u,1}{tr,1}     = find(histcounts(neural{1,u}, currEvt(tr) + params.binEdges1ms)==1);  % histogram bin counts with 1ms binsize
                 validEvts(tr,1) = true; % meaning that the spike counts were computed for the current trial               
             else % in case the currEvt out of the lower bound: put NaNs
-                binSpk.SpkCountMat{u,1}{tr,1}  = nan(1,length(params.binEdges)-1); % histogram bin counts; 
+                %binSpk.SpkCountMat{u,1}{tr,1}  = nan(1,length(params.binEdges)-1); % histogram bin counts; 
                 binSpk.SpkGCountMat{u,1}{tr,1} = nan(1,length(params.binEdges)-1); % event bin counts from the Gaussian convolved delta function;        % histogram bin counts; 
                 binSpk.SpkTimes{u,1}{tr,1}     = nan;  % histogram bin counts with 1ms binsize
             end
         else % in case the currEvt out of the upper bound: put NaNs 
-            binSpk.SpkCountMat{u,1}{tr,1}  = nan(1,length(params.binEdges)-1); % histogram bin counts; 
+            %binSpk.SpkCountMat{u,1}{tr,1}  = nan(1,length(params.binEdges)-1); % histogram bin counts; 
             binSpk.SpkGCountMat{u,1}{tr,1} = nan(1,length(params.binEdges)-1); % event bin counts from the Gaussian convolved delta function;        % histogram bin counts; 
             binSpk.SpkTimes{u,1}{tr,1}     = nan;  % histogram bin counts with 1ms binsize
         end
@@ -144,15 +144,18 @@ for u = 1:size(neural,2)   % increment units
         binSpk.Zlogic{u,1}        = 0; % z score logic is false
     end
     
-    binSpk.params{u,1}   = params;      % put params into the binSpk structure 
+    if u == 1
+        binSpk.params   = params;      % put params into the binSpk structure
+    end
+    
     binSpk.geometry{u,1} = neural{4,u}; % put geometry into the binSpk structure
     binSpk.meanWF{u,1}   = neural{6,u}; % put mean waveform into the binSpk structure
     
     fprintf('processed unit %d\n', u) % report unit progression
     
     %% Select which fields to output
-    binSpkOut.SpkCountMat{u,1}    = binSpk.SpkCountMat{u,1};
-    %binSpkOut.SpkGCountMat{u,1}   = binSpk.SpkGCountMat{u,1};
+    %binSpkOut.SpkCountMat{u,1}    = binSpk.SpkCountMat{u,1};  % fileSize is too large 
+    %binSpkOut.SpkGCountMat{u,1}   = binSpk.SpkGCountMat{u,1}; % fileSize is too large
     binSpkOut.SpkTimes{u,1}       = binSpk.SpkTimes{u,1};
     binSpkOut.fileInfo{u,1}       = binSpk.fileInfo{u,1};
     %binSpkOut.SpkGCountMatBase{u,1} = binSpk.SpkGCountMat{u,1};
@@ -164,12 +167,11 @@ for u = 1:size(neural,2)   % increment units
     binSpkOut.SpkCountMatZ{u,1} = binSpk.SpkCountMatZ{u,1};
     %binSpkOut.SpkCountMatZe{u,1} = binSpk.SpkCountMatZe{u,1};
     binSpkOut.Zlogic{u,1} = binSpk.Zlogic{u,1};
-    binSpkOut.params{u,1} = binSpk.params{u,1};
     binSpkOut.geometry{u,1} = binSpk.geometry{u,1};
     binSpkOut.meanWF{u,1} = binSpk.meanWF{u,1};
     binSpkOut.isStr{u,1} = binSpk.isStr{u,1}; 
     
 end % end of unit iteration
-
+    binSpkOut.params = binSpk.params;
 end % end of function
 

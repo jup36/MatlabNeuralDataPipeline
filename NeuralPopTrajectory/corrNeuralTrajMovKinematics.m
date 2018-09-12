@@ -32,6 +32,7 @@ nTrj.relativeTimeBins = pcaResult.p.Results.timeRange(1):pcaResult.p.Results.pca
 nTrj.reachTimeBins = nTrj.relativeTimeBins>=reachTimeWin(1) & nTrj.relativeTimeBins<reachTimeWin(2); % the time bins of interest for the behavioral kinematics (e.g. when reaches are most likely to occur) to narrow down the range of behavioral measures
 nTrj.lickTimeBins  = nTrj.relativeTimeBins>=lickTimeWin(1) & nTrj.relativeTimeBins<lickTimeWin(2); % the time bins of interest for the behavioral kinematics (e.g. when reaches are most likely to occur) to narrow down the range of behavioral measures
 nTrj.neuralTrajFile = neuralTrajFile; % to keep track of the neural trajectory files
+nTrj.pcaRez = pcaResult.kern; % pca info pc loadings, eigVals, expVar 
 
 %% load/organize behavioral data 'BehVariables.mat'
 behFile = dir(fullfile(filePath,fileNameBeh));
@@ -100,7 +101,7 @@ rMaxVelSig = zeros(size(nTrj.pMaxVel,1), size(nTrj.pMaxVel,2));
 rMaxVelSig(nTrj.pMaxVel<p.Results.alpha) = nTrj.rMaxVel(nTrj.pMaxVel<p.Results.alpha);
 imagescJP(rMaxVelSig',cmap,[-0.8 0.8]);
 pbaspect([1 1 1]); colorbar;
-title(strcat('CorrPCscrDimMasVel_',saveNameTag),'Interpreter', 'none');
+title(strcat('CorrPCscrDimMaxVel_',saveNameTag),'Interpreter', 'none');
 set(gca,'yTick',1:1:size(nTrj.rMaxVel',1)); % plot the corr between nTrj and maxVel dim-by-dim
 print(strcat(saveNameTag,'_corrPCscrDimMaxVel'),'-dpdf');
 

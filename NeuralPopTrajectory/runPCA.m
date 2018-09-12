@@ -7,6 +7,7 @@ function [ pcaResult, pcaDat ] = runPCA( filePath, fileName, saveNameTag, vararg
 % pc loadings (weights) saved as 'pcaResult.kern.estParams.L'
 % Has been modified to re-zero the binned spike counts by just subtracting the mean spike count of the leftmost 1-sec
 % Ensure not to use sqrt after rezeroing to avoid imaginary numbers.
+% Modified on 9/6/18 to extract SpkCountMat from SpkTimes
 
 p = parse_input_runPCA( filePath, fileName, saveNameTag, varargin );
 % p = parse_input_runPCA( filePath, fileName, saveNameTag, {} ); % use this when running line-by-line
@@ -34,19 +35,20 @@ elseif ~exist('S','var') && ~exist('pc','var')
 end
 
 % Sanity check for the number of trials for each unit - check all units' spkCountMat have the same number of trials
-if length(unique(cellfun(@length, S(:).SpkCountMat))) == 1
-    numbTrial = unique(cellfun(@length,S(:).SpkCountMat));
+if length(unique(cellfun(@length, S(:).SpkTimes))) == 1
+    numbTrial = unique(cellfun(@length,S(:).SpkTimes));
 else
     error('There are units with different number of trials!!!')
 end
 
-valTimeBins = find( S.params{1}.binEdges1ms>=p.Results.timeRange(1) & S.params{1}.binEdges1ms<p.Results.timeRange(2) ); % find bins within the time range
-unitMeanFR  = zeros(size(S.SpkCountMat,1),1); % unit mean FR rates within the valid time range to exclude low and high FR (e.g. < 2Hz & >50Hz) units
-unitTimeTrial = zeros(size(S.SpkCountMat,1), length(valTimeBins), numbTrial); % unit x time(1ms bin) x trial matrix
+valTimeBins = find( S.params.binEdges1ms>=p.Results.timeRange(1) & S.params.binEdges1ms<p.Results.timeRange(2) ); % find bins within the time range
+unitMeanFR  = zeros(size(S.SpkTimes,1),1); % unit mean FR rates within the valid time range to exclude low and high FR (e.g. < 2Hz & >50Hz) units
+unitTimeTrial = zeros(size(S.SpkTimes,1), length(valTimeBins), numbTrial); % unit x time(1ms bin) x trial matrix
 
 % organize the unitTimeTrial mat
-for u = 1:size(S.SpkCountMat,1) % increment units
-    tmpUnitTrialTimeMat  = full(cell2mat(S.SpkCountMat{u})); % trial x time spike count mat
+for u = 1:size(S.SpkTimes,1) % increment units
+    tmpUnitTrialTimeMat  = cell2mat(getSpkCntMatFromSpkTimes( S.SpkTimes{u}, S.params )); % get the current unit's spikeCountMat (trial-by-1msBin)
+    %tmpUnitTrialTimeMat  = full(cell2mat(S.SpkCountMat{u})); % trial x time spike count mat
     unitTimeTrial(u,:,:) = permute(tmpUnitTrialTimeMat(:,valTimeBins),[3 2 1]); % permute to get the unitTimeTrial mat
     unitMeanFR(u) = sum(sum(unitTimeTrial(u,:,:)))/(numbTrial*length(valTimeBins))*1000; % get the mean FR(Hz) of the unit
 end
@@ -82,7 +84,7 @@ if isfield(S,'nonNaNtrialId') % in case the nanNaNtrialId has been already sorte
         pcaDat(tr).trialId = S.nonNaNtrialId(tr,1); % trial ID
         pcaDat(tr).spikes = unitTimeTrial(unitIdxPCA,:,S.nonNaNtrialId(tr,1)); % neuron x timeBin mat for the trial, to include pca-sorted units only, pc.pcUnitSort(pc.pcUnitSort(:,3)==1,1)
         if p.Results.baseSubtrt % in case detrending by subtracting the mean baseline activity (By default, the mean spike count across time bins corresponding to the leftmost 1-sec is taken as the baseline activity)
-            pcaDat(tr).spikes = pcaDat(tr).spikes - mean(pcaDat(tr).spikes(:,1:floor(1000/S.params{1,1}.binSize)),2); % just subtract the mean spike count within the leftmost 1-s window from each 1-ms time bin
+            pcaDat(tr).spikes = pcaDat(tr).spikes - mean(pcaDat(tr).spikes(:,1:floor(1000/S.params.binSize)),2); % just subtract the mean spike count within the leftmost 1-s window from each 1-ms time bin
         end
     end
 else
@@ -90,7 +92,7 @@ else
         pcaDat(tr).trialId = tr; % trial ID
         pcaDat(tr).spikes = unitTimeTrial(unitIdxPCA,:,tr); % neuron x timeBin mat for the trial, to include pca-sorted units only, pc.pcUnitSort(pc.pcUnitSort(:,3)==1,1)
         if p.Results.baseSubtrt % in case detrending by subtracting the mean baseline activity (By default, the mean spike count across time bins corresponding to the leftmost 1-sec is taken as the baseline activity)
-            pcaDat(tr).spikes = pcaDat(tr).spikes - mean(pcaDat(tr).spikes(:,1:floor(1000/S.params{1,1}.binSize)),2); % just subtract the mean spike count within the leftmost 1-s window from each 1-ms time bin
+            pcaDat(tr).spikes = pcaDat(tr).spikes - mean(pcaDat(tr).spikes(:,1:floor(1000/S.params.binSize)),2); % just subtract the mean spike count within the leftmost 1-s window from each 1-ms time bin
         end
     end
 end

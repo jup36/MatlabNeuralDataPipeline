@@ -5,6 +5,7 @@ function [stimE] = stimEffect( filePath, fileName, probeDepth, varargin )
 %   during behavioral and tagging trials. 
 %   Usage example: stimEffect( filePath, 'binSpkCountCTXIT06_040218', 'binSpkCountCTX', {} )
 %   Use IndividualUnitPlotGramm.m to plot individual unit PSTHs based on the outcome of 'stimEffect'.  
+%   Modified on 9/6/18 to create the spikeCountMat reading in from spikeTimes
 
 cd(filePath)
 
@@ -36,7 +37,8 @@ for u = 1:length(S.reach.SpkCountMatZ) % increment units
     stimE.meanStmReach(u,1) = nanmean(S.stmReach.SpkCountMatZ{u}(1,reachOn:reachOn+p.Results.reachDur)); % mean FR during reach period with laser on
     stimE.maxStmReach(u,1)  = nanmax(S.stmReach.SpkCountMatZ{u}(1,reachOn:reachOn+p.Results.reachDur));  % max  FR during reach period with laser on
     
-    tagStmSpkCntMat   = full(cell2mat(S.tagLaser.SpkCountMat{u})); % spikecountmat around the tag stims
+    tagStmSpkCntMat = cell2mat(getSpkCntMatFromSpkTimes( S.tagLaser.SpkTimes{u}, S.tagLaser.params )); % get the current unit's spikeCountMat (trial-by-1msBin)
+    %tagStmSpkCntMat   = full(cell2mat(S.tagLaser.SpkCountMat{u})); % spikecountmat around the tag stims
     stimE.sumTagStmOn(u,1)    = sum(sum(tagStmSpkCntMat(:,tagStimOn:tagStimOn+p.Results.tagDur))); % total spike counts during tag stim on 
     stimE.sumPreTagStmOn(u,1) = sum(sum(tagStmSpkCntMat(:,tagStimOn-p.Results.tagDur:tagStimOn))); % total spike counts before tag stim on
     
@@ -71,7 +73,8 @@ for u = 1:length(S.reach.SpkCountMatZ) % increment units
         stimE.tagEHalfPeakT(u,1) = NaN;
     end
     
-    SpkReach = full(cell2mat(S.reach.SpkCountMat{u}));  % spike count mat during the whole reach period
+    SpkReach = cell2mat(getSpkCntMatFromSpkTimes( S.reach.SpkTimes{u}, S.reach.params )); % get the current unit's spikeCountMat (trial-by-1msBin)
+    %SpkReach = full(cell2mat(S.reach.SpkCountMat{u}));  % spike count mat during the whole reach period
     MeanFR   = nanmean(SpkReach(:))*1000/(length(p.Results.reachWinEdges)/1000);   % mean FR during the entire reach period
     
     stimE.FRidx(u,1) = MeanFR > p.Results.lowFRcut; % in case mean FR > 0.5 Hz
