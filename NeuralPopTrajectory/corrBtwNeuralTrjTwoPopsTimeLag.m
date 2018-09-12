@@ -54,8 +54,10 @@ end
 clearvars temp*
 
 %% get the corr dim-by-dim bin-by-bin between PCs between the two populations
-nTrjCorrCell12 = cell(5,5,2); % cell array to store the timelagged correlation matrices (rho and p values)
+nTrjCorrCell12 = cell(5,5,2); % cell array to store the timelagged correlation matrices (rho and p values stacked in the 3rd dimension)
 nTrjCorrCell12Name = strcat('nTrjCorr',neuralRegion1,neuralRegion2,eventName,'Rho');
+nTrjCorrCell1minus2 = cell(5,5,1); % subtract corr coeffs of the bottom triangle from the upper triangle to infer directionality
+nTrjCorrCell2minus1 = cell(5,5,1); % subtract corr coeffs of the upper triangle from the bottom triangle to infer directionality 
 
 for d = 1:size(nTrjMat1,1) % increment dimension (e.g. 5-d)
     tempTrj1 = squeeze(nTrjMat1(d,:,:))'; % trial-by-timeBin mat for each dim
@@ -64,7 +66,16 @@ for d = 1:size(nTrjMat1,1) % increment dimension (e.g. 5-d)
          [nTrjCorrCell12{d,dd,1},nTrjCorrCell12{d,dd,2}] = corr(tempTrj1,tempTrj2); 
          pcId = sprintf(formatSpecTitle,d,dd);          
          titleImg = [nTrjCorrCell12Name, pcId];    
-         surfMatrix( filePath, nTrjCorrCell12{d,dd,1}, nTrjCorrCell12{d,dd,2}, cAxisValue, 'parula', titleImg )   
+         surfMatrix( filePath, nTrjCorrCell12{d,dd,1}, nTrjCorrCell12{d,dd,2}, cAxisValue, 'parula', titleImg ) 
+         
+         if d <=3 && dd <=3
+            titleImg12 = [nTrjCorrCell12Name, pcId, 'Pop1MinusPop2']; 
+            titleImg21 = [nTrjCorrCell12Name, pcId, 'Pop2MinusPop1']; 
+            
+            triu(nTrjCorrCell12{d,dd,1})-triu(nTrjCorrCell12{d,dd,1}'); % directionality from pop1 to pop2
+            triu(nTrjCorrCell12{d,dd,1}')-triu(nTrjCorrCell12{d,dd,1}); % directionality from pop2 to pop1
+         end
+         
     end
 end
 

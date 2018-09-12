@@ -1,4 +1,5 @@
 function p = parse_input_psthPCA( filePath, fileName, varName, vargs ) % note that a nested function must use vargs not varargin when varargin was used for the main function
+
 %parse input, and extract name-value pairs for the main function
 % 'pcaPSTH.m'
 
@@ -8,8 +9,7 @@ default_dcFactor = 50;  % decimation factor
 default_PCs      = 3;   % use top 3 PCs
 default_expVarCut = 80; % to include top PCs whose summed explained variance greater than 80% of total variance
 default_FRcut = 1; % exclude units with mean FR lower than the FRcut from PCA
-default_nanTrialCut = .1; % to exclude NaN trials, if the proportion of them relative to total trials is smaller than this proportion
-default_nanUnitCut = .1;  % to exclude units with NaN trials, if the proportion of them relative to total units is smaller than this proportion
+default_nanTrialCut = .1; % to exclude units of which NaN trial proportion greater than this
 default_useAllUnits = true;  % logical to include all units in the sortedBinSpkCell prepared for DCA
 default_PCsLogic = false;    % logical to choose to include only the top PCs units
 default_expVarLogic = false; % logical to choose to include units with PCs of which cumulative explained variance surpassing the set expVarCut (e.g. 80 %)
@@ -30,7 +30,6 @@ addParameter(p,'PCs', default_PCs)
 addParameter(p,'expVarCut', default_expVarCut)
 addParameter(p,'FRcut', default_FRcut)
 addParameter(p,'nanTrialCut', default_nanTrialCut)
-addParameter(p,'nanUnitCut', default_nanUnitCut)
 addParameter(p,'useAllUnits',default_useAllUnits)
 addParameter(p,'PCsLogic',default_PCsLogic)
 addParameter(p,'expVarLogic',default_expVarLogic)
@@ -40,5 +39,6 @@ addParameter(p,'rmvNaNunits',default_rmvNaNunits)
 addParameter(p,'rmvNaNtrials',default_rmvNaNtrials)
 
 parse(p, filePath, fileName, varName, vargs{:})
+
 
 end

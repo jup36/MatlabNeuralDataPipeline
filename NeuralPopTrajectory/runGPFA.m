@@ -3,6 +3,7 @@ function [ gpfaResult, gpfaDat ] = runGPFA( filePath, fileName, saveNameTag, var
 % The input structure should provide trial x time spikecount matrix. 
 % The output structure 'gpfaDat' must be in the dimension of Trials with 2 fields (trialId, spikes). 
 % Each entry (trial) of the field 'spikes' must be Neuron-by-Timebins matrix. 
+% Modified on 9/6/18 to extract SpkCountMat from SpkTimes
 
 p = parse_input_runGPFA( filePath, fileName, saveNameTag, varargin );
 % p = parse_input_runGPFA( filePath, fileName, saveNameTag, {} ); % use this when running line-by-line
@@ -29,19 +30,20 @@ elseif ~exist('S','var') && ~exist('pc','var')
 end
 
 % Sanity check for the number of trials for each unit - check all units' spkCountMat have the same number of trials
-if length(unique(cellfun(@length, S(:).SpkCountMat))) == 1 
-   numbTrial = unique(cellfun(@length,S(:).SpkCountMat));
+if length(unique(cellfun(@length, S(:).SpkTimes))) == 1 
+   numbTrial = unique(cellfun(@length,S(:).SpkTimes));
 else
    error('There are units with different number of trials!!!')
 end
 
-valTimeBins = find( S.params{1}.binEdges1ms>=p.Results.timeRange(1) & S.params{1}.binEdges1ms<p.Results.timeRange(2) ); % find bins within the time range
-unitMeanFR  = zeros(size(S.SpkCountMat,1),1); % unit mean FR rates within the valid time range to exclude low and high FR (e.g. < 2Hz & >50Hz) units
-unitTimeTrial = zeros(size(S.SpkCountMat,1), length(valTimeBins), numbTrial); % unit x time(1ms bin) x trial matrix 
+valTimeBins = find( S.params.binEdges1ms>=p.Results.timeRange(1) & S.params.binEdges1ms<p.Results.timeRange(2) ); % find bins within the time range
+unitMeanFR  = zeros(size(S.SpkTimes,1),1); % unit mean FR rates within the valid time range to exclude low and high FR (e.g. < 2Hz & >50Hz) units
+unitTimeTrial = zeros(size(S.SpkTimes,1), length(valTimeBins), numbTrial); % unit x time(1ms bin) x trial matrix 
 
 % organize the unitTimeTrial mat
-for u = 1:size(S.SpkCountMat,1) % increment units
-    tmpUnitTrialTimeMat  = full(cell2mat(S.SpkCountMat{u})); % trial x time spike count mat
+for u = 1:size(S.SpkTimes,1) % increment units
+    tmpUnitTrialTimeMat  = cell2mat(getSpkCntMatFromSpkTimes( S.SpkTimes{u}, S.params )); % get the current unit's spikeCountMat (trial-by-1msBin)
+    %tmpUnitTrialTimeMat  = full(cell2mat(S.SpkCountMat{u})); % trial x time spike count mat
     unitTimeTrial(u,:,:) = permute(tmpUnitTrialTimeMat(:,valTimeBins),[3 2 1]); % permute to get the unitTimeTrial mat
     unitMeanFR(u) = sum(sum(unitTimeTrial(u,:,:)))/(numbTrial*length(valTimeBins))*1000; % get the mean FR(Hz) of the unit
 end

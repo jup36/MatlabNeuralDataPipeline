@@ -1,9 +1,11 @@
 function [S,pc,sortedBinSpkCell] = pcaPSTH( filePath, fileName, varName, varargin  )
-%pcaPSTH takes filePath, fileName, varName and other parameters to run 
+%pcaPSTH takes filePath, fileName, varName and other parameters to run
 % a pca on trial-averaged z-scored PSTHs of units whose mean FR greater
-% than the FRcut, and the units comprising top PCs selected by the user. 
-% pcaPSTH returns results of PCA and binned spike count structures/cells 
-% with the units sorted based on their PC scores of the top PCs. 
+% than the FRcut, and the units comprising top PCs selected by the user.
+% pcaPSTH returns results of PCA and binned spike count structures/cells
+% with the units sorted based on their PC scores of the top PCs.
+% Modified on 9/6/18 to read in/create spikeCountMat temporarily (without
+% saving) from the spikeTimes
 
 cd(filePath)
 
@@ -26,11 +28,12 @@ valFrCellId  = []; % valid cell id
 valFrCellCnt = 0; % valid cell count
 
 for u = 1:length(S.SpkCountMatZ) % increment units
-
-    S.binSpkZ(u,:)    = decimate(S.SpkCountMatZ{u},p.Results.dcFactor); % decimate the SpkCountMatZ - unit x bin (50 ms) z score
-    tempSpkCountMat = full(cell2mat(S.SpkCountMat{u}));     % temp spike count mat STR    
     
-    if nanmean(tempSpkCountMat(:))*1000 > p.Results.FRcut % in case no missing trial & mean FR greater than 1Hz    
+    S.binSpkZ(u,:)    = decimate(S.SpkCountMatZ{u},p.Results.dcFactor); % decimate the SpkCountMatZ - unit x bin (50 ms) z score
+    
+    tempSpkCountMat = cell2mat(getSpkCntMatFromSpkTimes( S.SpkTimes{u}, S.params )); % get the current unit's spikeCountMat (trial-by-1msBin)
+    
+    if nanmean(tempSpkCountMat(:))*1000 > p.Results.FRcut % in case no missing trial & mean FR greater than 1Hz
         valFrCellCnt = valFrCellCnt + 1;
         valFrCellId(valFrCellCnt,1) = u; % valid unit ID (surpassing the FR cut)
         tempBinSpk      = bin1msSpkCountMat(tempSpkCountMat,p.Results.binSize,p.Results.stepSize); % 1 ms binSize, 1 ms stepSize
@@ -39,15 +42,16 @@ for u = 1:length(S.SpkCountMatZ) % increment units
     else
         
     end
-
+    
+    clearvars temp*
 end
-clearvars u 
+clearvars u
 
-%% eliminate nan trials either by eliminating trials or units so that the resulting S.binSpkVal has no NaN trials 
+%% eliminate nan trials either by eliminating trials or units so that the resulting S.binSpkVal has no NaN trials
 missingTrialLimit = floor(size(nanTrials,1)*p.Results.nanTrialCut); % missing trial limit (default: 10 % of total trials)
-if p.Results.rmvNaNtrials % remove NaN trials 
+if p.Results.rmvNaNtrials % remove NaN trials
     if sum(sum(nanTrials,2)>0)<missingTrialLimit % in case there are not so many missing trials
-        valTrialId = find(sum(nanTrials,2)==0);  % find trials at which no unit had a NaN trial 
+        valTrialId = find(sum(nanTrials,2)==0);  % find trials at which no unit had a NaN trial
         S.binSpkVal = S.binSpk(sum(nanTrials,2)==0,:,:); % eliminate NaN trials binSpkVal must be free of any NaN values
         S.valTrialId = valTrialId; % valid trials at which none of the units had a NaN trial
     else
@@ -62,7 +66,7 @@ end
 
 % binSpkValunits = S.binSpk(:,:,~unitNaNidx);  % eliminate units with too many nan trials
 % valFrCellId = valFrCellId(~unitNaNidx,1);        % update valCelIdx accordingly
-% trialNaNidx = sum(nanTrials(:,~unitNaNidx),2)>=1; % idx for NaN trials (delete the trial if there's any unit with NaN value on that trial) 
+% trialNaNidx = sum(nanTrials(:,~unitNaNidx),2)>=1; % idx for NaN trials (delete the trial if there's any unit with NaN value on that trial)
 % S.binSpkVal = binSpkValunits(~trialNaNidx,:,:);   % eliminate NaN trials binSpkVal must be free of any NaN values
 
 %imagescJP(S.binSpkZ,hotcolormap,[-2 4]) % colormap for sanity check
@@ -72,36 +76,36 @@ end
 [~,pc.maxDim] = max(pc.PCscore,[],2); % dimension for each unit whose PC score is greatest
 
 pc.pcUnitSort = [];
-pcMaxDims = unique(pc.maxDim); % pc max dimensions 
+pcMaxDims = unique(pc.maxDim); % pc max dimensions
 valFrCellId(:,2) = [1:1:size(valFrCellId,1)]; % valid cell id before sort
 valFrCellId(:,3) = pc.maxDim;    % put pc max dimensions
 
 for i = 1:length(pcMaxDims) % increment pc max dims
-    tempUnitList = valFrCellId(valFrCellId(:,3)==pcMaxDims(i),:); % valid unit id 
+    tempUnitList = valFrCellId(valFrCellId(:,3)==pcMaxDims(i),:); % valid unit id
     tempUnitList(:,4) = pc.PCscore(tempUnitList(:,2),pcMaxDims(i)); % their max PC score (on that dimension)
     srtTempUnitList = sortrows(tempUnitList,-4); % sortRows by the PC score in a descending manner
-    pc.pcUnitSort = [pc.pcUnitSort; srtTempUnitList];  % concatenate the unit list 
+    pc.pcUnitSort = [pc.pcUnitSort; srtTempUnitList];  % concatenate the unit list
 end
 clearvars i temp*
 
-% select units with max PCs corresponding to the user-defined top PCs 
+% select units with max PCs corresponding to the user-defined top PCs
 if p.Results.useAllUnits
-   
+    
 elseif p.Results.PCsLogic
-   pc.pcUnitSort = pc.pcUnitSort(pc.pcUnitSort(:,3)<=p.Results.PCs,:); % select units whose max PC scores are of the set top PCs
+    pc.pcUnitSort = pc.pcUnitSort(pc.pcUnitSort(:,3)<=p.Results.PCs,:); % select units whose max PC scores are of the set top PCs
 elseif p.Results.expVarLogic
-   sumExpVar = zeros(length(pc.expVar),1);
-   for i = 1:length(pc.expVar) 
+    sumExpVar = zeros(length(pc.expVar),1);
+    for i = 1:length(pc.expVar)
         sumExpVar(i) = sum(pc.expVar(1:i)); % cumulative explained variance
-   end
-   pc.pcUnitSort = pc.pcUnitSort(pc.pcUnitSort(:,3)<=find(sumExpVar>=p.Results.expVarCut,1),:); % select units whose max PC scores are of the top PCs whose sum explained variance greater than the set expVarCut 
+    end
+    pc.pcUnitSort = pc.pcUnitSort(pc.pcUnitSort(:,3)<=find(sumExpVar>=p.Results.expVarCut,1),:); % select units whose max PC scores are of the top PCs whose sum explained variance greater than the set expVarCut
 else
     
 end
 
 %% Organize the selected cells into a cell array
-permbinSpk = permute(S.binSpkVal,[3 1 2]);      % permute dimensions so that binSpk to be unit x trials x timebin 
-sortedBinSpkCell = cell(1,size(permbinSpk,3));  % each cell contains data for each time bin  
+permbinSpk = permute(S.binSpkVal,[3 1 2]);      % permute dimensions so that binSpk to be unit x trials x timebin
+sortedBinSpkCell = cell(1,size(permbinSpk,3));  % each cell contains data for each time bin
 
 for b = 1:length(sortedBinSpkCell) % increment bins
     sortedBinSpkCell{1,b} = permbinSpk(pc.pcUnitSort(:,2),:,b); % each cell contains data for each time bin (unit x trials)
@@ -111,12 +115,12 @@ clearvars b
 %% Generate plots
 % figure; imagescJP(squeeze(nanmean(permbinSpk(pc.pcaCellIdx,:,:),2)),hotcolormap,[-2 5]) % colormap for sanity check
 % imagesc the trial-averaged z-score psths of valid units (subjected to PCA)
-imagescJP(S.binSpkZ(pc.pcUnitSort(:,1),:),cmap,p.Results.cAxis); pbaspect([1 1 1]); 
+imagescJP(S.binSpkZ(pc.pcUnitSort(:,1),:),cmap,p.Results.cAxis); pbaspect([1 1 1]);
 % plot relevant pc loadings
 pcLoadings = unique(pc.pcUnitSort(:,3)); % pcLoadins of the top PCs
-figure; hold on; 
+figure; hold on;
 for i = 1:length(pcLoadings)
-    plot(pc.loadings(:,pcLoadings(i))); 
+    plot(pc.loadings(:,pcLoadings(i)));
     pcLoadingLabel{i} = strcat('pc',num2str(pcLoadings(i)));
 end
 hold off; pbaspect([1 1 1]); clearvars i
@@ -173,6 +177,28 @@ save(saveName,'sortedBinSpkCell','pc','S','p');
         parse(p, filePath, fileName, varName, vargs{:})
         
     end
+
+%     function [ spkCntMat ] = getSpkCntMatFromSpkTimes( trBytrSpkTimes, psthParams  )
+%         %This function gets the trial-by-trial spikeCountMat from the trial-by-trial spikeTimes cell
+%         spkCntMat = cell(size(trBytrSpkTimes,1),1);
+%         
+%         for t = 1:size(trBytrSpkTimes,1) % increment trial
+%             spkCntMat{t} = zeros(1,sum(abs(psthParams.psthWin))); % preallocate the spikeCountMat
+%             
+%             if isempty(trBytrSpkTimes{t}) % just put 0, when spikeTimes empty
+%                 
+%             else
+%                 if ~isnan(sum(trBytrSpkTimes{t})) % NaN can be the case for evt out-of-bound case
+%                     spkCntMat{t}(1,trBytrSpkTimes{t}) = 1; % assign 1 to corresponding bins of the spikeTimes
+%                 else
+%                     spkCntMat{t} = nan(1,sum(abs(psthParams.psthWin)));
+%                 end
+%             end
+%         end
+%         
+%     end
+
+
 
 end
 

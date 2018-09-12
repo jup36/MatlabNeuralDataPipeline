@@ -4,6 +4,8 @@ function [S,pc,sortedBinSpkCell] = pcaPSTHtwoPopulations( filePath, fileName, va
 % than the FRcut, and the units comprising top PCs selected by the user.
 % pcaPSTH returns results of PCA and binned spike count structures/cells
 % with the units sorted based on their PC scores of the top PCs.
+% Modified on 9/6/18 to read in/create spikeCountMat temporarily (without
+% saving) from the spikeTimes
 
 cd(filePath)
 
@@ -39,8 +41,10 @@ for f = 1:length(fileName) % increment files
     
     for u = 1:length(S.SpkCountMatZ) % increment units
         
-        S.binSpkZ(u,:)    = decimate(S.SpkCountMatZ{u},p.Results.dcFactor); % decimate the SpkCountMatZ - unit x bin (50 ms) z score
-        tempSpkCountMat = full(cell2mat(S.SpkCountMat{u}));     % temp spike count mat STR
+        S.binSpkZ(u,:)  = decimate(S.SpkCountMatZ{u},p.Results.dcFactor); % decimate the SpkCountMatZ - unit x bin (50 ms) z score
+        
+        tempSpkCountMat = cell2mat(getSpkCntMatFromSpkTimes( S.SpkTimes{u}, S.params )); % get the current unit's spikeCountMat (trial-by-1msBin)
+        % tempSpkCountMat = full(cell2mat(S.SpkCountMat{u}));     % temp spike count mat STR
         % imagesc(tempSpkCountMat) % image the unit's spikecount mat
         
         if nanmean(tempSpkCountMat(:))*1000 > p.Results.FRcut % in case the mean FR greater than 1Hz
