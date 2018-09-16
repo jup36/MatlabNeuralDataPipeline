@@ -150,8 +150,11 @@ end
 
 %% Generate plots and Save Data
 for f = 1:length(fileName)
+    cd(fullfile(filePath,'Figure'))
     % imagesc the trial-averaged z-score psths of valid units (subjected to PCA)
     figure; imagescJP(file(f).S.binSpkZ(file(f).pc.pcUnitSort(:,1),:),cmap,p.Results.cAxis); pbaspect([1 1 1]); % plot the trial-averaged z-scored PSTHs
+    print( [fileName{f},'_trialAvgZscore',varName],'-dpdf') 
+    
     % plot relevant pc loadings
     pcLoadings = unique(file(f).pc.pcUnitSort(:,3)); % pcLoadins of the top PCs
     figure; hold on;
@@ -161,6 +164,7 @@ for f = 1:length(fileName)
     end
     hold off; pbaspect([1 1 1]); clearvars i
     legend(pcLoadingLabel);
+    print( [fileName{f},'_trialAvgPsthPCs',varName],'-dpdf')
     
     %% Save variables
     cd(filePath)
@@ -172,6 +176,7 @@ for f = 1:length(fileName)
     save(saveName,'sortedBinSpkCell','pc','S','p');
     %clearvars S pc sortedBinSpkCell
 end
+
 
 end % end of the function
 
