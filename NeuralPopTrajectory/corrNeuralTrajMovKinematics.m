@@ -59,7 +59,7 @@ for t = 1:length(behTS) % increment trials, take the trial-by-trial position/vel
         bTrj(t).maxReachPos = max(bTrj(t).reachPos(nTrj.reachTimeBins)); % max reach position within the time window of interest
         bTrj(t).maxReachVel = max(bTrj(t).reachVel(nTrj.reachTimeBins)); % max reach velocity within the time window of interest
         bTrj(t).trialId = t;
-        bTrj(t).lick = bin1msSpkCountMat(lickBin(timeWin(1):timeWin(2)-1),pcaResult.p.Results.pcaBinSize,pcaResult.p.Results.pcaBinSize); %
+        bTrj(t).lick = bin1msSpkCountMat(lickBin(timeWin(1):timeWin(2)-1),pcaResult.p.Results.pcaBinSize,pcaResult.p.Results.pcaBinSize); % get binned lick counts using the bin1msSpkCountMat
         bTrj(t).lickCount =  sum(bTrj(t).lick(nTrj.lickTimeBins)); % lick Counts within the lickTimeBins
     else
     end
