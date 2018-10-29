@@ -3,9 +3,7 @@ function [ meanmat, stdmat, semmat ] = meanstdsem( inputmat )
 % std, and sem of each column vector.  
 
 numbcol = size(inputmat,2);     % # of columns 
-
 meanmat = nanmean(inputmat,1);      % get mean 
-
 stdmat = nanstd(inputmat,0,1);      % get std
 
 for i = 1:numbcol
