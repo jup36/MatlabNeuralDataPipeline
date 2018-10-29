@@ -1,4 +1,4 @@
-function behaviorTimestampsJs(filePath,varargin)
+function behaviorTimestampsJs(filePath, varargin)
 %behaviorTimestamps
 
 %addpath(genpath(''))
@@ -8,7 +8,8 @@ p = parse_input_Js(filePath, varargin ); % parse input
 
 cd(p.Results.filePath)
 
-if ~isempty(dir('BehVariablesJs.mat')) % if the BehVariablesJs.mat file already exists in the filePath
+% check the folder whether there's rez file already
+if ~isempty(dir(fullfile(p.Results.filePath,'BehVariablesJs.mat'))) % if the BehVariablesJs.mat file already exists in the filePath
     answer = questdlg('BehVariablesJs.mat already exists, Would you like to replace it?','Choice','Replace','Cancel','Cancel');
     switch answer
         case 'Replace'
@@ -26,195 +27,231 @@ end
 binName = binFile.name;
 
 % Parse the corresponding metafile
-meta = ReadMeta(binName, p.Results.filePath); % get the meta data (structure)
-
-% Read the binary data (entire samples)
-nSamp         = SampRate(meta);          % sampling rate (default: 25kHz)
+meta  = ReadMeta(binName, p.Results.filePath); % get the meta data (structure)
+nSamp = SampRate(meta);          % sampling rate (default: 25kHz)
 totalTimeSecs = str2double(meta.fileTimeSecs); % total duration of file in seconds
 
-% Specify the relevant behavioral channel numbers
-trStartCh  = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.trStartCh; % ch# for trial start
-rewardCh   = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.rewardCh;  % ch# for reward delivery
-trEndCh    = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.trEndCh;   % ch# for trial end (either by successful pull or error/timeout)
-dirCh  = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.dirCh;  % ch# for stepper direction
-stepCh = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.stepCh; % ch# for stepper steps
-lickCh = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.lickCh;   % ch# for lick detect
-%pseudoLaserCh = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.pseudoLaserCh; % channel # for pseudoLaser (laser TTL triggerred by joystick displacement crossing the laser stim threshold with and without the actual laser delivery)
-
-% preallocate the behavioral data arrays
-trStart = zeros(1,floor(totalTimeSecs*1000)); % the time resolution will be 1000Hz (1ms) after decimation
-reward  = zeros(1,floor(totalTimeSecs*1000)); %
-trEnd   = zeros(1,floor(totalTimeSecs*1000)); %
-dir     = zeros(1,floor(totalTimeSecs*1000)); %
-step    = zeros(1,floor(totalTimeSecs*1000)); %
-lick    = zeros(1,floor(totalTimeSecs*1000)); %
-
-for i = 0:totalTimeSecs-1 % read second-by-second incrementally to avoid a memory issue
-    tempDataArray = ReadBin(i*nSamp, nSamp, meta, binName, p.Results.filePath); % read bin data for each second
-    tempTrStart  = decimate(tempDataArray(trStartCh,:),round(nSamp/1000)); % decimate the data
-    tempReward   = decimate(tempDataArray(rewardCh,:),round(nSamp/1000));
-    tempTrEnd    = decimate(tempDataArray(trEndCh,:),round(nSamp/1000));
-    tempDir   = decimate(tempDataArray(dirCh,:),round(nSamp/1000));
-    tempStep  = decimate(tempDataArray(stepCh,:),round(nSamp/1000));
-    tempLick  = decimate(tempDataArray(lickCh,:),round(nSamp/1000));
-    trStart(1,i*1000+1:(i+1)*1000) = tempTrStart; % accumulated the decimated data
-    reward(1,i*1000+1:(i+1)*1000) = tempReward;
-    trEnd(1,i*1000+1:(i+1)*1000) = tempTrEnd;
-    dir(1,i*1000+1:(i+1)*1000) = tempDir;
-    step(1,i*1000+1:(i+1)*1000) = tempStep;
-    lick(1,i*1000+1:(i+1)*1000) = tempLick;
+if ~isempty(dir(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat'))) % if the gainCorrectRawTraces.mat file already exists in the filePath
+    load(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat'), 'lick', 'trStart', 'reward', 'trEnd', 'camTrig', 'encodeA', 'encodeB' ) % if there are gaincorrectedrawtraces already saved, just load them
+else
+    
+    % Specify the relevant behavioral channel numbers
+    trStartCh  = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.trStartCh; % ch# for trial start
+    camTrigCh  = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.camTrigCh; % ch# for camera trigger
+    rewardCh   = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.rewardCh;  % ch# for reward delivery
+    trEndCh    = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.trEndCh;   % ch# for trial end (either by successful pull or error/timeout)
+    encodeACh  = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.encodeACh;  % ch# for stepper direction
+    encodeBCh = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.encodeBCh; % ch# for stepper steps
+    lickCh = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.lickCh;   % ch# for lick detect
+    
+    % preallocate the behavioral data arrays
+    trStart   = zeros(1,floor(totalTimeSecs*25000));  % the time resolution will be 1000Hz (1ms) after decimation
+    camTrig   = zeros(1,floor(totalTimeSecs*25000)); % do not decimate
+    reward    = zeros(1,floor(totalTimeSecs*25000));  %
+    trEnd     = zeros(1,floor(totalTimeSecs*25000));  %
+    encodeA   = zeros(1,floor(totalTimeSecs*25000)); % do not decimate
+    encodeB   = zeros(1,floor(totalTimeSecs*25000)); % do not decimate
+    lick      = zeros(1,floor(totalTimeSecs*25000));  %
+    
+    for i = 0:totalTimeSecs-1 % read second-by-second incrementally to avoid a memory issue
+        tempDataArray = ReadBin(i*nSamp, nSamp, meta, binName, p.Results.filePath); % read bin data for each second
+        tempTrStart  = tempDataArray(trStartCh,:); % decimate the data
+        tempCamTrig  = tempDataArray(camTrigCh,:); % do not decimate for higher temporal resolution
+        tempReward   = tempDataArray(rewardCh,:);
+        tempTrEnd    = tempDataArray(trEndCh,:);
+        tempEncodeA  = tempDataArray(encodeACh,:); % do not decimate for higher temporal resolution
+        tempEncodeB  = tempDataArray(encodeBCh,:); % do not decimate for higher temporal resolution
+        tempLick     = tempDataArray(lickCh,:);
+        
+        trStart(1,i*25000+1:(i+1)*25000) = tempTrStart; % accumulated the decimated data second-by-second
+        camTrig(1,i*25000+1:(i+1)*25000) = tempCamTrig;
+        reward(1,i*25000+1:(i+1)*25000) = tempReward;
+        trEnd(1,i*25000+1:(i+1)*25000)  = tempTrEnd;
+        encodeA(1,i*25000+1:(i+1)*25000) = tempEncodeA;
+        encodeB(1,i*25000+1:(i+1)*25000)  = tempEncodeB;
+        lick(1,i*25000+1:(i+1)*25000) = tempLick;
+        fprintf('processed %d\n', i+1)
+    end
+    clearvars i
+    
+    % Gain correction for channnels of interest
+    if strcmp(meta.typeThis, 'imec') % in case recording via imec
+        trStart = GainCorrectIM(trStart, 1, meta); % gain-corrected voltage trace for trStart
+        camTrig = GainCorrectIM(camTrig, 1, meta); % gain-corrected voltage trace for camTrig
+        reward = GainCorrectIM(reward, 1, meta);   % gain-corrected voltage trace for reward
+        trEnd  = GainCorrectIM(trEnd, 1, meta);    % gain-corrected voltage trace for trEnd
+        encodeA = GainCorrectIM(encodeA, 1, meta); % gain-corrected voltage trace for encodeA
+        encodeB = GainCorrectIM(encodeB, 1, meta); % gain-corrected voltage trace for encodeB
+        lick = GainCorrectIM(lick, 1, meta); % gain-corrected voltage trace for lick
+    else    % in case of recording via NI board
+        trStart = GainCorrectNI(trStart, 1, meta); % gain-corrected voltage trace for trStart
+        camTrig = GainCorrectNI(camTrig, 1, meta); % gain-corrected voltage trace for camTrig
+        reward = GainCorrectNI(reward, 1, meta);   % gain-corrected voltage trace for reward
+        trEnd  = GainCorrectNI(trEnd, 1, meta);    % gain-corrected voltage trace for trEnd
+        encodeA = GainCorrectNI(encodeA, 1, meta); % gain-corrected voltage trace for encodeA
+        encodeB = GainCorrectNI(encodeB, 1, meta); % gain-corrected voltage trace for encodeB
+        lick = GainCorrectNI(lick, 1, meta); % gain-corrected voltage trace for lick
+    end
     clearvars temp*
-    fprintf('processed %d\n', i+1)
+    save('gainCorrectRawTraces', 'trStart', 'camTrig', 'reward', 'trEnd', 'encodeA', 'encodeB', 'lick')
+end
+
+%% task event detection
+[trStartIdx,~,~] = detecteventbythreshold(trStart, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false); % trial Start
+[trEndIdx,~,~] = detecteventbythreshold(trEnd, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1)); % trial End
+if length(trStartIdx)==length(trEndIdx)
+    if ~unique(trEndIdx - trStartIdx>0)
+        error('Trial End and Start indices do not make sense!')
+    end
+elseif length(trStartIdx)-length(trEndIdx)==1
+    if ~unique(trEndIdx - trStartIdx(1,1:length(trEndIdx))>0)
+        error('Trial End and Start indices do not make sense!')
+    end
+else
+    error('Trial End and Start indices do not make sense!')
+end
+
+rwdIdx     = detecteventbythreshold(reward, 25000, 50, 'stdFactor',1, 'plotRez',false, 'chunkPulses', false, 'detectLater', trStartIdx(1));  % reward
+lickIdx    = detecteventbythreshold(lick, 25000, 30, 'stdFactor',3, 'plotRez',false, 'chunkPulses', false);    % lick
+
+[camTrigRiseIdx, camTrigFallIdx, camPulseTrainIdx] = detecteventbythreshold(camTrig, 25000, 2, 'stdFactor', 1, 'plotRez',false, 'chunkPulses', true, 'chunkInterval', 2000); % camera trigger
+%camTrigRiseIdx1ms = round(camTrigRiseIdx./round(nSamp/1000)); % adjust the time resolution to be 1ms
+%camTrigFallIdx1ms = round(camTrigFallIdx./round(nSamp/1000)); % adjust the time resolution to be 1ms
+
+%% spot the trial-by-trial and all-trials behavioral csv files
+if isempty(dir(fullfile(p.Results.filePath,'201*')))
+    error('Cannot find the trial-by-trial behavior data csv files!')
+end
+
+behFilePath = dir(fullfile(p.Results.filePath,'201*')); % dir where the trial-by-trial behavioral csv files are saved
+tbytCsvList = dir(fullfile(behFilePath.folder,behFilePath.name,'trial_*'));    % trial-by-trial files
+allTrialCsv = dir(fullfile(behFilePath.folder,behFilePath.name,'trials.csv')); % all trial file
+if length(allTrialCsvList)==1
+    trialsFileName = fullfile(allTrialCsv.folder,allTrialCsv.name); 
+    trialsCsv = readtable(trialsFileName);
+else
+    error('More than one trials.csv file detected!')
+end
+
+[~,tbytCsvdateSort] = sort(datenum({tbytCsvList(:).date}, 'dd-mmm-yyyy hh:MM:ss'), 1, 'ascend'); % sorted fileList
+
+%% stepper encoder data; pin A, pin B
+% get the midpoint of the max and min of step and direc as the mean of 10 folds to deal with outliers
+tenFold = linspace(1,length(encodeA),10);
+pinAmaxFolds = []; pinAminFolds = []; % pinA max and min of 10 folds
+pinBmaxFolds = []; pinBminFolds = []; % pinB max of 10 folds
+for i=1:10 % 10 folds
+    if i<10
+        pinAmaxFolds = [pinAmaxFolds, nanmax(encodeA(1,floor(tenFold(i)):floor(tenFold(i+1))-1))];
+        pinAminFolds = [pinAminFolds, nanmin(encodeA(1,floor(tenFold(i)):floor(tenFold(i+1))-1))];
+        pinBmaxFolds = [pinBmaxFolds, nanmax(encodeB(1,floor(tenFold(i)):floor(tenFold(i+1))-1))];
+        pinBminFolds = [pinBminFolds, nanmin(encodeB(1,floor(tenFold(i)):floor(tenFold(i+1))-1))];
+    elseif i==10
+        pinAmidPoint = (nanmean(pinAmaxFolds)+nanmean(pinAminFolds))/2;
+        pinBmidPoint = (nanmean(pinBmaxFolds)+nanmean(pinBminFolds))/2;
+    end
 end
 clearvars i
 
-% Gain correction for channnels of interest
-if strcmp(meta.typeThis, 'imec') % in case recording via imec
-    Xpos = GainCorrectIM(Xpos, 1, meta);   % gain-corrected voltage trace for Xpos
-    Ypos = GainCorrectIM(Ypos, 1, meta);   % gain-corrected voltage trace for Ypos
-    lick = GainCorrectIM(lick, 1, meta);   % gain-corrected voltage trace for lick
-    sole = GainCorrectIM(sole, 1, meta);   % gain-corrected voltage trace for solenoid
-    laser = GainCorrectIM(laser, 1, meta); % gain-corrected voltage trace for laser
-    pseudoLaser = GainCorrectIM(pseudoLaser, 1, meta); % gain-corrected voltage trace for pseudolaser
-else    % in case of recording via NI board
-    Xpos = GainCorrectNI(Xpos, 1, meta);   % gain-corrected voltage trace for Xpos
-    Ypos = GainCorrectNI(Ypos, 1, meta);   % gain-corrected voltage trace for Ypos
-    lick = GainCorrectNI(lick, 1, meta);   % gain-corrected voltage trace for lick
-    sole = GainCorrectNI(sole, 1, meta);   % gain-corrected voltage trace for solenoid
-    laser = GainCorrectNI(laser, 1, meta); % gain-corrected voltage trace for laser
-    pseudoLaser = GainCorrectNI(pseudoLaser, 1, meta); % gain-corrected voltage trace for pseudolaser
+for t = 1:length(trStartIdx) % increment trials
+    if ~isempty(find(trEndIdx>trStartIdx(t),1)) && trEndIdx(find(trEndIdx>trStartIdx(t),1))>trStartIdx(t) % if there's a trEnd
+        % redefine the trial start as the joystick in position timepoint (trJsReadyTime) by examining the baseline encoder data,
+        % as the trStart defined with the cue tone onset doesn't align
+        % perfectly with the joystick being in the start position.
+        jsRez(t).trStart = trStartIdx(t); % trStart detected by the go-cue onset
+        trBaseRange = trStartIdx(t)-2*nSamp:trStartIdx(t)+(nSamp/10/2)-1; % 2 sec baseline, just take 2 sec before the cue onset, with padding on the righthand side corresponding to 50 ms
+        trBasePinA = encodeA(trBaseRange); % pin A this trial baseline
+        trBasePinB = encodeB(trBaseRange); % pin B this trial baseline
+        biTrBasePinA = double(trBasePinA>pinAmidPoint); % binarize the pinA signal
+        biTrBasePinB = double(trBasePinB>pinBmidPoint); % binarize the pinB signal
+        
+        [trBaseJsState, ~] = readStepperEncoder(biTrBasePinA, biTrBasePinB); % read out the Js position from the binarized quadrature encoded signals
+        [trBaseLatestStillTime] = findJsReadyPt(cumsum(trBaseJsState), 100, nSamp); % find the Js ready time (trStart defined as the cue onset doesn't match with the moment when the Js is in position)
+        
+        if isnan(trBaseLatestStillTime)    
+        elseif trStartIdx(t)-2*nSamp+trBaseLatestStillTime <= jsRez(t).trStart
+            jsRez(t).trJsReadyTime = trStartIdx(t)-2*nSamp+trBaseLatestStillTime; % get the trJsReady time
+            jsRez(t).trEnd = trEndIdx(find(trEndIdx > trStartIdx(t),1,'first'));  % get the trEnd time
+            
+            trRange = jsRez(t).trJsReadyTime:jsRez(t).trEnd; % trial range aligned to the Js ready time
+            
+            trPinA = encodeA(trRange); % pin A this trial aligned to the Js ready
+            trPinB = encodeB(trRange); % pin A this trial aligned to the Js ready
+            
+            % binarize the encoder data
+            biTrPinA = double(trPinA>pinAmidPoint); % binarize the encoder signal
+            biTrPinB = double(trPinB>pinBmidPoint); % binarize the encoder signal 
+            [trJsState, ~] = readStepperEncoder(biTrPinA, biTrPinB); % read out the Js position from the binarized quadrature encoded signals
+            jsRez(t).trJsTraj = cumsum(trJsState);  % get the cumulative joystick trajectory for this trial
+            jsRez(t).dctrJsTraj = decimate(jsRez(t).trJsTraj ,round(nSamp/1000)); % decimate the Traj (downsampling the 25kHz data at 1kHz, so the time resoluation to be 1ms)
+            
+            % filter the decimated Js Traj
+            sgfiltFramelen = floor(length(jsRez(t).dctrJsTraj)/(p.Results.trialTimeout)*p.Results.sgfiltFramelen);
+            if mod(sgfiltFramelen,2)==0 % the frame length for sgolayfilt needs to be an odd positive integer
+                sgfiltFramelen = sgfiltFramelen+1;
+            end
+            
+            if sgfiltFramelen <= 3 % the order of polynomial fit for the sgolayfilt needs to be less than the frame length
+                sgfiltFramelen = 5;
+            end
+            jsRez(t).smdctrJsTraj = sgolayfilt(jsRez(t).dctrJsTraj,3,sgfiltFramelen);
+            
+            % read trial-by-trial behavioral csv files
+            tempFileName = fullfile(behFilePath.folder,behFilePath.name,tbytCsvList(tbytCsvdateSort(t)).name);
+            tempTimeTraj = csvread(tempFileName,1,1);  % csv read with row offset (header) and column offset (date)
+            jsRez(t).csvTime = tempTimeTraj(:,1); % csv time in ms
+            jsRez(t).csvTraj = tempTimeTraj(:,2); % csv joystick trajectory
+            jsRez(t).csvItpTraj = interp1(1:length(jsRez(t).csvTraj),jsRez(t).csvTraj,linspace(1,length(jsRez(t).csvTraj),length(jsRez(t).smdctrJsTraj)));
+            
+            % determine if the trial got rewarded
+            if ~isempty(find(abs(rwdIdx-jsRez(t).trEnd)<=nSamp,1)) % in case there's reward delivery within 1-sec window relative to the trial end
+                jsRez(t).rewarded = true;
+            else
+                jsRez(t).rewarded = false;
+            end
+            
+            % classfy the trial ('sp': successfull pull, 'ps': push, 'im': immature pull, 'to': timeout, 'nn': not identified)
+            if jsRez(t).rewarded % if rewarded
+                if ~isempty(find(jsRez(t).smdctrJsTraj<trialsCsv.pull_threshold(t),1)) % check the negative threshold crossing
+                    jsRez(t).trialType = 'sp';
+                end
+            else % if not rewarded
+                if length(jsRez(t).smdctrJsTraj)>p.Results.trialTimeout-100 % timeout
+                    jsRez(t).trialType = 'to';
+                elseif isempty(find(jsRez(t).smdctrJsTraj<trialsCsv.pull_threshold(t),1)) && ~isempty(find(jsRez(t).smdctrJsTraj>20,1)) % push (no pull beyond the pull threshold && push beyond a certain threshold)
+                    jsRez(t).trialType = 'ps';
+                elseif ~isempty(find(jsRez(t).smdctrJsTraj<trialsCsv.pull_threshold(t),1)) % pull (unrewarded)
+                    if ~isempty(find(jsRez(t).smdctrJsTraj>20,1))
+                        jsRez(t).trialType = 'impullandpush';
+                    else
+                        jsRez(t).trialType = 'im';
+                    end
+                else
+                    jsRez(t).trialType = 'nn';
+                end
+            end
+            
+            
+                
+            
+            
+            
+            
+            
+            %figure; plot(interp1(1:length(jsRez(t).csvTraj),jsRez(t).csvTraj,1:length(jsRez(t).dcsmtrJsTraj)));
+        end
+    else % if there's no trialEnd left
+    end
+    fprintf('completed trial #%d\n', t);
 end
 
-%% reward (digital pulses for solenoid activation) detection
-[~,soleStd,~] = meanstdsem(abs(sole)');       % std of the lick input signal
-rewThres      = mean(abs(sole))+soleStd;      % this seems to work as a reasonable threshold for detecting lick stim
-rewIdx        = find(abs(sole)>rewThres);     % find points crossing the lick threshold
-valRewIdx     = rewIdx(diff([0,rewIdx])>500);  % this prevents redundant detections
-% hold on; plot(sole); plot(valRewIdx,rewThres,'or'); hold off
-fprintf('Rewards detected: %d\n', length(valRewIdx));
+figure; hold on; plot(jsRez(t).smdctrJsTraj); 
+figure; plot(diff([0 jsRez(t).smdctrJsTraj]));
+figure; plot(diff([0 diff([0 jsRez(t).smdctrJsTraj])]));
+plot(jsRez(125).csvItpTraj)
 
 %% Position/velocity data
-if p.Results.artifactRmv % in case artifact remove is true
-    denoiseXpos=denoiseByTemplateSubtraction(Xpos,valRewIdx);
-    denoiseYpos=denoiseByTemplateSubtraction(Ypos,valRewIdx);
-    positionData = [denoiseXpos; denoiseYpos]; % denoised (without the solenoid artifact) joystick position data
-else % in case artifact remove is not selected
-    positionData = [Xpos; Ypos]; % joystick position data
-end
 
-if p.Results.reachBeforeLastReward
-    positionData = positionData(:,1:valRewIdx(end)+5000); % give a 5-sec room at the tail
-else
-end
-% get reach properties
-[ reachStart, reachStop, reach0, pos1, pos2, xpos1, ypos1, xpos2, ypos2 ] = getReachTimesJP( positionData );     % all reach traces, aligned to start (pos1), to stop (pos2)
-fprintf('Reaches detected: %d\n', length(reachStart));
-
-vel1 = diff(pos1, 1, 2); % reach velocity aligned to reach start(differentiation of pos1)
-vel2 = diff(pos2, 1, 2); % reach velocity aligned to reach stop (differentiation of pos2)
-% plot(reach0) % reachMW is the amplitude readout of the whole session
-
-%% Get other task events - reward delivery, licks, laser stimulation
-% lick (digital pulses for lick) detection
-
-if p.Results.filterLickCh
-    filtLick = filter1('hp',lick,'fs',1000,'fc',p.Results.highPassFilterFC);
-    lick = filtLick;
-end
-
-[~,lickStd,~] = meanstdsem(abs(lick)');          % std of the lick input signal
-lickThres     = mean(abs(lick))+2.5*lickStd;     % this seems to work as a reasonable threshold for detecting lick stim
-lickIdx       = find(abs(lick)>lickThres);       % find points crossing the lick threshold
-valLickIdx    = lickIdx(diff([0,lickIdx])>10);   % this prevents redundant detections
-fprintf('Licks detected: %d\n', length(valLickIdx));
-% %this part visualizes the detected lick traces for validation
-% valLickCount = 0;
-% for i = 1:length(valLickIdx)
-%     %hold on;
-%     if valLickIdx(i)-100>0 && valLickIdx(i)+100<length(lick)
-%         valLickCount = valLickCount + 1;
-%         lickTraces(valLickCount,:) = lick(1,valLickIdx(i)-100:valLickIdx(i)+100);
-%         %plot(valLickIdx(i)-100:valLickIdx(i)+100,lickTraces(valLickCount,:),'m')
-%         %plot(valLickIdx(i), lick(valLickIdx(i)),'c*')
-%     else
-%
-%     end
-% end
-% clearvars i
-% validation with plot
-%hold on; plot(lick); plot(valLickIdx,lick(valLickIdx),'or'); hold off
-
-if p.Results.laserUsed
-    % laser (TTL pulses for laser) detection
-    [~,laserStd,~] = meanstdsem(abs(laser)');             % std of the laser input signal
-    laserThres     = mean(abs(laser))+laserStd;           % this seems to work as a reasonable threshold for detecting laser stim
-    laserIdx       = find(abs(laser)>laserThres);         % find points crossing the laser threshold
-    valLaserIdx    = laserIdx(diff([0,laserIdx])>1000);   % this prevents redundant detections
-    tagLaserIdx    = zeros(1,length(valLaserIdx));        % preallocate index for optotag laser
-    tagLaserIdx(end-p.Results.numbTagLasers+1:end)=1;     % index for optotag laser (e.g. last 30 trials)
-    tagLaser       = valLaserIdx(logical(tagLaserIdx));   % laser trials for opto-tagging: usually 10 trials are given at the end
-    stmLaser       = valLaserIdx(~logical(tagLaserIdx));  % randomly selected reach-evoked opto-stimulations
-    
-    if p.Results.reachBeforeLastReward
-        stmLaser = stmLaser(stmLaser<valRewIdx(end)); % only take stmLaser occurred before the last reward delivery
-    else
-    end
-    
-    % validation with plot
-    %hold on; plot(laser); plot(stmLaser,laserThres,'or'); plot(tagLaser,laserThres,'og'); hold off;
-    
-    % pseudoLaser detection
-    rezeroPseudoLaser = pseudoLaser - mean(pseudoLaser); % re-zero pseudoLaser It's a nice practice to rezero the digital signals
-    [~,rezeroPseudoLaserStd,~] = meanstdsem(abs(rezeroPseudoLaser)');         % std of the laser input signal
-    pseudoLaserThres     = mean(abs(rezeroPseudoLaser))+rezeroPseudoLaserStd; % this seems to work as a reasonable threshold for detecting laser stim
-    pseudoLaserIdx       = find(abs(rezeroPseudoLaser)>pseudoLaserThres);     % find points crossing the laser threshold
-    valpseudoLaserIdx    = pseudoLaserIdx(diff([0,pseudoLaserIdx])>2000);     % this prevents redundant detections
-    
-    % detect reaches with stim on (also the simulations delivered during reach or not)
-    stimReachIdx = zeros(length(reachStart),1);     % index for stim on or not to be used for reachStart or reachStop
-    stimReachLaserIdx = zeros(length(stmLaser),1);  % index for stmLaser to be delivered during completed reach or not
-    
-    for i = 1:length(reachStart)
-        
-        tmpStmLaserId = find(stmLaser > reachStart(i),1,'first'); % the first stim on after the current reach start
-        if stmLaser(tmpStmLaserId) <= reachStop(i)
-            stimReachIdx(i) = true; % mark it as a stimulated trial
-            stimReachLaserIdx(tmpStmLaserId) = true; % mark it as a stimulation delivered during a complete reach
-        end
-    end
-end
-
-
-% Build a structure for timestamps
-ts.reachStart = reachStart;     % reachStart
-ts.reachStop  = reachStop;      % reachStop
-ts.reward     = valRewIdx;      % reward deliveries
-ts.lick       = valLickIdx;     % licks
-
-if p.Results.laserUsed
-    ts.laser      = valLaserIdx;    % laser stimulations all lasers
-    ts.stmLaser   = stmLaser;       % randomly selected reach-evoked opto-stimulations
-    ts.stmLaserReach = stmLaser(logical(stimReachLaserIdx)); % stim trials occurred during full reaches
-    ts.pseudoLaser = valpseudoLaserIdx; % pseudoLaser TTL pulses (without actual laser deliveries)
-    ts.stmReachStart = reachStart(logical(stimReachIdx)); % reachStart of stim on trials
-    ts.stmReachStop  = reachStop(logical(stimReachIdx));  % reachStop of stim on trials
-    ts.tagLaser = tagLaser; % laser for tagging
-end
-
-% Reach rewarded or not
-ts.reachRew = zeros(length(ts.reachStart),1); % 1st column: reward logic
-for t = 1:length(ts.reachStart)
-    if ~isempty(find(ts.reward > ts.reachStart(t),1)) % in case, there's any reward delivery after this reach
-        nextRew = ts.reward(min(find(ts.reward > ts.reachStart(t),1))); % the very next reward after this reachStart
-        if t<length(ts.reachStart)
-            ts.reachRew(t,1) = nextRew < ts.reachStart(t+1); % see if a reward was delivered before the next reachStart or not
-        elseif t==length(ts.reachStart)
-            ts.reachRew(t,1) = true;
-        end
-    else % in case there's no subsequent reward delivery at all
-        ts.reachRew(t,1) = false;
-    end
-end
 
 % Save relevant BehVariables
 cd(filePath)
@@ -227,30 +264,37 @@ end
 % NESTED HELPER FUNCTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
-    function p = parse_input_Js( filePath, vargs ) % note that a nested function must use vargs not varargin when varargin was used for the main function
+    function p = parse_input_Js( filePath, vargs )
         % parse input, and extract name-value pairs
         default_numbNeuralProbe = 0;  % specify how many NIboard probes were used (e.g. zero if no NI neural probe was used)
         default_numbChEachProbe = 64; % specify how many channels are on the probe
         default_trStartCh = 33; % ch# for trial start
+        default_camTrigCh = 34; % ch# for camera trigger
         default_rewardCh  = 35; % ch# for reward delivery
         default_trEndCh   = 36; % ch# for trial end
-        default_dirCh     = 37; % ch# for stepper dir
-        default_stepCh    = 39; % ch# for stepper steps
-        default_lickCh    = 1;  % ch# for lick detect (unattenuated channel) 
+        default_encodeACh = 37; % ch# for stepper encoder A
+        default_encodeBCh = 39; % ch# for stepper encoder B
+        default_lickCh    = 1;  % ch# for lick detect (unattenuated channel)
+        default_sgfiltFramelen = 101; % frame length for the sgolayfilt
+        default_trialTimeout = 10000; % trial timeout duration
         
         p = inputParser; % create parser object
         addRequired(p,'filePath');
         addParameter(p,'numbNeuralProbe',default_numbNeuralProbe)
         addParameter(p,'numbChEachProbe',default_numbChEachProbe)
         addParameter(p,'trStartCh',default_trStartCh)
+        addParameter(p,'camTrigCh',default_camTrigCh)
         addParameter(p,'rewardCh',default_rewardCh)
         addParameter(p,'trEndCh',default_trEndCh)
-        addParameter(p,'dirCh',default_dirCh)
-        addParameter(p,'stepCh',default_stepCh)
+        addParameter(p,'encodeACh',default_encodeACh)
+        addParameter(p,'encodeBCh',default_encodeBCh)
         addParameter(p,'lickCh',default_lickCh)
+        addParameter(p,'sgfiltFramelen',default_sgfiltFramelen)
+        addParameter(p,'trialTimeout',default_trialTimeout)
         
         parse(p,filePath,vargs{:})
     end
+
 
 end
 
