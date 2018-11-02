@@ -98,7 +98,7 @@ end
 
 %% task event detection
 [trStartIdx,~,~] = detecteventbythreshold(trStart, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false); % trial Start
-[trEndIdx,~,~] = detecteventbythreshold(trEnd, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1)); % trial End
+[trEndIdx,~,~]   = detecteventbythreshold(trEnd, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1)); % trial End
 if length(trStartIdx)==length(trEndIdx)
     if ~unique(trEndIdx - trStartIdx>0)
         error('Trial End and Start indices do not make sense!')
@@ -112,7 +112,11 @@ else
 end
 
 rwdIdx     = detecteventbythreshold(reward, 25000, 50, 'stdFactor',1, 'plotRez',false, 'chunkPulses', false, 'detectLater', trStartIdx(1));  % reward
-lickIdx    = detecteventbythreshold(lick, 25000, 30, 'stdFactor',3, 'plotRez',false, 'chunkPulses', false);    % lick
+
+% detect licks
+lickIdx    = detecteventbythreshold(decimate(lick,nSamp/1000), 1000, 20, 'stdFactor',3, 'plotRez',false, 'chunkPulses', false); % lick, detect licks after downsampling (there seems to be some denoising effect with decimation, see /Volumes/RAID2/parkj/NeuralData/js2.0/WR25/101718/lickSignalExample_1kHzVS25kHz.fig as an example) 
+%deciLick = decimate(lick, nSamp/1000); intDeciLick = interp1(1:length(deciLick), deciLick, linespace(1, length(deciLick), length(lick)));
+%plot(lick); hold on; plot(intDeciLick); hold off 
 
 [camTrigRiseIdx, camTrigFallIdx, camPulseTrainIdx] = detecteventbythreshold(camTrig, 25000, 2, 'stdFactor', 1, 'plotRez',false, 'chunkPulses', true, 'chunkInterval', 2000); % camera trigger
 %camTrigRiseIdx1ms = round(camTrigRiseIdx./round(nSamp/1000)); % adjust the time resolution to be 1ms
@@ -126,7 +130,7 @@ end
 behFilePath = dir(fullfile(p.Results.filePath,'201*')); % dir where the trial-by-trial behavioral csv files are saved
 tbytCsvList = dir(fullfile(behFilePath.folder,behFilePath.name,'trial_*'));    % trial-by-trial files
 allTrialCsv = dir(fullfile(behFilePath.folder,behFilePath.name,'trials.csv')); % all trial file
-if length(allTrialCsvList)==1
+if length(allTrialCsv)==1
     trialsFileName = fullfile(allTrialCsv.folder,allTrialCsv.name); 
     trialsCsv = readtable(trialsFileName);
 else
@@ -136,6 +140,7 @@ end
 [~,tbytCsvdateSort] = sort(datenum({tbytCsvList(:).date}, 'dd-mmm-yyyy hh:MM:ss'), 1, 'ascend'); % sorted fileList
 
 %% stepper encoder data; pin A, pin B
+jsDistCoeff = 2*pi*90/4000; % joystick movement distance conversion coefficient (4000: the number of total edges(rises/falls) per resolution of the encoder)
 % get the midpoint of the max and min of step and direc as the mean of 10 folds to deal with outliers
 tenFold = linspace(1,length(encodeA),10);
 pinAmaxFolds = []; pinAminFolds = []; % pinA max and min of 10 folds
@@ -178,7 +183,6 @@ for t = 1:length(trStartIdx) % increment trials
             trPinA = encodeA(trRange); % pin A this trial aligned to the Js ready
             trPinB = encodeB(trRange); % pin A this trial aligned to the Js ready
             
-            % binarize the encoder data
             biTrPinA = double(trPinA>pinAmidPoint); % binarize the encoder signal
             biTrPinB = double(trPinB>pinBmidPoint); % binarize the encoder signal 
             [trJsState, ~] = readStepperEncoder(biTrPinA, biTrPinB); % read out the Js position from the binarized quadrature encoded signals
@@ -186,42 +190,46 @@ for t = 1:length(trStartIdx) % increment trials
             jsRez(t).dctrJsTraj = decimate(jsRez(t).trJsTraj ,round(nSamp/1000)); % decimate the Traj (downsampling the 25kHz data at 1kHz, so the time resoluation to be 1ms)
             
             % filter the decimated Js Traj
-            sgfiltFramelen = floor(length(jsRez(t).dctrJsTraj)/(p.Results.trialTimeout)*p.Results.sgfiltFramelen);
-            if mod(sgfiltFramelen,2)==0 % the frame length for sgolayfilt needs to be an odd positive integer
-                sgfiltFramelen = sgfiltFramelen+1;
-            end
-            
-            if sgfiltFramelen <= 3 % the order of polynomial fit for the sgolayfilt needs to be less than the frame length
-                sgfiltFramelen = 5;
-            end
+            if length(jsRez(t).dctrJsTraj) >= p.Results.sgfiltFramelen
+                sgfiltFramelen = p.Results.sgfiltFramelen; 
+            elseif length(jsRez(t).dctrJsTraj) < p.Results.sgfiltFramelen
+                if mod(length(jsRez(t).dctrJsTraj),2)==0
+                    sgfiltFramelen = length(jsRez(t).dctrJsTraj)-1; 
+                else
+                    sgfiltFramelen = length(jsRez(t).dctrJsTraj);  
+                end
+            end            
+
             jsRez(t).smdctrJsTraj = sgolayfilt(jsRez(t).dctrJsTraj,3,sgfiltFramelen);
-            
-            % read trial-by-trial behavioral csv files
-            tempFileName = fullfile(behFilePath.folder,behFilePath.name,tbytCsvList(tbytCsvdateSort(t)).name);
-            tempTimeTraj = csvread(tempFileName,1,1);  % csv read with row offset (header) and column offset (date)
-            jsRez(t).csvTime = tempTimeTraj(:,1); % csv time in ms
-            jsRez(t).csvTraj = tempTimeTraj(:,2); % csv joystick trajectory
-            jsRez(t).csvItpTraj = interp1(1:length(jsRez(t).csvTraj),jsRez(t).csvTraj,linspace(1,length(jsRez(t).csvTraj),length(jsRez(t).smdctrJsTraj)));
+            jsRez(t).smdctrJsTrajmm = jsRez(t).smdctrJsTraj*jsDistCoeff; % convert the Js traj into mm  
             
             % determine if the trial got rewarded
             if ~isempty(find(abs(rwdIdx-jsRez(t).trEnd)<=nSamp,1)) % in case there's reward delivery within 1-sec window relative to the trial end
                 jsRez(t).rewarded = true;
             else
                 jsRez(t).rewarded = false;
-            end
+            end       
             
-            % classfy the trial ('sp': successfull pull, 'ps': push, 'im': immature pull, 'to': timeout, 'nn': not identified)
+            % read trial-by-trial behavioral csv files
+            %tempFileName = fullfile(behFilePath.folder,behFilePath.name,tbytCsvList(tbytCsvdateSort(t)).name);
+            %tempTimeTraj = csvread(tempFileName,1,1);  % csv read with row offset (header) and column offset (date)
+            %jsRez(t).csvTime = tempTimeTraj(:,1); % csv time in ms
+            %jsRez(t).csvTraj = tempTimeTraj(:,2); % csv joystick trajectory
+            %jsRez(t).csvItpTraj = interp1(1:length(jsRez(t).csvTraj),jsRez(t).csvTraj,linspace(1,length(jsRez(t).csvTraj),length(jsRez(t).smdctrJsTraj)));              
+            
+            % classify the trial ('sp': successfull pull, 'ps': push, 'im': immature pull, 'to': timeout, 'nn': not identified)
             if jsRez(t).rewarded % if rewarded
                 if ~isempty(find(jsRez(t).smdctrJsTraj<trialsCsv.pull_threshold(t),1)) % check the negative threshold crossing
                     jsRez(t).trialType = 'sp';
                 end
             else % if not rewarded
-                if length(jsRez(t).smdctrJsTraj)>p.Results.trialTimeout-100 % timeout
+                if length(jsRez(t).dctrJsTraj)>p.Results.trialTimeout-100 % timeout
                     jsRez(t).trialType = 'to';
-                elseif isempty(find(jsRez(t).smdctrJsTraj<trialsCsv.pull_threshold(t),1)) && ~isempty(find(jsRez(t).smdctrJsTraj>20,1)) % push (no pull beyond the pull threshold && push beyond a certain threshold)
+                elseif isempty(find(jsRez(t).dctrJsTraj<trialsCsv.pull_threshold(t),1)) && ~isempty(find(jsRez(t).dctrJsTraj>20,1)) % push (no pull beyond the pull threshold && push beyond a certain threshold)
                     jsRez(t).trialType = 'ps';
-                elseif ~isempty(find(jsRez(t).smdctrJsTraj<trialsCsv.pull_threshold(t),1)) % pull (unrewarded)
-                    if ~isempty(find(jsRez(t).smdctrJsTraj>20,1))
+                elseif ~isempty(find(jsRez(t).dctrJsTraj<trialsCsv.pull_threshold(t),1)) % pull (unrewarded)
+                        impullThresCross = find(jsRez(t).dctrJsTraj<trialsCsv.pull_threshold(t),1); % immature pull threshold crossing point
+                    if ~isempty(find(jsRez(t).dctrJsTraj(impullThresCross:end)>0,1))
                         jsRez(t).trialType = 'impullandpush';
                     else
                         jsRez(t).trialType = 'im';
@@ -231,12 +239,8 @@ for t = 1:length(trStartIdx) % increment trials
                 end
             end
             
-            
-                
-            
-            
-            
-            
+            % trial-by-trial reach kinematics analysis
+            [reachStarts, ] = jsReachKinematics( jsRez(t).dctrJsTraj, trialsCsv.pull_threshold(t), jsRez(t).trialType, sgfiltFramelen ); 
             
             %figure; plot(interp1(1:length(jsRez(t).csvTraj),jsRez(t).csvTraj,1:length(jsRez(t).dcsmtrJsTraj)));
         end
