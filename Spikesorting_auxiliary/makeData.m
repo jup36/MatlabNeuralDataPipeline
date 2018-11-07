@@ -4,7 +4,7 @@ clc; clearvars; close all;
 % recording
 gain = 500;
 nCell = 200;
-spikeVariability = 0.05; % percent
+spikeVariability =  0.05; % percent
 recordingDuration = 10*60; % second
 noiseAmplitude = 6; % microvolts
 frRange = [0.1, 10];
@@ -96,7 +96,7 @@ peakAmplitude = squeeze(min(wavSample(:, 1, :)));
 disp('waveform loaded');
 % output: wavSample
 
-save(fullfile(saveDir, 'simData.mat'), 'spikeTime', 'cellChannel', 'wavSample', 'peakAmplitude');
+%save(fullfile(saveDir, 'simData.mat'), 'spikeTime', 'cellChannel', 'wavSample', 'peakAmplitude');
 
 %% Generate data
 disp('starting data generation');
@@ -113,10 +113,10 @@ for iT = 1:recordingDuration
         data(activeChannel, activeTime) = data(activeChannel, activeTime) + spikeAmplitude * squeeze(wavSample(:, :, spikeBinned{iT}(iC, 2)))';
     end
     
-    dataWrite = int16(data(:));
-    fwrite(fid, dataWrite, 'int16');    
+    %dataWrite = int16(data(:));
+    %fwrite(fid, dataWrite, 'int16');    
 end
-fclose(fid);
+%fclose(fid);
 
 % check data
 hold on;

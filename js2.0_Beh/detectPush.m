@@ -39,7 +39,7 @@ pushMaxVelI = tempPushVelMaxI+pushStart-1;
 
 % subplot(2,2,1); plot(jsTrajmm); hold on; plot(pushStart,jsTrajmm(pushStart),'*b'); plot(pushStop,jsTrajmm(pushStop),'*r'); hold off;
 % subplot(2,2,2); plot(smJsVel); hold on; plot(pushStart,smJsVel(pushStart),'*b'); plot(pushStop,smJsVel(pushStop),'*r'); plot(pushMaxVelI, smJsVel(pushMaxVelI),'og'); hold off; 
-% subplot(2,2,3); findpeaks(-smJsVel, 'MinPeakProminence',3); 
+% subplot(2,2,3); findpeaks(smJsVel, 'MinPeakProminence',3); 
 % subplot(2,2,4); plot(periodicAbsVelSum)
 
 end

@@ -1,4 +1,4 @@
-function [jsSetTimePt] = findJsReadyPt2(baselineJsTraj, SamplingRate)
+function [jsSetTimePt, jsTrajmm, smJsVel, periodicAbsVelSum] = findJsReadyPt2(baselineJsTraj, SamplingRate)
 %Find the time point when the Js is in position.
 % Algorithm: To detect the time at which Js got in position, this function
 % fist detects the stepper movement setting the Js in place, after the
@@ -27,7 +27,7 @@ end
 if ~isempty(find( jsTrajmm <= pullThresholdmm, 1, 'first'))
     fstThresCross = find( jsTrajmm <= pullThresholdmm, 1, 'first'); % detect the jsSetMove that crossed the pull threshold
     % define jsSetMoveStart - find the last still point before the 1st threshold crossing
-    lastStillPt = find(periodicAbsVelSum(1:fstThresCross)<50, 1, 'last'); % this corresponds to the last point at which Js moved less than 0.5mm for the retrospective 10ms (50*(10ms/1000ms), as the velocity is in unit of mm/s)
+    lastStillPt = find(periodicAbsVelSum(1:fstThresCross)<100, 1, 'last'); % this corresponds to the last point at which Js moved less than 0.05mm for the retrospective 10ms (100*(1ms/1000ms), as the velocity is in unit of mm/s)
     if ~isempty(lastStillPt)
         if lastStillPt > stillPts
             jsSetMoveStart = lastStillPt-stillPts;
@@ -39,8 +39,8 @@ if ~isempty(find( jsTrajmm <= pullThresholdmm, 1, 'first'))
     end
     
     % define jsSetMoveStop
-    if ~isempty(find(periodicAbsVelSum(fstThresCross:end)<50,1)) % 1st look if there's any still point after the threshold crossing
-        jsSetTime = fstThresCross+find(periodicAbsVelSum(fstThresCross:end)<50,1)-1;
+    if ~isempty(find(periodicAbsVelSum(fstThresCross:end)<100,1)) % 1st look if there's any still point after the threshold crossing
+        jsSetTime = fstThresCross+find(periodicAbsVelSum(fstThresCross:end)<100,1)-1;
     else
         jsSetTime = nan;
     end
@@ -49,8 +49,8 @@ else % in rare cases, if there's no Js Set movement (no threshold crossing due t
     stillPoints = find(periodicAbsVelSum==0,1,'last');
     if ~isempty(stillPoints)
         jsSetTime = stillPoints;
-    elseif min(periodicAbsVelSum) < 50 % if there isn't perfect still point find a point at which there was less than 0.05mm Js movement in the recent 10 ms
-        jsSetTime = find(periodicAbsVelSum<50,1,'last');
+    elseif min(periodicAbsVelSum) < 100 % if there isn't perfect still point find a point at which there was less than 0.05mm Js movement in the recent 10 ms
+        jsSetTime = find(periodicAbsVelSum<100,1,'last');
     else
         jsSetTime = nan;
     end

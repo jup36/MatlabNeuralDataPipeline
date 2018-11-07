@@ -6,7 +6,7 @@ function [ movKins ] = jsReachKinematics( jsTrajUnfilt, pullThreshold, trialType
 
 jsTrajSteps = jsTrajUnfilt; % Js trajectory in steps 
 jsDistCoeff = 2*pi*90/4000; % js movement distance conversion coefficient (4000: the number of total edges(rises/falls) per resolution of the encoder)
-pushThresholdmm = 50*jsDistCoeff; % Js push threshold in mm
+pushThresholdmm = 40*jsDistCoeff; % Js push threshold in mm
 jsTrajmm = jsTrajSteps.*jsDistCoeff; % joystick trajectory in mm
 pullThresholdmm = pullThreshold*jsDistCoeff; % pullthreshold in mm
 sgJsTrajmm = sgolayfilt(jsTrajmm,3,sgfiltFramelen); % sg filtered trajectory in mm
@@ -40,10 +40,7 @@ movKins.periodicAbsVelSum = periodicAbsVelSum;
 movKins.trialType = trialType; 
 movKins.jsVelmmps = jsVelmmps; 
 movKins.smJsVel = smJsVel; 
-movKins.sgJsVel = sgJsVel; 
-movKins.jsAclmmpss = jsAclmmpss; 
-movKins.smJsAcl = smJsAcl;
-movKins.sgJsAcl = sgJsAcl;
+movKins. sgJsVel = sgJsVel; 
 
 switch trialType
     case 'sp' % for a successful pull
@@ -60,14 +57,14 @@ switch trialType
 %         subplot(2,2,3); findpeaks(-smJsVel, 'MinPeakProminence',3); 
 %         subplot(2,2,4); plot(periodicAbsVelSum)
         
-    case 'pm' % for a premature pull
+    case 'im' % for a immature pull
         [ movKins.pullStart, movKins.pullStop, movKins.pullMaxVel, movKins.pullMaxVelI ] = detectPull(jsTrajmm, smJsVel, pullThresholdmm, periodicAbsVelSum); 
 %         subplot(2,2,1); plot(jsTrajmm); hold on; plot(movKins.pullStart,jsTrajmm(movKins.pullStart),'*b'); plot(movKins.pullStop,jsTrajmm(movKins.pullStop),'*r'); hold off;
 %         subplot(2,2,2); plot(smJsVel); hold on; plot(movKins.pullStart,smJsVel(movKins.pullStart),'*b'); plot(movKins.pullStop,smJsVel(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, smJsVel(movKins.pullMaxVelI),'og'); hold off; 
 %         subplot(2,2,3); findpeaks(-smJsVel, 'MinPeakProminence',3); 
 %         subplot(2,2,4); plot(periodicAbsVelSum)
 
-    case 'pmpp' % for a premature pull then push
+    case 'impp' % for a immature pull then push
          [ movKins.pullStart, movKins.pullStop, movKins.pullMaxVel, movKins.pullMaxVelI, movKins.pushStart, movKins.pushStop, movKins.pushMaxVel, movKins.pushMaxVelI ] = detectPullandPush(jsTrajmm, smJsVel, pullThresholdmm, pushThresholdmm, periodicAbsVelSum);     
 %         subplot(2,2,1); plot(jsTrajmm); hold on; plot(movKins.pullStart,jsTrajmm(movKins.pullStart),'*b'); plot(movKins.pullStop,jsTrajmm(movKins.pullStop),'*r'); plot(movKins.pushStart,jsTrajmm(movKins.pushStart),'*b'); plot(movKins.pushStop,jsTrajmm(movKins.pushStop),'*r'); hold off;
 %         subplot(2,2,2); plot(smJsVel); hold on; plot(movKins.pullStart,smJsVel(movKins.pullStart),'*b'); plot(movKins.pullStop,smJsVel(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, smJsVel(movKins.pullMaxVelI),'og'); plot(movKins.pushStart,smJsVel(movKins.pushStart),'*b'); plot(pushStop,smJsVel(pushStop),'*r'); plot(pushMaxVelI, smJsVel(pushMaxVelI),'og'); hold off; 
