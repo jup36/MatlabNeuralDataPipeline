@@ -1,75 +1,71 @@
-function [outputArg1, outputArg2] = jsReachKinematics( jsTrajUnfilt, pullThreshold, trialType, sgfiltFramelen )
+function [ movKins ] = jsReachKinematics( jsTrajUnfilt, pullThreshold, trialType, sgfiltFramelen )
 %This function takes 1-ms sampled joystick position trajectory and detect
-% reaches; first, the reach that resulted in threshold crossing
+% pulles; first, the pull that resulted in threshold crossing
 %
 % output: ctn; continuous kinematics (velocity, acceleration, force)
 
-jsDistCoeff = 2*pi*90/4000; % joystick movement distance conversion coefficient (4000: the number of total edges(rises/falls) per resolution of the encoder)
-stillPts = 10; % 10 ms (to measure the amount of Js movement in a 10 ms sliding window
-pushThresholdmm = 40*jsDistCoeff; % Js push threshold in mm 
-
-jsDistCoeff = 2*pi*90/4000; % joystick movement distance conversion coefficient (4000: the number of total edges(rises/falls) per resolution of the encoder)
-jsTrajmm = jsTrajUnfilt.*jsDistCoeff; % joystick trajectory in mm
+jsTrajSteps = jsTrajUnfilt; % Js trajectory in steps 
+jsDistCoeff = 2*pi*90/4000; % js movement distance conversion coefficient (4000: the number of total edges(rises/falls) per resolution of the encoder)
+pushThresholdmm = 40*jsDistCoeff; % Js push threshold in mm
+jsTrajmm = jsTrajSteps.*jsDistCoeff; % joystick trajectory in mm
 pullThresholdmm = pullThreshold*jsDistCoeff; % pullthreshold in mm
 sgJsTrajmm = sgolayfilt(jsTrajmm,3,sgfiltFramelen); % sg filtered trajectory in mm
 
-jsVel = diff([jsTrajmm(1) jsTrajmm])./(1/1000); % Js velocity (mm/s) computed on the unfiltered jsTraj
-smJsVel = smooth(jsVel,20); % smoothing
-sgJsVel = sgolayfilt(jsVel,3,sgfiltFramelen); %sg filtering
+jsVelmmps = diff([jsTrajmm(1) jsTrajmm])./(1/1000); % Js velocity (mm/s) computed on the unfiltered jsTraj
+smJsVel = smooth(jsVelmmps,20)'; % smoothing
+sgJsVel = sgolayfilt(jsVelmmps,3,sgfiltFramelen); % sg filtering
 
-jsAcl = diff([jsVel(1) jsVel])./(1/1000);     % Js acceleration (mm/s^2) computed on the unfiltered jsTraj
-smJsAcl = smooth(jsAcl,20); % smoothing
-sgJsAcl = sgolayfilt(jsAcl,3,sgfiltFramelen); % sg filtering
+jsAclmmpss = diff([smJsVel(1) smJsVel])./(1/1000); % diff([jsVel(1) jsVel])./(1/1000);     % Js acceleration (mm/s^2) computed on the unfiltered jsTraj
+smJsAcl = smooth(jsAclmmpss,20)'; % smoothing
+sgJsAcl = sgolayfilt(jsAclmmpss,3,sgfiltFramelen); % sg filtering
+stillPts = 10; % 10 ms (to measure the amount of Js movement in a 10 ms sliding window
 
 % get periodic summed absolute velocity within a sliding 10ms window
+periodicAbsVelSum = zeros(1,length(jsTrajSteps));
 for i = 1:length(smJsVel)
     if i < stillPts
-        periodicAbsVelSum(i,1) = sum(abs(smJsVel(i:i+stillPts-1))); % to find a still point get the periodic Js velocity in a sliding window, also enforce to find a point after the Js movement for placement (just to make sure that the Js has moved from the initial position by a distance of 100)
+        periodicAbsVelSum(1,i) = sum(abs(smJsVel(i:i+stillPts-1))); % to find a still point get the periodic Js velocity in a sliding window, also enforce to find a point after the Js movement for placement (just to make sure that the Js has moved from the initial position by a distance of 100)
     elseif i >= stillPts
-        periodicAbsVelSum(i,1) = sum(abs(smJsVel(i-stillPts+1:i)));
+        periodicAbsVelSum(1,i) = sum(abs(smJsVel(i-stillPts+1:i)));
     end
 end
 
+movKins.jsTrajSteps = jsTrajSteps; 
+movKins.jsDistCoeff = jsDistCoeff; 
+movKins.pushThresholdmm = pushThresholdmm;
+movKins.jsTrajmm = jsTrajmm; 
+movKins.pullThresholdmm = pullThresholdmm; 
+movKins.sgJsTrajmm = sgJsTrajmm;
+
 switch trialType
     case 'sp' % for a successful pull
-        fstThresCross = find( jsTrajmm < pullThresholdmm, 1, 'first'); % detect the reach that crossed the pull threshold
-        % define reachStart - find the last still point before the 1st threshold crossing
-        reachStart = find(periodicAbsVelSum(1:fstThresCross)<50, 1, 'last'); % this corresponds to the last point at which Js moved less than 0.5mm for the retrospective 10ms
-        % define reachStop
-        [velVells, velVellIdx] = findpeaks(-smJsVel, 'MinPeakProminence',3); % to define reachStop find valleys
-        if ~isempty(find(velVellIdx>fstThresCross,1))
-            reachStop = velVellIdx(find(velVellIdx>fstThresCross,1,'last')); % take the final valley as the reachStop 
-        else
-            reachStop = length(jsVel); % if not found, just take the final point
-        end
-        % find the max velocity point
-        reachMaxVel  = -max(velVells(velVellIdx>=reachStart & velVellIdx<=reachStop)); % max reach vel 
-        reachMaxVelI = velVellIdx(velVellIdx>=reachStart & velVellIdx<=reachStop & velVells == -reachMaxVel); % max reach vel time point
+        [ movKins.pullStart, movKins.pullStop, movKins.pullMaxVel, movKins.pullMaxVelI ] = detectPull(jsTrajmm, smJsVel, pullThresholdmm, periodicAbsVelSum); 
+%         subplot(2,2,1); plot(jsTrajmm); hold on; plot(movKins.pullStart,jsTrajmm(movKins.pullStart),'*b'); plot(movKins.pullStop,jsTrajmm(movKins.pullStop),'*r'); hold off;
+%         subplot(2,2,2); plot(smJsVel); hold on; plot(movKins.pullStart,smJsVel(movKins.pullStart),'*b'); plot(movKins.pullStop,smJsVel(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, smJsVel(movKins.pullMaxVelI),'og'); hold off; 
+%         subplot(2,2,3); findpeaks(-smJsVel, 'MinPeakProminence',3); 
+%         subplot(2,2,4); plot(periodicAbsVelSum)
         
     case 'ps' % for a push
-        fstThresCross = find( jsTrajmm > pushThresholdmm, 1, 'first'); % detect the reach that crossed the push threshold
-        % define pushStart - find the last still point before the 1st threshold crossing
-        pushStart = find(periodicAbsVelSum(1:fstThresCross)<50, 1, 'last'); % this corresponds to the last point at which Js moved less than 0.5mm for the retrospective 10ms
-        % define pushStop
-        [velPeaks, velPeakIdx] = findpeaks(smJsVel, 'MinPeakProminence',3); % to define pushStop find valleys
-        if ~isempty(find(velPeakIdx>fstThresCross))
-            pushStop = velPeakIdx(find(velPeakIdx>fstThresCross,1,'last')); % take the final peak as the reachStop
-        else
-            pushStop = length(jsVel);
-        end
+        [ movKins.pushStart, movKins.pushStop, movKins.pushMaxVel, movKins.pushMaxVelI ] = detectPush(jsTrajmm, smJsVel, pushThresholdmm, periodicAbsVelSum); 
+%         subplot(2,2,1); plot(jsTrajmm); hold on; plot(movKins.pushStart,jsTrajmm(movKins.pushStart),'*b'); plot(movKins.pushStop,jsTrajmm(movKins.pushStop),'*r'); hold off;
+%         subplot(2,2,2); plot(smJsVel); hold on; plot(movKins.pushStart,smJsVel(movKins.pushStart),'*b'); plot(movKins.pushStop,smJsVel(movKins.pushStop),'*r'); plot(movKins.pushMaxVelI, smJsVel(movKins.pushMaxVelI),'og'); hold off; 
+%         subplot(2,2,3); findpeaks(-smJsVel, 'MinPeakProminence',3); 
+%         subplot(2,2,4); plot(periodicAbsVelSum)
         
-        
-        
-    case 'im' % for a immature pull 
-        
-        
+    case 'im' % for a immature pull
+        [ movKins.pullStart, movKins.pullStop, movKins.pullMaxVel, movKins.pullMaxVelI ] = detectPull(jsTrajmm, smJsVel, pullThresholdmm, periodicAbsVelSum); 
+%         subplot(2,2,1); plot(jsTrajmm); hold on; plot(movKins.pullStart,jsTrajmm(movKins.pullStart),'*b'); plot(movKins.pullStop,jsTrajmm(movKins.pullStop),'*r'); hold off;
+%         subplot(2,2,2); plot(smJsVel); hold on; plot(movKins.pullStart,smJsVel(movKins.pullStart),'*b'); plot(movKins.pullStop,smJsVel(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, smJsVel(movKins.pullMaxVelI),'og'); hold off; 
+%         subplot(2,2,3); findpeaks(-smJsVel, 'MinPeakProminence',3); 
+%         subplot(2,2,4); plot(periodicAbsVelSum)
+
     case 'impullandpush' % for a immature pull then push
-        
-        
+         [ movKins.pullStart, movKins.pullStop, movKins.pullMaxVel, movKins.pullMaxVelI, movKins.pushStart, movKins.pushStop, movKins.pushMaxVel, movKins.pushMaxVelI ] = detectPullandPush(jsTrajmm, smJsVel, pullThresholdmm, pushThresholdmm, periodicAbsVelSum);     
+%         subplot(2,2,1); plot(jsTrajmm); hold on; plot(movKins.pullStart,jsTrajmm(movKins.pullStart),'*b'); plot(movKins.pullStop,jsTrajmm(movKins.pullStop),'*r'); plot(movKins.pushStart,jsTrajmm(movKins.pushStart),'*b'); plot(movKins.pushStop,jsTrajmm(movKins.pushStop),'*r'); hold off;
+%         subplot(2,2,2); plot(smJsVel); hold on; plot(movKins.pullStart,smJsVel(movKins.pullStart),'*b'); plot(movKins.pullStop,smJsVel(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, smJsVel(movKins.pullMaxVelI),'og'); plot(movKins.pushStart,smJsVel(movKins.pushStart),'*b'); plot(pushStop,smJsVel(pushStop),'*r'); plot(pushMaxVelI, smJsVel(pushMaxVelI),'og'); hold off; 
+%         subplot(2,2,3); findpeaks(-smJsVel, 'MinPeakProminence',3); 
+%         subplot(2,2,4); plot(periodicAbsVelSum)
 end
-
-
-
 
 end
 
