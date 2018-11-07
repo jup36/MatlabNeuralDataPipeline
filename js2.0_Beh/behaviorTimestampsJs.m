@@ -236,7 +236,9 @@ for t = 1:length(trStartIdx) % increment trials
             
             % classify the trial ('sp': successfull pull, 'ps': push, 'pm': premature pull, 'to': timeout, 'nn': not identified)
             jsTime25k(t).pull_threshold = trialsCsv.pull_threshold(t); % pull threshold
-            jsTime25k(t).pull_torque = trialsCsv.pull_torque(t); % pull torque
+            jsTime25k(t).pull_torque = trialsCsv.pull_torque(t);  % pull torque
+            jsTime25k(t).reachP1 = trialsCsv.reach_position_1(t); % reach position 1  
+            
             if jsTime25k(t).rewarded % if rewarded
                 if ~isempty(find(tempSmdctrJsTraj<trialsCsv.pull_threshold(t),1)) % check the negative threshold crossing
                     jsTime25k(t).trialType = 'sp';                   
@@ -277,10 +279,11 @@ n2cTrJsReady = num2cell(round([jsTime25k(:).trJsReady]./25)); [jsTime1k.trJsRead
 n2cRewarded = num2cell([jsTime25k(:).rewarded]); [jsTime1k.rewarded] = n2cRewarded{:};
 n2cPull_threshold = num2cell([jsTime25k(:).pull_threshold]); [jsTime1k.pull_threshold] = n2cPull_threshold{:};
 n2cPull_torque = num2cell([jsTime25k(:).pull_torque]); [jsTime1k.pull_torque] = n2cPull_torque{:};
+n2cReachP1 = num2cell([jsTime25k(:).reachP1]); [jsTime1k.reachP1] = n2cReachP1{:}; 
 [jsTime1k.trialType] = jsTime25k(:).trialType;
 
 % generate a plot to inspect a certain trial
-movKinsPlot(jsTime1k(2).movKins); 
+%movKinsPlot(jsTime1k(2).movKins); 
 
 
 
