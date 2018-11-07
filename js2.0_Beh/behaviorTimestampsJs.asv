@@ -270,7 +270,7 @@ for t = 1:length(trStartIdx) % increment trials
     fprintf('completed trial #%d\n', t);
 end
 
-% transfer relevant information to jsTime1k struct from jsTime25k
+% a
 n2cTrStart = num2cell(round([jsTime25k(:).trStart]./25)); [jsTime1k.trStart] = n2cTrStart{:}; 
 n2cTrEnd   = num2cell(round([jsTime25k(:).trEnd]./25));   [jsTime1k.trEnd]   = n2cTrEnd{:}; 
 n2cTrJsReady = num2cell(round([jsTime25k(:).trJsReady]./25)); [jsTime1k.trJsReady] = n2cTrJsReady{:}; 
@@ -279,8 +279,7 @@ n2cPull_threshold = num2cell([jsTime25k(:).pull_threshold]); [jsTime1k.pull_thre
 n2cPull_torque = num2cell([jsTime25k(:).pull_torque]); [jsTime1k.pull_torque] = n2cPull_torque{:};
 [jsTime1k.trialType] = jsTime25k(:).trialType;
 
-% generate a plot to inspect a certain trial
-movKinsPlot(jsTime1k(2).movKins); 
+movKinsPlot(jsTime1k(4).movKins); 
 
 
 
