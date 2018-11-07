@@ -2,7 +2,7 @@ function behaviorTimestampsJs(filePath, varargin)
 %behaviorTimestamps
 
 %addpath(genpath(''))
-%filePath = '/Volumes/RAID2/parkj/NeuralData/js2.0/WR28';
+%filePath = '/Volumes/RAID2/parkj/NeuralData/js2.0/WR25/101718';
 p = parse_input_Js(filePath, varargin ); % parse input
 %p = parse_input_Js(filePath, {} ); % use this line instead when running line-by-line
 
@@ -33,8 +33,7 @@ totalTimeSecs = str2double(meta.fileTimeSecs); % total duration of file in secon
 
 if ~isempty(dir(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat'))) % if the gainCorrectRawTraces.mat file already exists in the filePath
     load(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat'), 'lick', 'trStart', 'reward', 'trEnd', 'camTrig', 'encodeA', 'encodeB' ) % if there are gaincorrectedrawtraces already saved, just load them
-else
-    
+else   
     % Specify the relevant behavioral channel numbers
     trStartCh  = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.trStartCh; % ch# for trial start
     camTrigCh  = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.camTrigCh; % ch# for camera trigger
@@ -158,12 +157,17 @@ for i=1:10 % 10 folds
 end
 clearvars i
 
+jsTime25k = struct; 
+jsTime1k = struct; 
+
 for t = 1:length(trStartIdx) % increment trials
-    if ~isempty(find(trEndIdx>trStartIdx(t),1)) && trEndIdx(find(trEndIdx>trStartIdx(t),1))>trStartIdx(t) % if there's a trEnd
+    jsTime25k(t).trStart = trStartIdx(t); % trStart detected by the go-cue onset
+    if ~isempty(find(trEndIdx>trStartIdx(t),1)) % if there's a trEnd
         % redefine the trial start as the joystick in position timepoint (trJsReadyTime) by examining the baseline encoder data,
         % as the trStart defined with the cue tone onset doesn't align
         % perfectly with the joystick being in the start position.
-        jsRez(t).trStart = trStartIdx(t); % trStart detected by the go-cue onset
+        jsTime25k(t).trEnd = trEndIdx(find(trEndIdx > trStartIdx(t),1,'first'));  % get the trEnd time point
+        
         trBaseRange = trStartIdx(t)-2*nSamp:trStartIdx(t)+(nSamp/10/2)-1; % 2 sec baseline, just take 2 sec before the cue onset, with padding on the righthand side corresponding to 50 ms
         trBasePinA = encodeA(trBaseRange); % pin A this trial baseline
         trBasePinB = encodeB(trBaseRange); % pin B this trial baseline
@@ -171,14 +175,15 @@ for t = 1:length(trStartIdx) % increment trials
         biTrBasePinB = double(trBasePinB>pinBmidPoint); % binarize the pinB signal
         
         [trBaseJsState, ~] = readStepperEncoder(biTrBasePinA, biTrBasePinB); % read out the Js position from the binarized quadrature encoded signals
-        [trBaseLatestStillTime] = findJsReadyPt(cumsum(trBaseJsState), 100, nSamp); % find the Js ready time (trStart defined as the cue onset doesn't match with the moment when the Js is in position)
-        
-        if isnan(trBaseLatestStillTime)    
-        elseif trStartIdx(t)-2*nSamp+trBaseLatestStillTime <= jsRez(t).trStart
-            jsRez(t).trJsReadyTime = trStartIdx(t)-2*nSamp+trBaseLatestStillTime; % get the trJsReady time
-            jsRez(t).trEnd = trEndIdx(find(trEndIdx > trStartIdx(t),1,'first'));  % get the trEnd time
+        [trBaseLatestStillTime] = findJsReadyPt2(cumsum(trBaseJsState), nSamp); % find the Js ready time by detecting a still point in the later portion of the baseline period 
+
+        if isnan(trBaseLatestStillTime) 
+            jsTime25k(t).trJsReady = nan; 
             
-            trRange = jsRez(t).trJsReadyTime:jsRez(t).trEnd; % trial range aligned to the Js ready time
+        elseif trStartIdx(t)-2*nSamp+trBaseLatestStillTime <= jsTime25k(t).trStart+(nSamp/10/2)-1
+            jsTime25k(t).trJsReady = trStartIdx(t)-2*nSamp+trBaseLatestStillTime; % get the trJsReady time
+            
+            trRange = jsTime25k(t).trJsReady:jsTime25k(t).trEnd; % trial range aligned to the Js ready time
             
             trPinA = encodeA(trRange); % pin A this trial aligned to the Js ready
             trPinB = encodeB(trRange); % pin A this trial aligned to the Js ready
@@ -186,72 +191,77 @@ for t = 1:length(trStartIdx) % increment trials
             biTrPinA = double(trPinA>pinAmidPoint); % binarize the encoder signal
             biTrPinB = double(trPinB>pinBmidPoint); % binarize the encoder signal 
             [trJsState, ~] = readStepperEncoder(biTrPinA, biTrPinB); % read out the Js position from the binarized quadrature encoded signals
-            jsRez(t).trJsTraj = cumsum(trJsState);  % get the cumulative joystick trajectory for this trial
-            jsRez(t).dctrJsTraj = decimate(jsRez(t).trJsTraj ,round(nSamp/1000)); % decimate the Traj (downsampling the 25kHz data at 1kHz, so the time resoluation to be 1ms)
+            jsTime25k(t).trJsTraj = cumsum(trJsState);  % get the cumulative joystick trajectory for this trial
+            jsTime25k(t).dctrJsTraj = decimate(jsTime25k(t).trJsTraj ,round(nSamp/1000)); % decimate the Traj (downsampling the 25kHz data at 1kHz, so the time resoluation to be 1ms)
             
-            % filter the decimated Js Traj
-            if length(jsRez(t).dctrJsTraj) >= p.Results.sgfiltFramelen
+            % to use sg filter get sgfiltFramelen
+            if length(jsTime25k(t).dctrJsTraj) >= p.Results.sgfiltFramelen
                 sgfiltFramelen = p.Results.sgfiltFramelen; 
-            elseif length(jsRez(t).dctrJsTraj) < p.Results.sgfiltFramelen
-                if mod(length(jsRez(t).dctrJsTraj),2)==0
-                    sgfiltFramelen = length(jsRez(t).dctrJsTraj)-1; 
+            elseif length(jsTime25k(t).dctrJsTraj) < p.Results.sgfiltFramelen
+                if mod(length(jsTime25k(t).dctrJsTraj),2)==0
+                    sgfiltFramelen = length(jsTime25k(t).dctrJsTraj)-1; % the frame length for sg filter needs to be an odd number
                 else
-                    sgfiltFramelen = length(jsRez(t).dctrJsTraj);  
+                    sgfiltFramelen = length(jsTime25k(t).dctrJsTraj);  
                 end
             end            
 
-            jsRez(t).smdctrJsTraj = sgolayfilt(jsRez(t).dctrJsTraj,3,sgfiltFramelen);
-            jsRez(t).smdctrJsTrajmm = jsRez(t).smdctrJsTraj*jsDistCoeff; % convert the Js traj into mm  
+            tempSmdctrJsTraj = sgolayfilt(jsTime25k(t).dctrJsTraj,3,sgfiltFramelen);
+            %tempSmdctrJsTrajmm = tempSmdctrJsTraj*jsDistCoeff; % convert the Js traj into mm  
             
             % determine if the trial got rewarded
-            if ~isempty(find(abs(rwdIdx-jsRez(t).trEnd)<=nSamp,1)) % in case there's reward delivery within 1-sec window relative to the trial end
-                jsRez(t).rewarded = true;
+            if ~isempty(find(abs(rwdIdx-jsTime25k(t).trEnd)<=nSamp,1)) % in case there's reward delivery within 1-sec window relative to the trial end
+                jsTime25k(t).rewarded = true;
             else
-                jsRez(t).rewarded = false;
+                jsTime25k(t).rewarded = false;
             end       
             
             % read trial-by-trial behavioral csv files
             %tempFileName = fullfile(behFilePath.folder,behFilePath.name,tbytCsvList(tbytCsvdateSort(t)).name);
             %tempTimeTraj = csvread(tempFileName,1,1);  % csv read with row offset (header) and column offset (date)
-            %jsRez(t).csvTime = tempTimeTraj(:,1); % csv time in ms
-            %jsRez(t).csvTraj = tempTimeTraj(:,2); % csv joystick trajectory
-            %jsRez(t).csvItpTraj = interp1(1:length(jsRez(t).csvTraj),jsRez(t).csvTraj,linspace(1,length(jsRez(t).csvTraj),length(jsRez(t).smdctrJsTraj)));              
+            %jsTime25k(t).csvTime = tempTimeTraj(:,1); % csv time in ms
+            %jsTime25k(t).csvTraj = tempTimeTraj(:,2); % csv joystick
+            %trajectory
+            %jsTime25k(t).csvItpTraj = interp1(1:length(jsTime25k(t).csvTraj),jsTime25k(t).csvTraj,linspace(1,length(jsTime25k(t).csvTraj),length(tempSmdctrJsTraj)));              
             
             % classify the trial ('sp': successfull pull, 'ps': push, 'im': immature pull, 'to': timeout, 'nn': not identified)
-            if jsRez(t).rewarded % if rewarded
-                if ~isempty(find(jsRez(t).smdctrJsTraj<trialsCsv.pull_threshold(t),1)) % check the negative threshold crossing
-                    jsRez(t).trialType = 'sp';
+            jsTime25k(t).pull_threshold = trialsCsv.pull_threshold(t); % pull threshold
+            jsTime25k(t).pull_torque = trialsCsv.pull_torque(t); % pull torque
+            if jsTime25k(t).rewarded % if rewarded
+                if ~isempty(find(tempSmdctrJsTraj<trialsCsv.pull_threshold(t),1)) % check the negative threshold crossing
+                    jsTime25k(t).trialType = 'sp';                   
+                else % this should be an immature pull which has been accidentally rewarded
+                    jsTime25k(t).trialType = nan; % just throw out these trials for now
                 end
             else % if not rewarded
-                if length(jsRez(t).dctrJsTraj)>p.Results.trialTimeout-100 % timeout
-                    jsRez(t).trialType = 'to';
-                elseif isempty(find(jsRez(t).dctrJsTraj<trialsCsv.pull_threshold(t),1)) && ~isempty(find(jsRez(t).dctrJsTraj>20,1)) % push (no pull beyond the pull threshold && push beyond a certain threshold)
-                    jsRez(t).trialType = 'ps';
-                elseif ~isempty(find(jsRez(t).dctrJsTraj<trialsCsv.pull_threshold(t),1)) % pull (unrewarded)
-                        impullThresCross = find(jsRez(t).dctrJsTraj<trialsCsv.pull_threshold(t),1); % immature pull threshold crossing point
-                    if ~isempty(find(jsRez(t).dctrJsTraj(impullThresCross:end)>0,1))
-                        jsRez(t).trialType = 'impullandpush';
+                if length(jsTime25k(t).dctrJsTraj)>p.Results.trialTimeout-100 % timeout
+                    jsTime25k(t).trialType = 'to';
+                elseif isempty(find(jsTime25k(t).dctrJsTraj<trialsCsv.pull_threshold(t),1)) && ~isempty(find(jsTime25k(t).dctrJsTraj>20,1)) % push (no pull beyond the pull threshold && push beyond a certain threshold)
+                    jsTime25k(t).trialType = 'ps';
+                elseif ~isempty(find(jsTime25k(t).dctrJsTraj<trialsCsv.pull_threshold(t),1)) % pull (unrewarded)
+                        impullThresCross = find(jsTime25k(t).dctrJsTraj<trialsCsv.pull_threshold(t),1); % immature pull threshold crossing point
+                    if ~isempty(find(jsTime25k(t).dctrJsTraj(impullThresCross:end)>0,1))
+                        jsTime25k(t).trialType = 'impp'; % immature pull and push
                     else
-                        jsRez(t).trialType = 'im';
+                        jsTime25k(t).trialType = 'im'; % immature pull
                     end
                 else
-                    jsRez(t).trialType = 'nn';
+                    jsTime25k(t).trialType = 'nn';
                 end
             end
             
             % trial-by-trial reach kinematics analysis
-            [reachStarts, ] = jsReachKinematics( jsRez(t).dctrJsTraj, trialsCsv.pull_threshold(t), jsRez(t).trialType, sgfiltFramelen ); 
+            [ jsTime1k(t).movKins ] = jsReachKinematics( jsTime25k(t).dctrJsTraj, trialsCsv.pull_threshold(t), jsTime25k(t).trialType, sgfiltFramelen ); 
             
-            %figure; plot(interp1(1:length(jsRez(t).csvTraj),jsRez(t).csvTraj,1:length(jsRez(t).dcsmtrJsTraj)));
+            %figure; plot(interp1(1:length(jsTime25k(t).csvTraj),jsTime25k(t).csvTraj,1:length(jsTime25k(t).dcsmtrJsTraj)));
         end
     else % if there's no trialEnd left
     end
     fprintf('completed trial #%d\n', t);
 end
 
-figure; hold on; plot(jsRez(t).smdctrJsTraj); 
-figure; plot(diff([0 jsRez(t).smdctrJsTraj]));
-figure; plot(diff([0 diff([0 jsRez(t).smdctrJsTraj])]));
+figure; hold on; plot(tempSmdctrJsTraj); 
+figure; plot(diff([0 tempSmdctrJsTraj]));
+figure; plot(diff([0 diff([0 tempSmdctrJsTraj])]));
 plot(jsRez(125).csvItpTraj)
 
 %% Position/velocity data
