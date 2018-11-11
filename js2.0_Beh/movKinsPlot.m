@@ -44,6 +44,15 @@ switch movKins.trialType
         subplot(2,2,4); plot(movKins.periodicAbsVelSum); hold on; plot(movKins.pullStart,movKins.periodicAbsVelSum(movKins.pullStart),'*b'); plot(movKins.pullStop,movKins.periodicAbsVelSum(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, movKins.periodicAbsVelSum(movKins.pullMaxVelI),'og'); 
         plot(movKins.pushStart,movKins.periodicAbsVelSum(movKins.pushStart),'*b'); plot(movKins.pushStop,movKins.periodicAbsVelSum(movKins.pushStop),'*r'); plot(movKins.pushMaxVelI, movKins.periodicAbsVelSum(movKins.pushMaxVelI),'og'); hold off; 
         title('absVelSum10msCum')
+    case 'to' % for a timeout trial
+        subplot(2,2,1); plot(movKins.jsTrajmm);  
+        title('jsTrajmm (mm)')
+        subplot(2,2,2); plot(movKins.smJsVel);  
+        title('smJsVel (mm/s)')
+        subplot(2,2,3); plot(movKins.smJsAcl);  
+        title('smJsAcl (mm/s^2)')
+        subplot(2,2,4); plot(movKins.periodicAbsVelSum); 
+        title('absVelSum10msCum')
 end
 
 end
