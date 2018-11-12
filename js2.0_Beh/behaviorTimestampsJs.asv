@@ -96,8 +96,9 @@ else
 end
 
 %% task event detection
-[trStartIdx,~,~] = detecteventbythreshold(trStart, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false); % trial Start
-[trEndIdx,~,~]   = detecteventbythreshold(trEnd, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1)); % trial End
+[trStartIdx,~,~] = detecteventbythreshold(trStart, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'correctLongPulse', true); % trial Start
+[trEndIdx,~,~]   = detecteventbythreshold(trEnd, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse', true); % trial End
+
 if length(trStartIdx)==length(trEndIdx)
     if ~unique(trEndIdx - trStartIdx>0)
         error('Trial End and Start indices do not make sense!')
@@ -106,18 +107,22 @@ elseif length(trStartIdx)-length(trEndIdx)==1
     if ~unique(trEndIdx - trStartIdx(1,1:length(trEndIdx))>0)
         error('Trial End and Start indices do not make sense!')
     end
+elseif length(trEndIdx)-length(trStartIdx)==1
+    if ~unique(trEndIdx(1,1:length(trStartIdx)) - trStartIdx>0)
+        error('Trial End and Start indices do not make sense!')
+    end
 else
     error('Trial End and Start indices do not make sense!')
 end
 
-rwdIdx     = detecteventbythreshold(reward, 25000, 50, 'stdFactor',1, 'plotRez',false, 'chunkPulses', false, 'detectLater', trStartIdx(1));  % reward
+rwdIdx     = detecteventbythreshold(reward, 25000, 50, 'stdFactor',1, 'plotRez',false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse',true);  % reward
 
 % detect licks
 lickIdx    = detecteventbythreshold(decimate(lick,nSamp/1000), 1000, 20, 'stdFactor',3, 'plotRez',false, 'chunkPulses', false); % lick, detect licks after downsampling (there seems to be some denoising effect with decimation, see /Volumes/RAID2/parkj/NeuralData/js2.0/WR25/101718/lickSignalExample_1kHzVS25kHz.fig as an example) 
 %deciLick = decimate(lick, nSamp/1000); intDeciLick = interp1(1:length(deciLick), deciLick, linespace(1, length(deciLick), length(lick)));
 %plot(lick); hold on; plot(intDeciLick); hold off 
 
-[camTrigRiseIdx, camTrigFallIdx, camPulseTrainIdx] = detecteventbythreshold(camTrig, 25000, 2, 'stdFactor', 1, 'plotRez',false, 'chunkPulses', true, 'chunkInterval', 2000); % camera trigger
+[camTrigRiseIdx, camTrigFallIdx, camPulseTrainIdx] = detecteventbythreshold(camTrig, 25000, 2, 'stdFactor', 1, 'plotRez',false, 'chunkPulses', true, 'chunkInterval', 2000, 'correctLongPulse', true); % camera trigger
 %camTrigRiseIdx1ms = round(camTrigRiseIdx./round(nSamp/1000)); % adjust the time resolution to be 1ms
 %camTrigFallIdx1ms = round(camTrigFallIdx./round(nSamp/1000)); % adjust the time resolution to be 1ms
 
@@ -172,7 +177,7 @@ clearvars i
 jsTime25k = struct; 
 jsTime1k = struct; 
 
-for t = 1:length(trStartIdx) % increment trials
+for t = 1:length(trStartIdx)  % increment trials
     if ~isempty(find(trEndIdx>trStartIdx(t),1)) % if there's a trEnd
         jsTime25k(t).trStart = trStartIdx(t); % trStart detected by the go-cue onset
         % redefine the trial start as the joystick in position timepoint (trJsReadyTime) by examining the baseline encoder data,
@@ -189,7 +194,15 @@ for t = 1:length(trStartIdx) % increment trials
         [trBaseJsState, ~] = readStepperEncoder(biTrBasePinA, biTrBasePinB); % read out the Js position from the binarized quadrature encoded signals
         [trBaseLatestStillTime, jsTime1k(t).baseJsTrajmm, jsTime1k(t).baseSmJsVel, jsTime1k(t).basePeriodicAbsVelSum] = findJsReadyPt2(cumsum(trBaseJsState), nSamp); % find the Js ready time by detecting a still point in the later portion of the baseline period
         
-        
+        if t==length(trStartIdx) && t==size(trialsCsv,1)+1 % trialsCsv does not save the last trial at the session completion
+            jsTime25k(t).pull_threshold = trialsCsv.pull_threshold(t-1); % pull threshold
+            jsTime25k(t).pull_torque = trialsCsv.pull_torque(t-1); % pull torque
+            jsTime25k(t).reachP1 = trialsCsv.reach_position_1(t-1); % reach position 1  
+        else
+            jsTime25k(t).pull_threshold = trialsCsv.pull_threshold(t); % pull threshold
+            jsTime25k(t).pull_torque = trialsCsv.pull_torque(t); % pull torque
+            jsTime25k(t).reachP1 = trialsCsv.reach_position_1(t); % reach position 1  
+        end
         
         if isnan(trBaseLatestStillTime)
             jsTime25k(t).trJsReady = nan;
@@ -201,10 +214,6 @@ for t = 1:length(trStartIdx) % increment trials
                 jsTime25k(t).rewarded = false;
             end
             
-            
-            jsTime25k(t).pull_threshold = trialsCsv.pull_threshold(t); % pull threshold
-            jsTime25k(t).pull_torque = trialsCsv.pull_torque(t); % pull torque
-            jsTime25k(t).reachP1 = trialsCsv.reach_position_1(t); % reach position 1  
             jsTime25k(t).trialType = nan; % trialType
             jsTime1k(t).movKins = nan; % movement kinematics assign nan
             
@@ -244,12 +253,8 @@ for t = 1:length(trStartIdx) % increment trials
             end                  
             
             % classify the trial ('sp': successfull pull, 'ps': push, 'pm': premature pull, 'to': timeout, 'nn': not identified)
-            jsTime25k(t).pull_threshold = trialsCsv.pull_threshold(t); % pull threshold
-            jsTime25k(t).pull_torque = trialsCsv.pull_torque(t);  % pull torque
-            jsTime25k(t).reachP1 = trialsCsv.reach_position_1(t); % reach position 1  
-            
             if jsTime25k(t).rewarded % if rewarded
-                if ~isempty(find(tempSmdctrJsTraj<jsTime25k(t).pull_threshold(t),1)) % check the negative threshold crossing
+                if ~isempty(find(tempSmdctrJsTraj<jsTime25k(t).pull_threshold,1)) % check the negative threshold crossing
                     jsTime25k(t).trialType = 'sp'; % successful pull
                     jsTime25k(t).rewardT = jsTime25k(t).trEnd+nSamp; % reward if delivered must be 1000ms after the trial end 
                 else % this should be an premature pull which has been accidentally rewarded
@@ -260,10 +265,10 @@ for t = 1:length(trStartIdx) % increment trials
                 jsTime25k(t).rewardT = nan; 
                 if length(jsTime25k(t).dctrJsTraj)>p.Results.trialTimeout-100 % timeout
                     jsTime25k(t).trialType = 'to';
-                elseif isempty(find(jsTime25k(t).dctrJsTraj<jsTime25k(t).pull_threshold(t),1)) && ~isempty(find(jsTime25k(t).dctrJsTraj>20,1)) % push (no pull beyond the pull threshold && push beyond a certain threshold)
+                elseif isempty(find(jsTime25k(t).dctrJsTraj<jsTime25k(t).pull_threshold,1)) && ~isempty(find(jsTime25k(t).dctrJsTraj>50,1)) % push (no pull beyond the pull threshold && push beyond a certain threshold)
                     jsTime25k(t).trialType = 'ps';
-                elseif ~isempty(find(jsTime25k(t).dctrJsTraj<jsTime25k(t).pull_threshold(t),1)) % pull (unrewarded)
-                        impullThresCross = find(jsTime25k(t).dctrJsTraj<jsTime25k(t).pull_threshold(t),1); % premature pull threshold crossing point
+                elseif ~isempty(find(jsTime25k(t).dctrJsTraj<jsTime25k(t).pull_threshold,1)) % pull (unrewarded)
+                        impullThresCross = find(jsTime25k(t).dctrJsTraj<jsTime25k(t).pull_threshold,1); % premature pull threshold crossing point
                     if ~isempty(find(jsTime25k(t).dctrJsTraj(impullThresCross:end)>0,1))
                         jsTime25k(t).trialType = 'pmpp'; % premature pull and push
                     else
@@ -275,7 +280,7 @@ for t = 1:length(trStartIdx) % increment trials
             end
             
             % trial-by-trial reach kinematics analysis
-            [ jsTime1k(t).movKins ] = jsReachKinematics( jsTime25k(t).dctrJsTraj, jsTime25k(t).pull_threshold(t), jsTime25k(t).trialType, sgfiltFramelen ); 
+            [ jsTime1k(t).movKins ] = jsReachKinematics( jsTime25k(t).dctrJsTraj, jsTime25k(t).pull_threshold, jsTime25k(t).trialType, sgfiltFramelen ); 
             
             %figure; plot(interp1(1:length(jsTime25k(t).csvTraj),jsTime25k(t).csvTraj,1:length(jsTime25k(t).dcsmtrJsTraj)));
         end
