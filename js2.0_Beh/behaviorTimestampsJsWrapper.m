@@ -18,6 +18,7 @@ for f = 1:length(filePath)
         error('Input a proper file path'); 
     end
     p = parse_input_Js(currentPath, varargin); 
+    % p = parse_input_Js(currentPath, {'trialTimeout',8000}); 
     behaviorTimestampsJs(p);
 end
 
@@ -38,6 +39,7 @@ end
         default_lickCh    = 1;  % ch# for lick detect (unattenuated channel)
         default_sgfiltFramelen = 101; % frame length for the sgolayfilt
         default_trialTimeout = 10000; % trial timeout duration
+        default_pushThreshold = 50; % pushThreshold
         
         p = inputParser; % create parser object
         addRequired(p,'filePath');
@@ -52,6 +54,7 @@ end
         addParameter(p,'lickCh',default_lickCh)
         addParameter(p,'sgfiltFramelen',default_sgfiltFramelen)
         addParameter(p,'trialTimeout',default_trialTimeout)
+        addParameter(p,'pushThreshold', default_pushThreshold)
         
         parse(p,filePath,vargs{:})
     end

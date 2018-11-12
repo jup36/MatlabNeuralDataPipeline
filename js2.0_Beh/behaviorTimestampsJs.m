@@ -96,8 +96,11 @@ else
 end
 
 %% task event detection
-[trStartIdx,~,~] = detecteventbythreshold(trStart, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false); % trial Start
-[trEndIdx,~,~]   = detecteventbythreshold(trEnd, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1)); % trial End
+[trStartIdx,~,~] = detecteventbythreshold(trStart, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'correctLongPulse', true); % trial Start
+fprintf('completed trial start detection!');
+[trEndIdx,~,~]   = detecteventbythreshold(trEnd, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse', true); % trial End
+fprintf('completed trial end detection!');
+
 if length(trStartIdx)==length(trEndIdx)
     if ~unique(trEndIdx - trStartIdx>0)
         error('Trial End and Start indices do not make sense!')
@@ -106,20 +109,27 @@ elseif length(trStartIdx)-length(trEndIdx)==1
     if ~unique(trEndIdx - trStartIdx(1,1:length(trEndIdx))>0)
         error('Trial End and Start indices do not make sense!')
     end
+elseif length(trEndIdx)-length(trStartIdx)==1
+    if ~unique(trEndIdx(1,1:length(trStartIdx)) - trStartIdx>0)
+        error('Trial End and Start indices do not make sense!')
+    end
 else
     error('Trial End and Start indices do not make sense!')
 end
 
-rwdIdx     = detecteventbythreshold(reward, 25000, 50, 'stdFactor',1, 'plotRez',false, 'chunkPulses', false, 'detectLater', trStartIdx(1));  % reward
+rwdIdx     = detecteventbythreshold(reward, 25000, 50, 'stdFactor',1, 'plotRez',false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse',true);  % reward
+fprintf('completed reward detection!');
 
 % detect licks
 lickIdx    = detecteventbythreshold(decimate(lick,nSamp/1000), 1000, 20, 'stdFactor',3, 'plotRez',false, 'chunkPulses', false); % lick, detect licks after downsampling (there seems to be some denoising effect with decimation, see /Volumes/RAID2/parkj/NeuralData/js2.0/WR25/101718/lickSignalExample_1kHzVS25kHz.fig as an example) 
 %deciLick = decimate(lick, nSamp/1000); intDeciLick = interp1(1:length(deciLick), deciLick, linespace(1, length(deciLick), length(lick)));
 %plot(lick); hold on; plot(intDeciLick); hold off 
+fprintf('completed lick detection!');
 
-[camTrigRiseIdx, camTrigFallIdx, camPulseTrainIdx] = detecteventbythreshold(camTrig, 25000, 2, 'stdFactor', 1, 'plotRez',false, 'chunkPulses', true, 'chunkInterval', 2000); % camera trigger
+[camTrigRiseIdx, camTrigFallIdx, camPulseTrainIdx] = detecteventbythreshold(camTrig, 25000, 2, 'stdFactor', 1, 'plotRez',false, 'chunkPulses', true, 'chunkInterval', 2000, 'correctLongPulse', true); % camera trigger
 %camTrigRiseIdx1ms = round(camTrigRiseIdx./round(nSamp/1000)); % adjust the time resolution to be 1ms
 %camTrigFallIdx1ms = round(camTrigFallIdx./round(nSamp/1000)); % adjust the time resolution to be 1ms
+fprintf('completed camera trigger detection!');
 
 evtIdx25k.rwdIdx  = rwdIdx; 
 evtIdx25k.lickIdx = lickIdx; 
@@ -172,7 +182,7 @@ clearvars i
 jsTime25k = struct; 
 jsTime1k = struct; 
 
-for t = 1:10 %length(trStartIdx) % increment trials
+for t = 1:length(trStartIdx)  % increment trials
     if ~isempty(find(trEndIdx>trStartIdx(t),1)) % if there's a trEnd
         jsTime25k(t).trStart = trStartIdx(t); % trStart detected by the go-cue onset
         % redefine the trial start as the joystick in position timepoint (trJsReadyTime) by examining the baseline encoder data,
@@ -203,6 +213,7 @@ for t = 1:10 %length(trStartIdx) % increment trials
             jsTime25k(t).trJsReady = nan;
             jsTime25k(t).trJsTraj = nan;
             jsTime25k(t).dctrJsTraj = nan;
+            jsTime25k(t).rewardT = nan;
             if ~isempty(find(abs(rwdIdx-jsTime25k(t).trEnd)<=nSamp,1)) % in case there's reward delivery within 1-sec window relative to the trial end
                 jsTime25k(t).rewarded = true;
             else
@@ -260,7 +271,7 @@ for t = 1:10 %length(trStartIdx) % increment trials
                 jsTime25k(t).rewardT = nan; 
                 if length(jsTime25k(t).dctrJsTraj)>p.Results.trialTimeout-100 % timeout
                     jsTime25k(t).trialType = 'to';
-                elseif isempty(find(jsTime25k(t).dctrJsTraj<jsTime25k(t).pull_threshold,1)) && ~isempty(find(jsTime25k(t).dctrJsTraj>20,1)) % push (no pull beyond the pull threshold && push beyond a certain threshold)
+                elseif isempty(find(jsTime25k(t).dctrJsTraj<jsTime25k(t).pull_threshold,1)) && ~isempty(find(jsTime25k(t).dctrJsTraj>50,1)) % push (no pull beyond the pull threshold && push beyond a certain threshold)
                     jsTime25k(t).trialType = 'ps';
                 elseif ~isempty(find(jsTime25k(t).dctrJsTraj<jsTime25k(t).pull_threshold,1)) % pull (unrewarded)
                         impullThresCross = find(jsTime25k(t).dctrJsTraj<jsTime25k(t).pull_threshold,1); % premature pull threshold crossing point
