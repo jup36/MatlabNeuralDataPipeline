@@ -3,14 +3,11 @@ filePath='/Volumes/RAID2/parkj/NeuralData/js2.0/WR25/110718_LowHighShift';
 
 cd(filePath)
 load('BehVariablesJs.mat', 'jsTime1k', 'p')
-[cmap1] = cbrewer('div','Spectral',11); 
-
 
 %% reaction time
 %movKinsPlot(jsTime1k(2).movKins)
 [jsTime1k(:).rt]=deal(NaN); 
 activeTrs = find([jsTime1k(:).rewarded]==1,1,'first'):find([jsTime1k(:).rewarded]==1,1,'last'); 
-
 hold on; 
 for t = 1:length(jsTime1k)
     switch jsTime1k(t).trialType
@@ -25,12 +22,8 @@ for t = 1:length(jsTime1k)
     end
     if t>= activeTrs(1) && t<= activeTrs(end)
         if jsTime1k(t).rewarded
-            if jsTime1k(t).pull_torque 
-                plot(jsTime1k(t).trJsReady,1,'+','MarkerFaceColor','b')
-        
-            else
-            end
-            
+            plot(jsTime1k(t).trJsReady,1,'+')
+        else
         end
     end
 end

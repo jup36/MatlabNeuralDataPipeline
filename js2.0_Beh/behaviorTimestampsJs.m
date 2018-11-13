@@ -311,7 +311,7 @@ n2cRewardT = num2cell(round([jsTime25k(:).rewardT]./25)); [jsTime1k.rewardT] = n
 
 % Save relevant BehVariables
 cd(p.Results.filePath)
-save('BehVariablesJs', 'jsTime1k', 'jsTime25k', 'evtIdx25k', 'evtIdx1k') % append the position/velocity data variables
+save('BehVariablesJs', 'jsTime1k', 'jsTime25k', 'evtIdx25k', 'evtIdx1k', 'p') % append the position/velocity data variables
 
 
 end
