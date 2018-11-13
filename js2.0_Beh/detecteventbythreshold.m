@@ -31,18 +31,19 @@ valFallTS = sort(flipTS(flipFallTS(diff([0,flipFallTS])>detectInterval)),'ascend
 valRiseTS = valRiseTS(valRiseTS>p.Results.detectLater & valRiseTS<p.Results.detectEarlier);
 valFallTS = valFallTS(valFallTS>p.Results.detectLater & valFallTS<p.Results.detectEarlier);
 
+% correct for long pulses that did not go low after a high
 addRiseTS = [];
 addFallTS = [];
 longPulseCnt = 0; 
 if p.Results.correctLongPulse
     if length(valFallTS)==length(valRiseTS)
-        pulseInterval = mode(valFallTS-valRiseTS(1:length(valFallTS)));
+        pulseInterval = mode(valFallTS-valRiseTS(1:length(valFallTS))); % normal pulse width
         for ts = 1:length(valRiseTS)
             if ~isempty(find(valFallTS>valRiseTS(ts),1))
-                if valFallTS(find(valFallTS>valRiseTS(ts),1))-valRiseTS(ts)>pulseInterval*2
+                if valFallTS(find(valFallTS>valRiseTS(ts),1))-valRiseTS(ts)>pulseInterval*2 % this is a long pulse
                     longPulseCnt = longPulseCnt+1;
-                    addFallTS(longPulseCnt) = valRiseTS(ts)+pulseInterval;
-                    addRiseTS(longPulseCnt) = valFallTS(find(valFallTS>valRiseTS(ts),1))-pulseInterval;
+                    addFallTS(longPulseCnt) = valRiseTS(ts)+pulseInterval; % add a fall 
+                    addRiseTS(longPulseCnt) = valFallTS(find(valFallTS>valRiseTS(ts),1))-pulseInterval; % add a rise
                     
                 else
                 end
