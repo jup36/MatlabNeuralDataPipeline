@@ -286,14 +286,15 @@ for t = 1:length(trStartIdx)  % increment trials
             end
             
             % trial-by-trial reach kinematics analysis
-            [ jsTime1k(t).movKins ] = jsReachKinematics( jsTime25k(t).dctrJsTraj, jsTime25k(t).pull_threshold, jsTime25k(t).trialType, sgfiltFramelen ); 
-            
+            tempMass = p.Results.meanMass(2,jsTime25k(t).pull_torque==p.Results.meanMass(1,:));
+            [ jsTime1k(t).movKins ] = jsReachKinematics( jsTime25k(t).dctrJsTraj, jsTime25k(t).pull_threshold, jsTime25k(t).trialType, tempMass, sgfiltFramelen ); 
             %figure; plot(interp1(1:length(jsTime25k(t).csvTraj),jsTime25k(t).csvTraj,1:length(jsTime25k(t).dcsmtrJsTraj)));
         end
     else % if there's no trialEnd left
     end
     fprintf('completed trial #%d\n', t);
 end
+clearvars temp* t
 
 % transfer relevant information to jsTime1k struct from jsTime25k
 n2cTrStart = num2cell(round([jsTime25k(:).trStart]./25)); [jsTime1k.trStart] = n2cTrStart{:}; 
@@ -307,7 +308,7 @@ n2cRewardT = num2cell(round([jsTime25k(:).rewardT]./25)); [jsTime1k.rewardT] = n
 [jsTime1k.trialType] = jsTime25k(:).trialType;
 
 % generate a plot to inspect a certain trial
-%movKinsPlot(jsTime1k(2).movKins); 
+%movKinsPlot(jsTime1k(25).movKins); 
 
 % Save relevant BehVariables
 cd(p.Results.filePath)

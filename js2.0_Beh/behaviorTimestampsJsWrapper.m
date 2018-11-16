@@ -40,6 +40,7 @@ end
         default_sgfiltFramelen = 101; % frame length for the sgolayfilt
         default_trialTimeout = 10000; % trial timeout duration
         default_pushThreshold = 50; % pushThreshold
+        default_meanMass = [10 20 30 40 50 60 70 80 90 100; 2.95 3.52 4.10 4.67 5.25 5.82 6.40 6.97 7.55 8.12]; % torque(%) mass(g) mapping 
         
         p = inputParser; % create parser object
         addRequired(p,'filePath');
@@ -55,6 +56,7 @@ end
         addParameter(p,'sgfiltFramelen',default_sgfiltFramelen)
         addParameter(p,'trialTimeout',default_trialTimeout)
         addParameter(p,'pushThreshold', default_pushThreshold)
+        addParameter(p,'meanMass', default_meanMass)
         
         parse(p,filePath,vargs{:})
     end
