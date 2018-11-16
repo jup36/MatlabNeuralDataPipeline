@@ -4,7 +4,7 @@ function movKinsPlot(movKins)
 
 switch movKins.trialType
     case 'sp' % for a successful pull
-        subplot(2,2,1); plot(movKins.jsTrajmm); hold on; plot(movKins.pullStart,movKins.jsTrajmm(movKins.pullStart),'*b'); plot(movKins.pullStop,movKins.jsTrajmm(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, movKins.jsTrajmm(movKins.pullMaxVelI),'og'); hold off;
+        subplot(2,2,1); plot(movKins.smJsTraj); hold on; plot(movKins.pullStart,movKins.smJsTraj(movKins.pullStart),'*b'); plot(movKins.pullStop,movKins.smJsTraj(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, movKins.smJsTraj(movKins.pullMaxVelI),'og'); hold off;
         title('jsTrajmm (mm)')
         subplot(2,2,2); plot(movKins.smJsVel); hold on; plot(movKins.pullStart,movKins.smJsVel(movKins.pullStart),'*b'); plot(movKins.pullStop,movKins.smJsVel(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, movKins.smJsVel(movKins.pullMaxVelI),'og'); hold off; 
         title('smJsVel (mm/s)')
@@ -13,7 +13,7 @@ switch movKins.trialType
         subplot(2,2,4); plot(movKins.periodicAbsVelSum); hold on; plot(movKins.pullStart,movKins.periodicAbsVelSum(movKins.pullStart),'*b'); plot(movKins.pullStop,movKins.periodicAbsVelSum(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, movKins.periodicAbsVelSum(movKins.pullMaxVelI),'og'); hold off; 
         title('absVelSum10msCum')
     case 'ps' % for a push
-        subplot(2,2,1); plot(movKins.jsTrajmm); hold on; plot(movKins.pushStart,movKins.jsTrajmm(movKins.pushStart),'*b'); plot(movKins.pushStop,movKins.jsTrajmm(movKins.pushStop),'*r'); plot(movKins.pushMaxVelI, movKins.jsTrajmm(movKins.pushMaxVelI),'og'); hold off;
+        subplot(2,2,1); plot(movKins.smJsTraj); hold on; plot(movKins.pushStart,movKins.smJsTraj(movKins.pushStart),'*b'); plot(movKins.pushStop,movKins.smJsTraj(movKins.pushStop),'*r'); plot(movKins.pushMaxVelI, movKins.smJsTraj(movKins.pushMaxVelI),'og'); hold off;
         title('jsTrajmm (mm)')
         subplot(2,2,2); plot(movKins.smJsVel); hold on; plot(movKins.pushStart,movKins.smJsVel(movKins.pushStart),'*b'); plot(movKins.pushStop,movKins.smJsVel(movKins.pushStop),'*r'); plot(movKins.pushMaxVelI, movKins.smJsVel(movKins.pushMaxVelI),'og'); hold off; 
         title('smJsVel (mm/s)')
@@ -22,7 +22,7 @@ switch movKins.trialType
         subplot(2,2,4); plot(movKins.periodicAbsVelSum); hold on; plot(movKins.pushStart,movKins.periodicAbsVelSum(movKins.pushStart),'*b'); plot(movKins.pushStop,movKins.periodicAbsVelSum(movKins.pushStop),'*r'); plot(movKins.pushMaxVelI, movKins.periodicAbsVelSum(movKins.pushMaxVelI),'og'); hold off; 
         title('absVelSum10msCum')        
     case 'pm' % for a premature pull
-        subplot(2,2,1); plot(movKins.jsTrajmm); hold on; plot(movKins.pullStart,movKins.jsTrajmm(movKins.pullStart),'*b'); plot(movKins.pullStop,movKins.jsTrajmm(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, movKins.jsTrajmm(movKins.pullMaxVelI),'og'); hold off;
+        subplot(2,2,1); plot(movKins.smJsTraj); hold on; plot(movKins.pullStart,movKins.smJsTraj(movKins.pullStart),'*b'); plot(movKins.pullStop,movKins.smJsTraj(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, movKins.smJsTraj(movKins.pullMaxVelI),'og'); hold off;
         title('jsTrajmm (mm)')
         subplot(2,2,2); plot(movKins.smJsVel); hold on; plot(movKins.pullStart,movKins.smJsVel(movKins.pullStart),'*b'); plot(movKins.pullStop,movKins.smJsVel(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, movKins.smJsVel(movKins.pullMaxVelI),'og'); hold off; 
         title('smJsVel (mm/s)')
@@ -32,8 +32,8 @@ switch movKins.trialType
         title('absVelSum10msCum')
 
     case 'pmpp' % for a premature pull then push
-        subplot(2,2,1); plot(movKins.jsTrajmm); hold on; plot(movKins.pullStart,movKins.jsTrajmm(movKins.pullStart),'*b'); plot(movKins.pullStop,movKins.jsTrajmm(movKins.pullStop),'*r');  plot(movKins.pullMaxVelI, movKins.jsTrajmm(movKins.pullMaxVelI),'og'); 
-        plot(movKins.pushStart,movKins.jsTrajmm(movKins.pushStart),'*b'); plot(movKins.pushStop,movKins.jsTrajmm(movKins.pushStop),'*r'); plot(movKins.pushMaxVelI, movKins.jsTrajmm(movKins.pushMaxVelI),'og'); hold off;
+        subplot(2,2,1); plot(movKins.smJsTraj); hold on; plot(movKins.pullStart,movKins.smJsTraj(movKins.pullStart),'*b'); plot(movKins.pullStop,movKins.smJsTraj(movKins.pullStop),'*r');  plot(movKins.pullMaxVelI, movKins.smJsTraj(movKins.pullMaxVelI),'og'); 
+        plot(movKins.pushStart,movKins.smJsTraj(movKins.pushStart),'*b'); plot(movKins.pushStop,movKins.smJsTraj(movKins.pushStop),'*r'); plot(movKins.pushMaxVelI, movKins.smJsTraj(movKins.pushMaxVelI),'og'); hold off;
         title('jsTrajmm (mm)')
         subplot(2,2,2); plot(movKins.smJsVel); hold on; plot(movKins.pullStart,movKins.smJsVel(movKins.pullStart),'*b'); plot(movKins.pullStop,movKins.smJsVel(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, movKins.smJsVel(movKins.pullMaxVelI),'og'); 
         plot(movKins.pushStart,movKins.smJsVel(movKins.pushStart),'*b'); plot(movKins.pushStop,movKins.smJsVel(movKins.pushStop),'*r'); plot(movKins.pushMaxVelI, movKins.smJsVel(movKins.pushMaxVelI),'og'); hold off; 
@@ -45,7 +45,7 @@ switch movKins.trialType
         plot(movKins.pushStart,movKins.periodicAbsVelSum(movKins.pushStart),'*b'); plot(movKins.pushStop,movKins.periodicAbsVelSum(movKins.pushStop),'*r'); plot(movKins.pushMaxVelI, movKins.periodicAbsVelSum(movKins.pushMaxVelI),'og'); hold off; 
         title('absVelSum10msCum')
     case 'to' % for a timeout trial
-        subplot(2,2,1); plot(movKins.jsTrajmm);  
+        subplot(2,2,1); plot(movKins.smJsTraj);  
         title('jsTrajmm (mm)')
         subplot(2,2,2); plot(movKins.smJsVel);  
         title('smJsVel (mm/s)')
