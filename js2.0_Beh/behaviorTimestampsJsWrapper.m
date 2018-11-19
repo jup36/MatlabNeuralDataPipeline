@@ -46,8 +46,6 @@ end
         
         p = inputParser; % create parser object
         addRequired(p,'filePath');
-        addRequired(p,'')
-        addRequired(p,'')
         addParameter(p,'numbNeuralProbe',default_numbNeuralProbe)
         addParameter(p,'numbChEachProbe',default_numbChEachProbe)
         addParameter(p,'trStartCh',default_trStartCh)
