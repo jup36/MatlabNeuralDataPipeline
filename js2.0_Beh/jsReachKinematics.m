@@ -49,28 +49,28 @@ movKins.sgJsAcl = sgJsAcl;
 
 switch trialType
     case 'sp' % for a successful pull
-        [ movKins.pullStart, movKins.pullStop, movKins.pullMaxVel, movKins.pullMaxVelI ] = detectPull(jsTrajmm, smJsVel, smJsAcl, mass, pullThresholdmm, periodicAbsVelSum); 
+        [ movKins.pullStart, movKins.pullStop, movKins.pullMaxVel, movKins.pullMaxVelI, movKins.forceMN, movKins.maxForce, movKins.maxForceI, movKins.netForce ] = detectPull(jsTrajmm, smJsVel, smJsAcl, mass, pullThresholdmm, periodicAbsVelSum); 
 %         subplot(2,2,1); plot(jsTrajmm); hold on; plot(movKins.pullStart,jsTrajmm(movKins.pullStart),'*b'); plot(movKins.pullStop,jsTrajmm(movKins.pullStop),'*r'); hold off;
 %         subplot(2,2,2); plot(smJsVel); hold on; plot(movKins.pullStart,smJsVel(movKins.pullStart),'*b'); plot(movKins.pullStop,smJsVel(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, smJsVel(movKins.pullMaxVelI),'og'); hold off; 
 %         subplot(2,2,3); findpeaks(-smJsVel, 'MinPeakProminence',3); 
 %         subplot(2,2,4); plot(periodicAbsVelSum)
         
     case 'ps' % for a push
-        [ movKins.pushStart, movKins.pushStop, movKins.pushMaxVel, movKins.pushMaxVelI ] = detectPush(jsTrajmm, smJsVel, smJsAcl, mass, pushThresholdmm, periodicAbsVelSum); 
+        [ movKins.pushStart, movKins.pushStop, movKins.pushMaxVel, movKins.pushMaxVelI, movKins.forceMN, movKins.maxForce, movKins.maxForceI, movKins.netForce ] = detectPush(jsTrajmm, smJsVel, smJsAcl, mass, pushThresholdmm, periodicAbsVelSum); 
 %         subplot(2,2,1); plot(jsTrajmm); hold on; plot(movKins.pushStart,jsTrajmm(movKins.pushStart),'*b'); plot(movKins.pushStop,jsTrajmm(movKins.pushStop),'*r'); hold off;
 %         subplot(2,2,2); plot(smJsVel); hold on; plot(movKins.pushStart,smJsVel(movKins.pushStart),'*b'); plot(movKins.pushStop,smJsVel(movKins.pushStop),'*r'); plot(movKins.pushMaxVelI, smJsVel(movKins.pushMaxVelI),'og'); hold off; 
 %         subplot(2,2,3); findpeaks(-smJsVel, 'MinPeakProminence',3); 
 %         subplot(2,2,4); plot(periodicAbsVelSum)
         
     case 'pm' % for a premature pull
-        [ movKins.pullStart, movKins.pullStop, movKins.pullMaxVel, movKins.pullMaxVelI ] = detectPull(jsTrajmm, smJsVel, smJsAcl, mass, pullThresholdmm, periodicAbsVelSum); 
+        [ movKins.pullStart, movKins.pullStop, movKins.pullMaxVel, movKins.pullMaxVelI, movKins.forceMN, movKins.maxForce, movKins.maxForceI, movKins.netForce ] = detectPull(jsTrajmm, smJsVel, smJsAcl, mass, pullThresholdmm, periodicAbsVelSum); 
 %         subplot(2,2,1); plot(jsTrajmm); hold on; plot(movKins.pullStart,jsTrajmm(movKins.pullStart),'*b'); plot(movKins.pullStop,jsTrajmm(movKins.pullStop),'*r'); hold off;
 %         subplot(2,2,2); plot(smJsVel); hold on; plot(movKins.pullStart,smJsVel(movKins.pullStart),'*b'); plot(movKins.pullStop,smJsVel(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, smJsVel(movKins.pullMaxVelI),'og'); hold off; 
 %         subplot(2,2,3); findpeaks(-smJsVel, 'MinPeakProminence',3); 
 %         subplot(2,2,4); plot(periodicAbsVelSum)
 
     case 'pmpp' % for a premature pull then push
-         [ movKins.pullStart, movKins.pullStop, movKins.pullMaxVel, movKins.pullMaxVelI, movKins.pushStart, movKins.pushStop, movKins.pushMaxVel, movKins.pushMaxVelI ] = detectPullandPush(jsTrajmm, smJsVel, smJsAcl, mass, pullThresholdmm, pushThresholdmm, periodicAbsVelSum);     
+         [ movKins.pull, movKins.push ] = detectPullandPush(jsTrajmm, smJsVel, smJsAcl, mass, pullThresholdmm, pushThresholdmm, periodicAbsVelSum);     
 %         subplot(2,2,1); plot(jsTrajmm); hold on; plot(movKins.pullStart,jsTrajmm(movKins.pullStart),'*b'); plot(movKins.pullStop,jsTrajmm(movKins.pullStop),'*r'); plot(movKins.pushStart,jsTrajmm(movKins.pushStart),'*b'); plot(movKins.pushStop,jsTrajmm(movKins.pushStop),'*r'); hold off;
 %         subplot(2,2,2); plot(smJsVel); hold on; plot(movKins.pullStart,smJsVel(movKins.pullStart),'*b'); plot(movKins.pullStop,smJsVel(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, smJsVel(movKins.pullMaxVelI),'og'); plot(movKins.pushStart,smJsVel(movKins.pushStart),'*b'); plot(pushStop,smJsVel(pushStop),'*r'); plot(pushMaxVelI, smJsVel(pushMaxVelI),'og'); hold off; 
 %         subplot(2,2,3); findpeaks(-smJsVel, 'MinPeakProminence',3); 

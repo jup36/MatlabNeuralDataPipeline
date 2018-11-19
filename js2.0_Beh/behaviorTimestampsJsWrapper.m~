@@ -18,7 +18,7 @@ for f = 1:length(filePath)
         error('Input a proper file path'); 
     end
     p = parse_input_Js(currentPath, varargin); 
-    % p = parse_input_Js(currentPath, {'trialTimeout',10000}); 
+    % p = parse_input_Js(currentPath, {'trialTimeout',8000}); 
     behaviorTimestampsJs(p);
 end
 
