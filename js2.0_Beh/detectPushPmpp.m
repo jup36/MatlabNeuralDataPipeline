@@ -1,12 +1,12 @@
-function [ pushStart, pushStop, pushMaxVel, pushMaxVelI, forceMN, maxForce, maxForceI, netForce  ] = detectPush(jsTrajmm, smJsVel, smJsAcl, mass, pushThresholdmm, periodicAbsVelSum)
+function [ pushStart, pushStop, pushMaxVel, pushMaxVelI, forceMN, maxForce, maxForceI, netForce  ] = detectPushPmpp(jsTrajmm, smJsVel, smJsAcl, mass, normPushThresholdmm, periodicAbsVelSum)
 %This is a helper function to detect a push (error) that crosses the pushThreshold.
 
 stillPts = 10; % 10ms
 
-if ~isempty(find( jsTrajmm >= pushThresholdmm, 1, 'first'))
-    fstThresCross = find( jsTrajmm >= pushThresholdmm, 1, 'first'); % detect the push that crossed the push threshold
-elseif ~isempty(find( jsTrajmm >= pushThresholdmm-1, 1, 'first'))
-    fstThresCross = find( jsTrajmm >= pushThresholdmm-1, 1, 'first'); % detect the push that crossed the push threshold
+if ~isempty(find( jsTrajmm >= normPushThresholdmm, 1, 'first'))
+    fstThresCross = find( jsTrajmm >= normPushThresholdmm, 1, 'first'); % detect the push that crossed the push threshold
+elseif ~isempty(find( jsTrajmm >= normPushThresholdmm-1, 1, 'first'))
+    fstThresCross = find( jsTrajmm >= normPushThresholdmm-1, 1, 'first'); % detect the push that crossed the push threshold
 else
     [~,fstThresCross] = max( smJsVel); % detect the push that crossed the push threshold
 end
@@ -29,11 +29,10 @@ if ~isempty(find(periodicAbsVelSum(fstThresCross:end)<50,1)) % 1st look if there
     pushStop = fstThresCross+find(periodicAbsVelSum(fstThresCross:end)<50,1)-1;
 elseif ~isempty(find(periodicAbsVelSum(fstThresCross:end)<100,1)) % 1st look if there's any still point after the threshold crossing
     pushStop = fstThresCross+find(periodicAbsVelSum(fstThresCross:end)<100,1)-1;
-elseif  ~isempty(find(velPeakIdx>fstThresCross,1))
+elseif ~isempty(find(velPeakIdx>fstThresCross,1))
     finalPeak = velPeakIdx(find(velPeakIdx>fstThresCross,1,'last')); % take the final valley (the point at which the push velocity starts to decrease) as the pushStop
     [~,tempPushStop] = min(abs(smJsVel(finalPeak:end))); % find the min vel point after the valley
     pushStop = finalPeak + tempPushStop-1; % pushStop
-    
 else
     [~,tempPushStop] = min(abs(smJsVel(fstThresCross:end))); % find the min vel point after the valley
     pushStop = fstThresCross + tempPushStop-1; % pushStop

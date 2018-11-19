@@ -1,4 +1,4 @@
-function [ pullStart, pullStop, pullMaxVel, pullMaxVelI ] = detectPull(jsTrajmm, smJsVel, smJsAcl, mass, pullThresholdmm, periodicAbsVelSum)
+function [ pullStart, pullStop, pullMaxVel, pullMaxVelI, forceMN, maxForce, maxForceI, netForce ] = detectPull(jsTrajmm, smJsVel, smJsAcl, mass, pullThresholdmm, periodicAbsVelSum)
 %This is a helper function to detect a pull (pull) that crosses the pullThreshold.
 
 stillPts = 10; % 10ms
@@ -17,34 +17,41 @@ else % if there was no still point at all
 end
 
 % define pullStop - look for a still point at which Js moved less than 0.05mm for the recent 10 ms
+%[~, velVellIdx] = findpeaks(-smJsVel, 'MinPeakProminence',5); % to define pullStop find valleys
 [~, velVellIdx] = findpeaks(-smJsVel, 'MinPeakProminence',3); % to define pullStop find valleys
 if ~isempty(find(periodicAbsVelSum(fstThresCross:end)<50,1)) % 1st look if there's any still point after the threshold crossing
     pullStop = fstThresCross+find(periodicAbsVelSum(fstThresCross:end)<50,1)-1;
-else % in the lack of any still point
-    if ~isempty(find(velVellIdx>fstThresCross,1))
+elseif ~isempty(find(periodicAbsVelSum(fstThresCross:end)<100,1)) % 1st look if there's any still point after the threshold crossing
+    pullStop = fstThresCross+find(periodicAbsVelSum(fstThresCross:end)<100,1)-1;
+elseif ~isempty(find(velVellIdx>fstThresCross,1))
         finalValley = velVellIdx(find(velVellIdx>fstThresCross,1,'last')); % take the final valley (the point at which the pull velocity starts to decrease) as the pullStop
         [~,temppullStop] = min(abs(smJsVel(finalValley:end))); % find the min vel point after the valley
         pullStop = finalValley + temppullStop-1; % pullStop
-    else
-        [~,temppullStop] = min(abs(smJsVel(fstThresCross:end))); % find the min vel point after the valley
-        pullStop = fstThresCross + temppullStop-1; % pullStop
-    end
+elseif ~isempty(find(abs(smJsVel(fstThresCross:end))==0,1))
+    pullStop = find(abs(smJsVel(fstThresCross:end))==0,1); 
+else % in the lack of any still point
+     [~,temppullStop] = min(abs(smJsVel(fstThresCross:end))); % find the min vel point after the valley
+     pullStop = fstThresCross + temppullStop-1; % pullStop
 end
+
 % find the max velocity point
 [pullMaxVel,temppullVelMaxI] = min(smJsVel(pullStart:pullStop));  
 pullMaxVelI = temppullVelMaxI+pullStart-1; 
 
 % compute force
-forceMN = smJsAcl/1000*mass; % mN  
+forceMN = zeros(2,length(smJsAcl)); 
+forceMN(1,:) = smJsAcl/1000*mass; % mN  
 velZeroPostMaxVI0 = find(smJsVel(pullMaxVelI:end)>=0,1); % 
 if ~isempty(velZeroPostMaxVI0)
     velZeroPostMaxVI = pullMaxVelI+velZeroPostMaxVI0-1; 
 else
     velZeroPostMaxVI = NaN; 
 end
-[maxForce, maxForceI0] = nanmin(forceMN(pullStart:nanmin(velZeroPostMaxVI,pullStop))); 
+
+forceMN(2,pullStart:nanmin(velZeroPostMaxVI,pullStop))=1; 
+[maxForce, maxForceI0] = nanmin(forceMN(1,pullStart:nanmin(velZeroPostMaxVI,pullStop)));
 maxForceI = pullStart+maxForceI0-1; 
-netForce = cumtrapz(min(forceMN(pullStart:nanmin(velZeroPostMaxVI,pullStop)),0)); 
+netForce = cumtrapz(nanmin(forceMN(1,pullStart:nanmin(velZeroPostMaxVI,pullStop)),0)); % net force - pull only
 
 %pullMaxVel  = -max(velVells(velVellIdx>=pullStart & velVellIdx<=pullStop)); % max pull vel
 %pullMaxVelI = velVellIdx(velVellIdx>=pullStart & velVellIdx<=pullStop & velVells == -pullMaxVel); % max pull vel time point
