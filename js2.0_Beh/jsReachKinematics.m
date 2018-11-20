@@ -75,6 +75,9 @@ switch trialType
 %         subplot(2,2,2); plot(smJsVel); hold on; plot(movKins.pullStart,smJsVel(movKins.pullStart),'*b'); plot(movKins.pullStop,smJsVel(movKins.pullStop),'*r'); plot(movKins.pullMaxVelI, smJsVel(movKins.pullMaxVelI),'og'); plot(movKins.pushStart,smJsVel(movKins.pushStart),'*b'); plot(pushStop,smJsVel(pushStop),'*r'); plot(pushMaxVelI, smJsVel(pushMaxVelI),'og'); hold off; 
 %         subplot(2,2,3); findpeaks(-smJsVel, 'MinPeakProminence',3); 
 %         subplot(2,2,4); plot(periodicAbsVelSum)
+   
+    case 'to' % for a timeout  
+         [ movKins.forceMN, movKins.netForce ] = computeForceTOtrials(smJsAcl, mass); 
 end
 
 end

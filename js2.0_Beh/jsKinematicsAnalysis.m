@@ -1,5 +1,6 @@
 
-filePath='/Volumes/RAID2/parkj/NeuralData/js2.0/WR25/110718_LowHighShift';  
+%filePath='/Volumes/RAID2/parkj/NeuralData/js2.0/WR25/110718_LowHighShift';  
+filePath = 'Z:\parkj\NeuralData\js2.0\WR25\110718_LowHighShift'; 
 
 cd(filePath)
 load('BehVariablesJs.mat', 'jsTime1k', 'p')
@@ -53,7 +54,7 @@ reachP1s = unique(reachP1);
 reachP1shiftPts = [1 find([reachP1(1) reachP1(1:end-1)]-[S(:).reachP1]~=0)]; 
 
 % draw the reachPosition1 shifts
-hold on; 
+figure; hold on; 
 for s = 1:length(reachP1shiftPts)
     if s<length(reachP1shiftPts)
         tempColor = reachPsCmap(reachP1s==S(reachP1shiftPts(s)).reachP1,:); 
@@ -82,7 +83,7 @@ for t = 1:length(S)
         case 'to'
             S(t).rt = p.Results.trialTimeout; 
         case 'pmpp'
-            S(t).rt = S(t).movKins.pullStart; 
+            S(t).rt = S(t).movKins.pull.startI; 
     end
     if actTrIdx(t)
         tempColor = pullTqsCmap(S(t).pull_torque == pullTqs,:);
@@ -182,8 +183,73 @@ xlabel('Time(s)')
 ylim([0 max(rdCollect(:,3))+10])
 print('sp_rd','-dpdf','-bestfit') % save the RT (log scale) plot
 
-%% Max force generated
+%% Max force generated  
+[S(:).maxForcePull]=deal(NaN);
+mfCollect = []; % just collect RD across all active trials 
+% get trial-by-trial rd and plot them 
+% draw the reachPosition1 shifts
+figure; hold on; 
+for s = 1:length(reachP1shiftPts)
+    if s<length(reachP1shiftPts)
+        tempColor = reachPsCmap(reachP1s==S(reachP1shiftPts(s)).reachP1,:); 
+        tempX1 = S(reachP1shiftPts(s)).trStart; 
+        tempX2 = max(S(reachP1shiftPts(s+1)-1).trEnd, S(reachP1shiftPts(s+1)-1).rewardT); 
+        fill([tempX1 tempX2 tempX2 tempX1]./1000, [-10 -10 1000 1000], tempColor, 'EdgeColor','none'); 
+    elseif s==length(reachP1shiftPts) 
+        tempColor = reachPsCmap(reachP1s==S(reachP1shiftPts(s)).reachP1,:); 
+        tempX1 = S(reachP1shiftPts(s)).trStart; 
+        tempX2 = max(S(length(S)).trEnd, S(length(S)).rewardT); 
+        fill([tempX1 tempX2 tempX2 tempX1]./1000, [-10 -10 1000 1000], tempColor, 'EdgeColor','none');          
+    end
+end
+clearvars s 
+set(gca,'TickDir','out')
 
+% plot trial-by-trial max Force in the PULL DIRECTION
+for t = 1:length(S)
+    if strcmp(S(t).trialType,'sp')
+       tempColor = pullTqsCmap(S(t).pull_torque == pullTqs,:); 
+       S(t).maxForcePull = S(t).movKins.maxForce;
+       mfCollect = [mfCollect; t, S(t).trJsReady+S(t).rt, S(t).maxForcePull]; 
+       plot((S(t).trJsReady+S(t).rt)/1000, -S(t).maxForcePull,'o','MarkerFaceColor',tempColor,'MarkerEdgeColor',tempColor,'MarkerSize',6);
+    elseif strcmp(S(t).trialType,'to')
+       tempColor = pullTqsCmap(S(t).pull_torque == pullTqs,:); 
+       if ~isempty(find(S(t).movKins.periodicAbsVelSum(1:1000)>50,1,'last'))
+           absltStillPt = find(S(t).movKins.periodicAbsVelSum(1:1000)>50,1,'last')+50; 
+       else
+           absltStillPt = 1;
+       end
+       S(t).maxForcePull = min(S(t).movKins.forceMN(1,absltStillPt:end));  
+       mfCollect = [mfCollect; t, S(t).trJsReady+S(t).rt, S(t).maxForcePull]; 
+       plot((S(t).trJsReady+S(t).rt)/1000, -S(t).maxForcePull,'o','MarkerEdgeColor',tempColor,'MarkerSize',6);    
+       
+    elseif strcmp(S(t).trialType,'pmpp')
+       tempColor = pullTqsCmap(S(t).pull_torque == pullTqs,:); 
+       S(t).maxForcePull = S(t).movKins.pull.maxForce;
+       mfCollect = [mfCollect; t, S(t).trJsReady+S(t).rt, S(t).maxForcePull]; 
+       plot((S(t).trJsReady+S(t).rt)/1000, -S(t).maxForcePull,'o','MarkerEdgeColor',tempColor,'MarkerSize',6);
+    end
+end
+clearvars t
+plot(mfCollect(:,2)/1000,-mfCollect(:,3),':k')
+
+mfCell = cell(length(unique([S(:).tBound])),2); 
+for tB = unique([S(:).tBound]) 
+    tempColor = pullTqsCmap(S(find([S(:).tBound]==tB,1)).pull_torque == pullTqs,:);
+    temptB = [S(:).tBound]==tB & actTrIdx; 
+    mfCell{tB,1} = [S(temptB).trJsReady]; 
+    mfCell{tB,2} = -[S(temptB).maxForcePull];
+    bMf = bar(nanmean(mfCell{tB,1})/1000,nanmean(mfCell{tB,2}),'barWidth',10);
+    set(bMf,'FaceColor',tempColor)
+    ebMf = errorbar(nanmean(mfCell{tB,1})/1000,nanmean(mfCell{tB,2}), nanstd(mfCell{tB,2})/sqrt(length(mfCell{tB,2})),'CapSize',10,'color',tempColor); 
+    set(ebMf,'Color',tempColor)
+end
+clearvars tB
+hold off; 
+ylabel('max Force (mN)')
+xlabel('Time(s)')
+ylim([0 -min(mfCollect(:,3))+10])
+print('mf','-dpdf','-bestfit') % save the RT (log scale) plot
 
 
 
