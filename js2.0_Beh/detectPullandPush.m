@@ -29,8 +29,6 @@ else
     push.maxForceI = nan;
 end
 
-
-
 % subplot(2,2,1); plot(jsTrajmm); hold on; plot(pullStart,jsTrajmm(pullStart),'*b'); plot(pullStop,jsTrajmm(pullStop),'*r'); plot(pushStartCr,jsTrajmm(pushStartCr),'*b'); plot(pushStopCr,jsTrajmm(pushStopCr),'*r'); hold off;
 % subplot(2,2,2); plot(smJsVel); hold on; plot(pullStart,smJsVel(pullStart),'*b'); plot(pullStop,smJsVel(pullStop),'*r'); plot(pullMaxVelI, smJsVel(pullMaxVelI),'og'); plot(pushStartCr,smJsVel(pushStartCr),'*b'); plot(pushStopCr,smJsVel(pushStopCr),'*r'); plot(pushMaxVelICr, smJsVel(pushMaxVelICr),'og'); hold off;
 % subplot(2,2,3); findpeaks(-smJsVel, 'MinPeakProminence',3);

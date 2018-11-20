@@ -96,52 +96,58 @@ else
 end
 
 %% task event detection
-[trStartIdx,~,~] = detecteventbythreshold(trStart, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'correctLongPulse', true); % trial Start
-fprintf('completed trial start detection!');
-[trEndIdx,~,~]   = detecteventbythreshold(trEnd, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse', true); % trial End
-fprintf('completed trial end detection!');
-
-if length(trStartIdx)==length(trEndIdx)
-    if ~unique(trEndIdx - trStartIdx>0)
-        error('Trial End and Start indices do not make sense!')
-    end
-elseif length(trStartIdx)-length(trEndIdx)==1
-    if ~unique(trEndIdx - trStartIdx(1,1:length(trEndIdx))>0)
-        error('Trial End and Start indices do not make sense!')
-    end
-elseif length(trEndIdx)-length(trStartIdx)==1
-    if ~unique(trEndIdx(1,1:length(trStartIdx)) - trStartIdx>0)
-        error('Trial End and Start indices do not make sense!')
-    end
+if ~isempty(dir(fullfile(p.Results.filePath,'evtIndices.mat'))) % if the gainCorrectRawTraces.mat file already exists in the filePath
+    load(fullfile(p.Results.filePath,'evtIndices.mat'),'trStartIdx','trEndIdx','rwdIdx','lickIdx','evtIdx25k','evtIdx1k') % if there are gaincorrectedrawtraces already saved, just load them
 else
-    error('Trial End and Start indices do not make sense!')
+    [trStartIdx,~,~] = detecteventbythreshold(trStart, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'correctLongPulse', true); % trial Start
+    fprintf('completed trial start detection!');
+    [trEndIdx,~,~]   = detecteventbythreshold(trEnd, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse', true); % trial End
+    fprintf('completed trial end detection!');
+    
+    if length(trStartIdx)==length(trEndIdx)
+        if ~unique(trEndIdx - trStartIdx>0)
+            error('Trial End and Start indices do not make sense!')
+        end
+    elseif length(trStartIdx)-length(trEndIdx)==1
+        if ~unique(trEndIdx - trStartIdx(1,1:length(trEndIdx))>0)
+            error('Trial End and Start indices do not make sense!')
+        end
+    elseif length(trEndIdx)-length(trStartIdx)==1
+        if ~unique(trEndIdx(1,1:length(trStartIdx)) - trStartIdx>0)
+            error('Trial End and Start indices do not make sense!')
+        end
+    else
+        error('Trial End and Start indices do not make sense!')
+    end
+    
+    rwdIdx     = detecteventbythreshold(reward, 25000, 50, 'stdFactor',1, 'plotRez',false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse',true);  % reward
+    fprintf('completed reward detection!');
+    
+    % detect licks
+    lickIdx    = detecteventbythreshold(decimate(lick,nSamp/1000), 1000, 20, 'stdFactor',3, 'plotRez',false, 'chunkPulses', false); % lick, detect licks after downsampling (there seems to be some denoising effect with decimation, see /Volumes/RAID2/parkj/NeuralData/js2.0/WR25/101718/lickSignalExample_1kHzVS25kHz.fig as an example)
+    %deciLick = decimate(lick, nSamp/1000); intDeciLick = interp1(1:length(deciLick), deciLick, linespace(1, length(deciLick), length(lick)));
+    %plot(lick); hold on; plot(intDeciLick); hold off
+    fprintf('completed lick detection!');
+    
+    [camTrigRiseIdx, camTrigFallIdx, camPulseTrainIdx] = detecteventbythreshold(camTrig, 25000, 2, 'stdFactor', 1, 'plotRez',false, 'chunkPulses', true, 'chunkInterval', 2000, 'correctLongPulse', true); % camera trigger
+    %camTrigRiseIdx1ms = round(camTrigRiseIdx./round(nSamp/1000)); % adjust the time resolution to be 1ms
+    %camTrigFallIdx1ms = round(camTrigFallIdx./round(nSamp/1000)); % adjust the time resolution to be 1ms
+    fprintf('completed camera trigger detection!');
+    
+    evtIdx25k.rwdIdx  = rwdIdx;
+    evtIdx25k.lickIdx = lickIdx;
+    evtIdx25k.camTrigRiseIdx = camTrigRiseIdx;
+    evtIdx25k.camTrigFallIdx = camTrigFallIdx;
+    evtIdx25k.camPulseTrainIdx = camPulseTrainIdx;
+    
+    evtIdx1k.rwdIdx  = round(rwdIdx./25);
+    evtIdx1k.lickIdx = round(lickIdx./25);
+    evtIdx1k.camTrigRiseIdx = round(camTrigRiseIdx./25);
+    evtIdx1k.camTrigFallIdx = round(camTrigFallIdx./25);
+    evtIdx1k.camPulseTrainIdx = camPulseTrainIdx; % pulse Train Id
+    
+    save('evtIndices','trStartIdx','trEndIdx','rwdIdx','lickIdx','evtIdx25k','evtIdx1k')
 end
-
-rwdIdx     = detecteventbythreshold(reward, 25000, 50, 'stdFactor',1, 'plotRez',false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse',true);  % reward
-fprintf('completed reward detection!');
-
-% detect licks
-lickIdx    = detecteventbythreshold(decimate(lick,nSamp/1000), 1000, 20, 'stdFactor',3, 'plotRez',false, 'chunkPulses', false); % lick, detect licks after downsampling (there seems to be some denoising effect with decimation, see /Volumes/RAID2/parkj/NeuralData/js2.0/WR25/101718/lickSignalExample_1kHzVS25kHz.fig as an example) 
-%deciLick = decimate(lick, nSamp/1000); intDeciLick = interp1(1:length(deciLick), deciLick, linespace(1, length(deciLick), length(lick)));
-%plot(lick); hold on; plot(intDeciLick); hold off 
-fprintf('completed lick detection!');
-
-[camTrigRiseIdx, camTrigFallIdx, camPulseTrainIdx] = detecteventbythreshold(camTrig, 25000, 2, 'stdFactor', 1, 'plotRez',false, 'chunkPulses', true, 'chunkInterval', 2000, 'correctLongPulse', true); % camera trigger
-%camTrigRiseIdx1ms = round(camTrigRiseIdx./round(nSamp/1000)); % adjust the time resolution to be 1ms
-%camTrigFallIdx1ms = round(camTrigFallIdx./round(nSamp/1000)); % adjust the time resolution to be 1ms
-fprintf('completed camera trigger detection!');
-
-evtIdx25k.rwdIdx  = rwdIdx; 
-evtIdx25k.lickIdx = lickIdx; 
-evtIdx25k.camTrigRiseIdx = camTrigRiseIdx;
-evtIdx25k.camTrigFallIdx = camTrigFallIdx;
-evtIdx25k.camPulseTrainIdx = camPulseTrainIdx; 
-
-evtIdx1k.rwdIdx  = round(rwdIdx./25); 
-evtIdx1k.lickIdx = round(lickIdx./25); 
-evtIdx1k.camTrigRiseIdx = round(camTrigRiseIdx./25);
-evtIdx1k.camTrigFallIdx = round(camTrigFallIdx./25);
-evtIdx1k.camPulseTrainIdx = camPulseTrainIdx; % pulse Train Id
 
 %% spot the trial-by-trial and all-trials behavioral csv files
 if isempty(dir(fullfile(p.Results.filePath,'201*')))

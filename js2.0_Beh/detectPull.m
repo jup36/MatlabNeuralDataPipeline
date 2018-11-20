@@ -51,7 +51,8 @@ end
 forceMN(2,pullStart:nanmin(velZeroPostMaxVI,pullStop))=1; 
 [maxForce, maxForceI0] = nanmin(forceMN(1,pullStart:nanmin(velZeroPostMaxVI,pullStop)));
 maxForceI = pullStart+maxForceI0-1; 
-netForce = cumtrapz(nanmin(forceMN(1,pullStart:nanmin(velZeroPostMaxVI,pullStop)),0)); % net force - pull only
+netForce(1,:) = cumtrapz(nanmax(forceMN(1,pullStart:nanmin(velZeroPostMaxVI,pullStop)),0)); % net force in the push direction 
+netForce(2,:) = cumtrapz(nanmin(forceMN(1,pullStart:nanmin(velZeroPostMaxVI,pullStop)),0)); % net force in the pull direction 
 
 %pullMaxVel  = -max(velVells(velVellIdx>=pullStart & velVellIdx<=pullStop)); % max pull vel
 %pullMaxVelI = velVellIdx(velVellIdx>=pullStart & velVellIdx<=pullStop & velVells == -pullMaxVel); % max pull vel time point
