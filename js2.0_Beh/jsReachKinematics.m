@@ -46,6 +46,7 @@ movKins.sgJsVel = sgJsVel;
 movKins.jsAclmmpss = jsAclmmpss; 
 movKins.smJsAcl = smJsAcl;
 movKins.sgJsAcl = sgJsAcl;
+movKins.mass = mass; 
 
 switch trialType
     case 'sp' % for a successful pull
