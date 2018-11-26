@@ -44,13 +44,13 @@ else
     lickCh = p.Results.numbChEachProbe*p.Results.numbNeuralProbe+p.Results.lickCh;   % ch# for lick detect
     
     % preallocate the behavioral data arrays
-    trStart   = zeros(1,floor(totalTimeSecs*25000));  % the time resolution will be 1000Hz (1ms) after decimation
-    camTrig   = zeros(1,floor(totalTimeSecs*25000)); % do not decimate
-    reward    = zeros(1,floor(totalTimeSecs*25000));  %
-    trEnd     = zeros(1,floor(totalTimeSecs*25000));  %
-    encodeA   = zeros(1,floor(totalTimeSecs*25000)); % do not decimate
-    encodeB   = zeros(1,floor(totalTimeSecs*25000)); % do not decimate
-    lick      = zeros(1,floor(totalTimeSecs*25000));  %
+    trStart   = zeros(1,floor(totalTimeSecs*25000)); 
+    camTrig   = zeros(1,floor(totalTimeSecs*25000)); 
+    reward    = zeros(1,floor(totalTimeSecs*25000)); 
+    trEnd     = zeros(1,floor(totalTimeSecs*25000)); 
+    encodeA   = zeros(1,floor(totalTimeSecs*25000)); 
+    encodeB   = zeros(1,floor(totalTimeSecs*25000)); 
+    lick      = zeros(1,floor(totalTimeSecs*25000)); 
     
     for i = 0:totalTimeSecs-1 % read second-by-second incrementally to avoid a memory issue
         tempDataArray = ReadBin(i*nSamp, nSamp, meta, binName, p.Results.filePath); % read bin data for each second
