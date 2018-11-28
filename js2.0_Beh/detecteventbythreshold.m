@@ -66,8 +66,8 @@ end
 % plot(valFallTS(valFallTS<=25000*150),thresTS,'*R'); hold off
 
 if p.Results.chunkPulses
-    chunkRiseTS = riseTS(diff([0, riseTS])>p.Results.chunkInterval/1000*sampFreq); % this should detect pulses beginning each train (train beginner)
-    [~,pulseTrainIdx] = min(abs(repmat(valRiseTS,length(chunkRiseTS),1)-chunkRiseTS'),[],1); % get the chunk id for each pulse by finding the closest train beginner
+    chunkRiseTS = corrRiseTS(diff([0, corrRiseTS])>p.Results.chunkInterval/1000*sampFreq); % this should detect pulses beginning each train (train beginner)
+    [~,~,pulseTrainIdx] = histcounts(corrRiseTS,[chunkRiseTS, corrRiseTS(end)]); 
 else
     pulseTrainIdx = nan;
 end
