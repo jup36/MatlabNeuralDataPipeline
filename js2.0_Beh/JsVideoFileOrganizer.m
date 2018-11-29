@@ -1,0 +1,234 @@
+function JsVideoFileOrganizer(filePath)
+
+cd(filePath)
+load('BehVariablesJs.mat', 'jsTime1k', 'evtIdx1k', 'p')
+load('evtIndices.mat', 'trStartIdx', 'trEndIdx' )
+
+behFilePath = dir(fullfile(p.Results.filePath,'201*')); % dir where the trial-by-trial behavioral csv files are saved
+tbytCsvList = dir(fullfile(behFilePath.folder,behFilePath.name,'trial_*'));    % trial-by-trial files
+allTrialCsv = dir(fullfile(behFilePath.folder,behFilePath.name,'trials.csv')); % all trial file
+if length(allTrialCsv)==1
+    trialsFileName = fullfile(allTrialCsv.folder,allTrialCsv.name);
+    trialsCsv = readtable(trialsFileName);
+else
+    error('More than one trials.csv file detected!')
+end
+
+[~,tbytCsvdateSort] = sort(datenum({tbytCsvList(:).date}, 'dd-mmm-yyyy hh:MM:ss'), 1, 'ascend'); % sorted fileList
+
+%% organize the trial-by-trial csv and avi files
+% spot the trial-by-trial video files
+vFiles = dir('**/*.avi'); % list all the video files
+vFronFiles = vFiles(cellfun(@(c)contains(c,'cam0'), {vFiles(:).name})); % front cam files
+[vFronFiles(:).fileCalled] = deal(0); % accumulate the number of times the video file called before
+[vFronFiles(:).framesUsed] = deal(0); % the number of frames previously assigned before
+vSideFiles = vFiles(cellfun(@(c)contains(c,'cam1'), {vFiles(:).name})); % side cam files
+[vSideFiles(:).fileCalled] = deal(0); % accumulate the number of times the video file called before
+[vSideFiles(:).framesUsed] = deal(0); % the number of frames previously assigned before
+
+vFileDateExp = '(20\d+)_(\d+)_(\d+)_(\d+)_(\d+)_(\d+)'; % the expression of the date in the video file names
+
+for v = 1:length(vFronFiles)
+    vFronFileStartDatenum(v,1) = datenum(regexp(vFronFiles(v).name, vFileDateExp, 'match'),'yyyy_mm_dd_HH_MM_SS'); % front video file start date read from the video fileName
+end
+
+for v = 1:length(vSideFiles)
+    vSideFileStartDatenum(v,1) = datenum(regexp(vSideFiles(v).name, vFileDateExp, 'match'),'yyyy_mm_dd_HH_MM_SS'); % front video file start date read from the video fileName
+end
+
+[jsTime1k(:).csvFile] = deal(NaN);
+[jsTime1k(:).fVideo] = deal(NaN);
+[jsTime1k(:).sVideo] = deal(NaN);
+[jsTime1k(:).framePulseId] = deal(NaN);
+[jsTime1k(:).vFrameTime] = deal(NaN);
+[jsTime1k(:).origVideoFramesCnt] = deal(NaN);
+[jsTime1k(:).usedFrameCnt] = deal(NaN);
+[jsTime1k(:).framePulses] = deal(NaN);
+[jsTime1k(:).fVideoInfo] = deal(NaN);
+[jsTime1k(:).sVideoInfo] = deal(NaN);
+[jsTime1k(:).framePulses] = deal(NaN);
+[jsTime1k(:).fVideoStart] = deal(NaN);
+[jsTime1k(:).sVideoStart] = deal(NaN);
+[jsTime1k(:).fVideoCmplt] = deal(NaN);
+[jsTime1k(:).sVideoCmplt] = deal(NaN);
+[jsTime1k(:).tbytCsvFileCmplt] = deal(NaN);
+
+if ~isempty(vFronFiles)&&~isempty(vSideFiles)
+    if abs(length(trStartIdx)-length(tbytCsvList))<=1 % the length of the tbytCsvList is supposed to be smaller than that of the trStartIdx (or jsTime1k) as the last trial's csv file is not generated
+        for t = 1:length(jsTime1k)
+            % find the front and side video files of the current trial
+            tempTrCamPulseTRise = find(evtIdx1k.camTrigRiseIdx<jsTime1k(t).trStart,1,'last'); % identify the pulse before the trStart the relevant train of pulses should encompass the trStart and trEnd
+            tempTrCamPulseTFall = find(evtIdx1k.camTrigFallIdx>jsTime1k(t).trEnd,1,'first');  % identify the pulse after the trEnd
+            if ~isempty(tempTrCamPulseTRise)&&~isempty(tempTrCamPulseTFall)&& evtIdx1k.camPulseTrainIdx(tempTrCamPulseTRise)==evtIdx1k.camPulseTrainIdx(tempTrCamPulseTFall) % this ensures that the train pulses encompass the current trStart and trEnd
+                
+                tempPulseTrainId = evtIdx1k.camPulseTrainIdx(tempTrCamPulseTRise); % pulse train id
+                tempPulseTrainLength = sum(evtIdx1k.camPulseTrainIdx==evtIdx1k.camPulseTrainIdx(tempTrCamPulseTRise)); % pulse train length (the # of pulses)
+                tempPulseTStartIdx = find(evtIdx1k.camPulseTrainIdx==tempPulseTrainId,1,'first');
+                tempPulseTStopIdx = find(evtIdx1k.camPulseTrainIdx==tempPulseTrainId,1,'last');
+                
+                if t<=length(jsTime1k)-2 % for all trials except the last two
+                    jsTime1k(t).csvFile = fullfile(p.Results.filePath, behFilePath.name, tbytCsvList(tbytCsvdateSort(t)).name); % trial-by-trial csv file
+                    
+                    % identify the relevant front video file
+                    tempCsvVFronTD = abs(datetime(tbytCsvList(tbytCsvdateSort(t)).date)-datetime({vFronFiles(:).date})); % absolute CSV and front Video file completion time difference
+                    [tempMinCsvVFronTD,~] = min(tempCsvVFronTD); % the front video file index that potentially matches the current trial
+                    tempMinCsvVFronTDI = find(tempCsvVFronTD==tempMinCsvVFronTD);
+                    if length(tempMinCsvVFronTDI)==1
+                        tempVFronI = tempMinCsvVFronTDI;
+                    else % in case there're multiple files with the minimum time difference, choose the one with later fileStart
+                        tempVFronI = tempMinCsvVFronTDI(find(vSideFileStartDatenum(tempMinCsvVFronTDI) <= tbytCsvList(tbytCsvdateSort(t)).datenum,1,'last'));
+                    end
+                    
+                    % identify the relevant side video file
+                    tempCsvVSideTD = abs(datetime(tbytCsvList(tbytCsvdateSort(t)).date)-datetime({vSideFiles(:).date})); % absolute CSV and side Video file completion time difference
+                    [tempMinCsvVSideTD,~] = min(tempCsvVSideTD); % the side video file index that potentially matches the current trial
+                    tempMinCsvVSideTDI = find(tempCsvVSideTD==tempMinCsvVSideTD);
+                    if length(tempMinCsvVSideTDI)==1
+                        tempVSideI = tempMinCsvVSideTDI;
+                    else % in case there're multiple files with the minimum time difference, choose the one with later fileStart
+                        tempVSideI = tempMinCsvVSideTDI(find(vSideFileStartDatenum(tempMinCsvVSideTDI) <= tbytCsvList(tbytCsvdateSort(t)).datenum,1,'last'));
+                    end
+                    
+                    % read Video with mmread
+                    tempVF = mmread(fullfile(vFronFiles(tempVFronI).folder, vFronFiles(tempVFronI).name),1); % get the trial-by-trial front cam video info, just read the first frame only for speed
+                    tempVF.path = fullfile(vFronFiles(tempVFronI).folder, vFronFiles(tempVFronI).name);
+                    tempVF.name = vFronFiles(tempVFronI).name;
+                    
+                    tempVS = mmread(fullfile(vSideFiles(tempVSideI).folder, vSideFiles(tempVSideI).name),1); % get the trial-by-trial side cam video info, just read the first frame only for speed 
+                    tempVS.path = fullfile(vSideFiles(tempVSideI).folder, vSideFiles(tempVSideI).name);
+                    tempVS.name = vSideFiles(tempVSideI).name;
+                    
+                    
+                    if vFronFiles(tempVFronI).fileCalled==1 && abs(tempVF.totalDuration - vFronFiles(tempVFronI).framesUsed) < 4 % if video file used before, and most of the frames were assigned in previous calls
+                        tempVFronI = tempVFronI + 1; % go try the next video file
+                        tempVF = mmread(fullfile(vFronFiles(tempVFronI).folder, vFronFiles(tempVFronI).name),1); % reload the trial-by-trial front cam video info
+                        tempVF.path = fullfile(vFronFiles(tempVFronI).folder, vFronFiles(tempVFronI).name);
+                        tempVF.name = vFronFiles(tempVFronI).name;
+                    end
+                    
+                    if vSideFiles(tempVSideI).fileCalled==1 && abs(tempVS.totalDuration - vFronFiles(tempVSideI).framesUsed) < 4 % if video file used before, and most of the frames were assigned in previous calls
+                        tempVSideI = tempVSideI + 1; % go try the next video file
+                        tempVS = mmread(fullfile(vSideFiles(tempVSideI).folder, vSideFiles(tempVSideI).name),1); % reload the trial-by-trial side cam video info
+                        tempVS.path = fullfile(vSideFiles(tempVSideI).folder, vSideFiles(tempVSideI).name);
+                        tempVS.name = vSideFiles(tempVSideI).name;
+                    end
+                    
+                    [tempFrameDur,tempFrameDurI] = min([tempVF.totalDuration, tempPulseTrainLength]);
+                    if tempFrameDurI==1
+                    elseif tempFrameDurI==2
+                        tempFrameDur=tempFrameDur-2;
+                    end
+                    
+                    if vFronFiles(tempVFronI).fileCalled==0 && vSideFiles(tempVSideI).fileCalled==0 % if not used before take the pulse start as the frame reference
+                        tempFrameTime = evtIdx1k.camTrigFallIdx(tempPulseTStartIdx+1:tempPulseTStartIdx+tempFrameDur); %evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempVF.totalDuration+1:tempPulseTStopIdx); % get the frame times
+                    elseif vFronFiles(tempVFronI).fileCalled==1 && vSideFiles(tempVSideI).fileCalled==1 % if used before take the pulse stop as the frame reference
+                        tempFrameTime = evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempFrameDur+1:tempPulseTStopIdx); %evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempVF.totalDuration+1:tempPulseTStopIdx); % get the frame times
+                    end
+                    
+                    % ensure that the vFile start time is before the tbytCsv file completion, also ensure that the vFile completion time is before the next tbytCsv file completion
+                    %                     if vFronFileStartDatenum(tempVFronI)<=tbytCsvList(tbytCsvdateSort(t)).datenum && tbytCsvList(tbytCsvdateSort(t+1)).datenum>vFronFiles(tempVFronI).datenum ...
+                    %                             && vSideFileStartDatenum(tempVSideI)<=tbytCsvList(tbytCsvdateSort(t)).datenum && tbytCsvList(tbytCsvdateSort(t+1)).datenum>vSideFiles(tempVSideI).datenum
+                    if vFronFileStartDatenum(tempVFronI)<=tbytCsvList(tbytCsvdateSort(t)).datenum && vSideFileStartDatenum(tempVSideI)<=tbytCsvList(tbytCsvdateSort(t)).datenum
+                        if tempFrameTime(1)<jsTime1k(t).trJsReady && jsTime1k(t).trEnd<tempFrameTime(end) && tempVF.totalDuration==tempVS.totalDuration && vFronFiles(tempVFronI).fileCalled<2
+                            % mark the video file usage
+                            vFronFiles(tempVFronI).fileCalled = vFronFiles(tempVFronI).fileCalled + 1;
+                            vSideFiles(tempVSideI).fileCalled = vSideFiles(tempVSideI).fileCalled + 1;
+                            
+                            % mark the number of frames already assigned
+                            vFronFiles(tempVFronI).framesUsed = tempFrameDur;
+                            vSideFiles(tempVSideI).framesUsed = tempFrameDur;
+                            
+                            jsTime1k(t).fVideo = fullfile(tempVF.path, tempVF.name); % front video path
+                            jsTime1k(t).sVideo = fullfile(tempVS.path, tempVS.name); % side video path
+                            jsTime1k(t).vFrameTime = tempFrameTime; % mark the frame time points
+                            jsTime1k(t).framePulseId = tempPulseTrainId;
+                            jsTime1k(t).origVideoFramesCnt = tempVF.totalDuration;
+                            jsTime1k(t).fVideoInfo = tempVF;
+                            jsTime1k(t).sVideoInfo = tempVS;
+                            jsTime1k(t).framePulses = tempPulseTrainLength;
+                            jsTime1k(t).usedFrameCnt = tempFrameDur;
+                            jsTime1k(t).fVideoStart = datetime(vFronFileStartDatenum(tempVFronI),'ConvertFrom','datenum');
+                            jsTime1k(t).sVideoStart = datetime(vSideFileStartDatenum(tempVSideI),'ConvertFrom','datenum');
+                            jsTime1k(t).fVideoCmplt = datetime(vFronFiles(tempVFronI).datenum,'ConvertFrom','datenum');
+                            jsTime1k(t).sVideoCmplt = datetime(vSideFiles(tempVSideI).datenum,'ConvertFrom','datenum');
+                            jsTime1k(t).tbytCsvFileCmplt = datetime(tbytCsvList(tbytCsvdateSort(t)).datenum,'ConvertFrom','datenum');
+                            
+                        end
+                    end
+                else % for the last two trials
+                    if t==length(jsTime1k)-1 % for the second last trial
+                        % identify the relevant front video file
+                        tempCsvVFronTD = abs(datetime(tbytCsvList(tbytCsvdateSort(t)).date)-datetime({vFronFiles(:).date})); % absolute CSV and front Video file completion time difference
+                        [tempMinCsvVFronTD,~] = min(tempCsvVFronTD); % the front video file index that potentially matches the current trial
+                        tempMinCsvVFronTDI = find(tempCsvVFronTD==tempMinCsvVFronTD);
+                        if length(tempMinCsvVFronTDI)==1
+                            tempVFronI = tempMinCsvVFronTDI;
+                        else % in case there're multiple files with the minimum time difference
+                            tempVFronI = tempMinCsvVFronTDI(find(vSideFileStartDatenum(tempMinCsvVFronTDI) <= tbytCsvList(tbytCsvdateSort(t)).datenum,1,'last'));
+                        end
+                        % identify the relevant side video file
+                        tempCsvVSideTD = abs(datetime(tbytCsvList(tbytCsvdateSort(t)).date)-datetime({vSideFiles(:).date})); % absolute CSV and side Video file completion time difference
+                        [tempMinCsvVSideTD,~] = min(tempCsvVSideTD); % the side video file index that potentially matches the current trial
+                        tempMinCsvVSideTDI = find(tempCsvVSideTD==tempMinCsvVSideTD);
+                        if length(tempMinCsvVSideTDI)==1
+                            tempVSideI = tempMinCsvVSideTDI;
+                        else % in case there're multiple files with the minimum time difference
+                            tempVSideI = tempMinCsvVSideTDI(find(vSideFileStartDatenum(tempMinCsvVSideTDI) <= tbytCsvList(tbytCsvdateSort(t)).datenum,1,'last'));
+                        end
+                        
+                        jsTime1k(t).csvFile = fullfile(p.Results.filePath, behFilePath.name, tbytCsvList(tbytCsvdateSort(t)).name); % trial-by-trial csv file
+                        jsTime1k(t).tbytCsvFileCmplt = datetime(tbytCsvList(tbytCsvdateSort(t)).datenum,'ConvertFrom','datenum');
+                        %tempVFronI = find(vFronFileStartDatenum <tbytCsvList(tbytCsvdateSort(t)).datenum,1,'last'); % the front video file index that potentially matches the current trial
+                        %tempVSideI = find(vSideFileStartDatenum <tbytCsvList(tbytCsvdateSort(t)).datenum,1,'last'); % the side video file index that potentially matches the currnet trial
+                    elseif t==length(jsTime1k) % for the last trial
+                        jsTime1k(t).csvFile = NaN; % trial-by-trial csv file not saved for the final trial
+                        tempVFronI = length(vFronFiles);
+                        tempVSideI = length(vSideFiles);
+                    end
+                    tempVF = mmread(fullfile(vFronFiles(tempVFronI).folder, vFronFiles(tempVFronI).name),1); % get the trial-by-trial front cam video info
+                    tempVF.path = fullfile(vFronFiles(tempVFronI).folder, vFronFiles(tempVFronI).name);
+                    tempVF.name = vFronFiles(tempVFronI).name;                    
+                    
+                    tempVS = mmread(fullfile(vSideFiles(tempVSideI).folder, vSideFiles(tempVSideI).name),1); % get the trial-by-trial side cam video info
+                    tempVS.path = fullfile(vSideFiles(tempVSideI).folder, vSideFiles(tempVSideI).name);
+                    tempVS.name = vSideFiles(tempVSideI).name;
+                    
+                    tempFrameTime = evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempVF.totalDuration+1:tempPulseTStopIdx); % get the frame times
+                    
+                    if vFronFiles(tempVFronI).fileCalled<2 && vSideFiles(tempVSideI).fileCalled<2 && tempFrameTime(1)<jsTime1k(t).trJsReady && jsTime1k(t).trEnd<tempFrameTime(end) && tempVF.totalDuration==tempVS.totalDuration && abs(tempPulseTrainLength-tempVF.totalDuration)<4 % the video frame counts happen to be consistently fewer than the # of frame pulses by 2
+                        % mark the video file usage
+                        vFronFiles(tempVFronI).fileCalled = vFronFiles(tempVFronI).fileCalled + 1;
+                        vSideFiles(tempVSideI).fileCalled = vSideFiles(tempVSideI).fileCalled + 1;
+                        
+                        % mark the number of frames already assigned
+                        vFronFiles(tempVFronI).framesUsed = tempFrameDur;
+                        vSideFiles(tempVSideI).framesUsed = tempFrameDur;
+                        
+                        jsTime1k(t).fVideo = fullfile(tempVF.path, tempVF.name); % front video path
+                        jsTime1k(t).sVideo = fullfile(tempVS.path, tempVS.name); % side video path
+                        jsTime1k(t).vFrameTime = tempFrameTime; % mark the frame time points
+                        jsTime1k(t).framePulseId = tempPulseTrainId;
+                        jsTime1k(t).origVideoFramesCnt = tempVF.totalDuration;
+                        jsTime1k(t).fVideoInfo = tempVF;
+                        jsTime1k(t).sVideoInfo = tempVS;
+                        jsTime1k(t).framePulses = tempPulseTrainLength;
+                        jsTime1k(t).usedFrameCnt = tempFrameDur;
+                        jsTime1k(t).fVideoStart = datetime(vFronFileStartDatenum(tempVFronI),'ConvertFrom','datenum');
+                        jsTime1k(t).sVideoStart = datetime(vSideFileStartDatenum(tempVSideI),'ConvertFrom','datenum');
+                        jsTime1k(t).fVideoCmplt = datetime(vFronFiles(tempVFronI).datenum,'ConvertFrom','datenum');
+                        jsTime1k(t).sVideoCmplt = datetime(vSideFiles(tempVSideI).datenum,'ConvertFrom','datenum');
+                        
+                    end
+                end
+            end
+            fprintf('organized csv and video files for trial #%d\n', t);
+            clearvars tempVF tempVS
+        end
+    else
+        error('Some trial-by-trial csv files might be missing!')
+    end
+else
+    warning('No video files were found!')
+end
+
+save('jsTime1kVideoFiles','jsTime1k')
