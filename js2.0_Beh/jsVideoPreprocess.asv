@@ -49,6 +49,7 @@ if strcmp(S(nTr).trialType,'sp') % for a successful trial, align time to pullSta
     frameTimeC = num2cell(frameTime);
     frameTimeC = cellfun(@num2str,frameTimeC,'UniformOutput',false);
     frameTimeC = cellfun(@(c)strcat(c,'ms'),frameTimeC,'UniformOutput',false);
+    frameTimeC = cellfun(@)
     [frameTimeC{pullStartI}] = deal('ReachStart');
     
 elseif strcmp(S(nTr).trialType,'ps') % for a push trial, align time to pushStart

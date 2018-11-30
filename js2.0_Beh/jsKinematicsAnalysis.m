@@ -1,4 +1,4 @@
-function jsKinematicsAnalysis(filePath,saveNameTag)
+function jsKinematicsAnalysis(filePath)
 %jsKinematicsAnalysis loads the 'jsTime1k' and 'p', and computes
 % trial-by-trial kinetic and kinematic variables such as rt, rd, velocity, 
 % acceleration, force etc., and generates figures illustrating these variables.  
@@ -491,7 +491,8 @@ hold off;
 grid on
 
 %%
-save(strcat(saveNameTag,'jsTime1k_kinematics'),'S')
+jsTime1k_K = S; 
+save('jsTime1k_kinematics','jsTime1k_K')
 
 end
 
