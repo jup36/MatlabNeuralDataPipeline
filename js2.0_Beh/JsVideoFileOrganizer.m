@@ -10,6 +10,7 @@ else
     S=load(fullfile(pathJsTime1k_K.folder,pathJsTime1k_K.name),'jsTime1k_K');
     S = S.('jsTime1k_K');
 end
+S = rmfield(S,{'baseJsTrajmm','baseSmJsVel','basePeriodicAbsVelSum'}); 
 
 load(fullfile(filePath,'BehVariablesJs.mat'), 'evtIdx1k', 'p')
 load(fullfile(filePath,'evtIndices.mat'), 'trStartIdx', 'trEndIdx' )
@@ -106,8 +107,7 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                     
                     tempVS = mmread(fullfile(vSideFiles(tempVSideI).folder, vSideFiles(tempVSideI).name),1); % get the trial-by-trial side cam video info, just read the first frame only for speed 
                     tempVS.path = fullfile(vSideFiles(tempVSideI).folder, vSideFiles(tempVSideI).name);
-                    tempVS.name = vSideFiles(tempVSideI).name;
-                    
+                    tempVS.name = vSideFiles(tempVSideI).name;                   
                     
                     if vFronFiles(tempVFronI).fileCalled==1 && abs(tempVF.totalDuration - vFronFiles(tempVFronI).framesUsed) < 4 % if video file used before, and most of the frames were assigned in previous calls
                         tempVFronI = tempVFronI + 1; % go try the next video file
@@ -162,6 +162,8 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                             S(t).fVideoCmplt = datetime(vFronFiles(tempVFronI).datenum,'ConvertFrom','datenum');
                             S(t).sVideoCmplt = datetime(vSideFiles(tempVSideI).datenum,'ConvertFrom','datenum');
                             S(t).tbytCsvFileCmplt = datetime(tbytCsvList(tbytCsvdateSort(t)).datenum,'ConvertFrom','datenum');
+                            S(t).vFronFileCalled = vFronFiles(tempVFronI).fileCalled; % # of file called
+                            S(t).vSideFileCalled = vSideFiles(tempVSideI).fileCalled; % # of file called
                             
                         end
                     end
@@ -227,6 +229,8 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                         S(t).sVideoStart = datetime(vSideFileStartDatenum(tempVSideI),'ConvertFrom','datenum');
                         S(t).fVideoCmplt = datetime(vFronFiles(tempVFronI).datenum,'ConvertFrom','datenum');
                         S(t).sVideoCmplt = datetime(vSideFiles(tempVSideI).datenum,'ConvertFrom','datenum');                       
+                        S(t).vFronFileCalled = vFronFiles(tempVFronI).fileCalled; % the # of file called
+                        S(t).vSideFileCalled = vSideFiles(tempVSideI).fileCalled; % the # of file called
                     end
                 end
             end

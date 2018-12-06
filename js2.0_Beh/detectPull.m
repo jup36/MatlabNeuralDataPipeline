@@ -1,17 +1,17 @@
 function [ pullStart, pullStop, pullMaxVel, pullMaxVelI, forceMN, maxForce, maxForceI, netForce ] = detectPull(jsTrajmm, smJsVel, smJsAcl, mass, pullThresholdmm, periodicAbsVelSum)
 %This is a helper function to detect a pull (pull) that crosses the pullThreshold.
 
-stillPts = 10; % 10ms
+%stillPts = 10; % 10ms
 
 fstThresCross = find( jsTrajmm <= pullThresholdmm, 1, 'first'); % detect the pull that crossed the pull threshold
 % define pullStart - find the last still point before the 1st threshold crossing
 lastStillPt = find(periodicAbsVelSum(1:fstThresCross)<50, 1, 'last'); % this corresponds to the last point at which Js moved less than 0.05mm for the retrospective 10ms (50*(1/1000), as the velocity is in the unit of mm/s)
 if ~isempty(lastStillPt)
-    if lastStillPt > stillPts
-        pullStart = lastStillPt-stillPts;
-    else
-        pullStart = lastStillPt;
-    end
+    %if lastStillPt > stillPts
+        pullStart = lastStillPt; %-stillPts;
+    %else
+        %pullStart = lastStillPt;
+    %end
 else % if there was no still point at all
     [~,pullStart] = min(periodicAbsVelSum(1:fstThresCross));
 end

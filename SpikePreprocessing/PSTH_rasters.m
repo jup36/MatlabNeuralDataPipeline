@@ -138,8 +138,8 @@ binSpkCountStrCtx.reward = reward;
 binSpkCountStrCtx.stmLaser = stmLaser; 
 binSpkCountStrCtx.tagLaser = tagLaser; 
 binSpkCountStrCtx.stmReach = stmReach; 
-binSpkCountStrCTX.meta = meta; 
-binSpkCountCtxCTX.p = p; 
+binSpkCountStrCtx.meta = meta; 
+binSpkCountStrCtx.p = p; 
 
 saveNameStrCtx = strcat('binSpkCountStrCtx',p.Results.fileInfo); 
 save(saveNameStrCtx, '-struct', 'binSpkCountStrCtx') % save the fields of teh structure separately
