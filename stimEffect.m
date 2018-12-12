@@ -37,7 +37,7 @@ for u = 1:length(S.reach.SpkCountMatZ) % increment units
     stimE.meanStmReach(u,1) = nanmean(S.stmReach.SpkCountMatZ{u}(1,reachOn:reachOn+p.Results.reachDur)); % mean FR during reach period with laser on
     stimE.maxStmReach(u,1)  = nanmax(S.stmReach.SpkCountMatZ{u}(1,reachOn:reachOn+p.Results.reachDur));  % max  FR during reach period with laser on
     
-    tagStmSpkCntMat = cell2mat(getSpkCntMatFromSpkTimes( S.tagLaser.SpkTimes{u}, S.tagLaser.params )); % get the current unit's spikeCountMat (trial-by-1msBin)
+    tagStmSpkCntMat = cell2mat(getSpkCntMatFromSpkTimes( S.tagLaser.SpkTimes{u}, S.tagLaser.params)); % get the current unit's spikeCountMat (trial-by-1msBin)
     %tagStmSpkCntMat   = full(cell2mat(S.tagLaser.SpkCountMat{u})); % spikecountmat around the tag stims
     stimE.sumTagStmOn(u,1)    = sum(sum(tagStmSpkCntMat(:,tagStimOn:tagStimOn+p.Results.tagDur))); % total spike counts during tag stim on 
     stimE.sumPreTagStmOn(u,1) = sum(sum(tagStmSpkCntMat(:,tagStimOn-p.Results.tagDur:tagStimOn))); % total spike counts before tag stim on
@@ -126,6 +126,7 @@ laserVSreach=sortrows(laserVSreach,1);
 stimE.laserVSreach = laserVSreach;
 
 fig2 = imecOpt3GeomColorMapZ( sites(laserVSreach(stimE.FRidx,2)), laserVSreach(stimE.FRidx,1), 'rb', true, p.Results.colorAxis, p.Results.probeDepth ); % imecOpt3GeomColorMapZ( imecSites, Z, colorScheme, drawAllSites, colorAxis, varargin )
+title('meanLaser-meanReach') 
 print(fig2, strcat(p.Results.fileName,'_stimE_siteColorMap'), '-dpdf'); % print figure as pdf
 
 % plot sumTagStmOn-sumPreTagStmOn 
@@ -135,6 +136,7 @@ tagVSpreTag =sortrows(tagVSpreTag,1);
 stimE.tagVSpreTag = tagVSpreTag;
 
 fig3 = imecOpt3GeomColorMapZ( sites(tagVSpreTag(stimE.FRidx,2)), tagVSpreTag(stimE.FRidx,1), 'rb', true, p.Results.tagColorAxis, p.Results.probeDepth ); % imecOpt3GeomColorMapZ( imecSites, Z, colorScheme, drawAllSites, colorAxis, varargin )
+title('sumTagStmOn-sumPreTagStmOn')
 print(fig3, strcat(p.Results.fileName,'_tagE_siteColorMap'), '-dpdf'); % print figure as pdf
 
 % plot tag effect

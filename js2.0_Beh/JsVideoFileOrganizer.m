@@ -1,4 +1,4 @@
-function [S] = jsVideoFileOrganizer(filePath)
+function [S] = JsVideoFileOrganizer(filePath)
 %This function inspects the trial-by-trial 
 
 cd(filePath)

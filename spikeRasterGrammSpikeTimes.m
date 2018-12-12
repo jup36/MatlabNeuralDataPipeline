@@ -1,4 +1,4 @@
-function [figHandle, spikeTimes, spikeTrain] = spikeRasterGramm( psthWin, classLabel, manualX, varargin )
+function [figHandle, spikeTimes, spikeTrain] = spikeRasterGrammSpikeTimes( psthWin, classLabel, manualX, varargin )
 %spikeRasterGramm uses gramm package to generate a spike raster plot containing
 % a single (or multiple) group(s) of spike trains.
 %  Input: Variable number of spike train groups can be input as a cell containing
