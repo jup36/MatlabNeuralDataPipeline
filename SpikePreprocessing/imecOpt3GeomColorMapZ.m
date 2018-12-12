@@ -49,7 +49,7 @@ xSitesRep = repmat(geometry(imecSites,1)',4,1) + repmat(xBounds,1,length(imecSit
 ySitesRep = repmat(geometry(imecSites,2)',4,1) + repmat(yBounds,1,length(imecSites)); % y coordinates for imecSites
 
 
-for i = 1:size(imecSites,1)
+for i = 1:length(imecSites)
     patch(xSitesRep(:,i),ySitesRep(:,i),colorMap(colorIdx(i)+1,:)) % patch all imecSites in grey
 end
 hold off;

@@ -2,6 +2,10 @@ function [ spkCntMat ] = getSpkCntMatFromSpkTimes( trBytrSpkTimes, psthParams  )
 %This function gets the trial-by-trial spikeCountMat from the trial-by-trial spikeTimes cell 
 spkCntMat = cell(size(trBytrSpkTimes,1),1);
 
+if length(psthParams)>1
+    psthParams = psthParams{1}; 
+end
+
 for i = 1:size(trBytrSpkTimes,1) % increment trial
     spkCntMat{i} = zeros(1,sum(abs(psthParams.psthWin))); % preallocate the spikeCountMat
     

@@ -1,4 +1,4 @@
-function [figHandle] = imecOpt3GeomColorMapZ( imecSites, Z, colorScheme, drawAllSites, colorAxis, probeDepth, varargin )
+function [figHandle] = imecOpt3GeomColorMapCircles( imecSites, values, colorScheme, drawAllSites, colorAxis, probeDepth )
 %This function generates a 'functional' probe map. Each probe site is drawn
 % as a patch with its color coded to represent the quantity Z (a normalized quantity). 
 % If drawAllSites boolean is true, all imecSites of the probe are patched,
@@ -7,10 +7,12 @@ function [figHandle] = imecOpt3GeomColorMapZ( imecSites, Z, colorScheme, drawAll
 %   imecSites: imec sites
 %   Z: normalized quantities across the imec sites
 
-colorEdge = linspace(-max(abs(colorAxis)),max(abs(colorAxis)),100); % get a zero-centered color edges
-[~, ~, colorIdx] = histcounts(Z, colorEdge);    % locate each Z score on the colorEdge
-colorIdx(Z>max(colorEdge)) = length(colorEdge)-1; % this prevents assigning 0 to Z values greater than the upper limit of the colorEdge
+colorEdge = linspace(min(colorAxis),max(colorAxis),100); % get a zero-centered color edges
+%colorEdge = linspace(-max(abs(colorAxis)),max(abs(colorAxis)),100); % get a zero-centered color edges
+[~, ~, colorIdx] = histcounts(values, colorEdge);    % locate each Z score on the colorEdge
+colorIdx(values>max(colorEdge)) = length(colorEdge)-1; % this prevents assigning 0 to Z values greater than the upper limit of the colorEdge
 
+%[colorMap] = cbrewer('div', colorScheme, 100);
 [colorMap] = TNC_CreateRBColormap(length(colorEdge)+1, colorScheme); % generate a colormap
 
 % imec option3 site location in micrometers (x and y)
@@ -48,12 +50,21 @@ hold on;
 xSitesRep = repmat(geometry(imecSites,1)',4,1) + repmat(xBounds,1,length(imecSites)); % x coordinates for imecSites
 ySitesRep = repmat(geometry(imecSites,2)',4,1) + repmat(yBounds,1,length(imecSites)); % y coordinates for imecSites
 
+%xyRatio = range(geometry(:,2))/range(geometry(:,1)); % to plot circle properly with discrepant X-, Y scales
+%valueRng = linspace(-ceil(max(abs(values))),ceil(max(abs(values))),100); %colorEdge; 
+%radiusRng = linspace(-3,3,100); 
 
-for i = 1:size(imecSites,1)
-    patch(xSitesRep(:,i),ySitesRep(:,i),colorMap(colorIdx(i)+1,:)) % patch all imecSites in grey
+for i = 1:length(imecSites)
+    %tempVal = values(i);
+    %[~,tempValI] = min(abs(values(i)-valueRng));
+    %tempPos = [geometry(imecSites(i),1)+2, geometry(imecSites(i),2), abs(radiusRng(tempValI)) abs(radiusRng(tempValI))*xyRatio]; 
+    %r = rectangle('Position',tempPos,'Curvature',[1 1],'FaceColor',colorMap(tempValI,:),'Edgecolor','none');
+    patch(xSitesRep(:,i),ySitesRep(:,i),colorMap(colorIdx(i)+1,:)) % patch 
 end
 hold off;
-caxis([-max(abs(colorAxis)) max(abs(colorAxis))]);
+
+caxis([min(colorAxis) max(colorAxis)]);
+%caxis([-max(abs(colorAxis)) max(abs(colorAxis))]);
 colormap(colorMap);
 colorbar
 
