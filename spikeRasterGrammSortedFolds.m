@@ -1,17 +1,19 @@
-function [figHandle, spikeTimes, spikeTrain] = spikeRasterGramm( psthWin, classLabel, manualX, varargin )
-%spikeRasterGramm uses gramm package to generate a spike raster plot containing
-% a single (or multiple) group(s) of spike trains.
-%  Input: Variable number of spike train groups can be input as a cell containing
-%   trial-by-trial spike trains.
-
-%lengthargin = length(varargin); % varargin only counts the variable inputs
-%not the required input (psthWin).
-
-%binEdges1ms = linspace(-psthWin(1,1), psthWin(1,2), sum(psthWin)+1);
+function [figHandle, spikeTimes, spikeTrain] = spikeRasterGrammSortedFolds( psthWin, manualX, foldDatCell )
+%spikeRasterGrammSortedFolds uses gramm package to generate a spike raster plot containing
+% a single (or multiple) group(s) of spike trains provided within a cell 'foldDatCell' .
+%  Input: Variable number of spike train groups/folds can be input as a cell containing
+%   trial-by-trial spike trains, but they MUST be bundled as a cell 'foldDatCell'.
 
 class = [];
 spikeTimes = []; % spike time indices
 spikeTrain = []; % binned spike train
+
+classLabel = cell(1,length(foldDatCell)); 
+foldIdFmt = 'Fold#%d'; 
+for c = 1:length(classLabel)
+    classLabel{1,c} = sprintf(foldIdFmt,c); 
+end
+
 
 %cval={'A' 'B' 'C' 'D' 'E' 'F' 'G' 'H' 'I'}; % class labels (too many classes can be problematic!)
 binSize = 50; % size of the bin to further bin the spike trains (i.e. 50 ms)
@@ -21,10 +23,10 @@ binX = linspace(0,sum(psthWin),round(sum(psthWin)/binSize)+1);      % bin for sp
 gaussianSigma    = 1;  % gaussian std
 [gaussianKernel] = TNC_CreateGaussian(gaussianSigma.*15,gaussianSigma,gaussianSigma.*30,1); % TNC_CreateGaussian(Mu,Sigma,Time,dT)
 
-for gr = 1:length(varargin) % increment groups
+for fd = 1:length(foldDatCell) % increment folds
     
     % combine spikeTimesCell across groups
-    thisSpikeTimesCell = varargin{gr}; % spikeTimesCell of the current group
+    thisSpikeTimesCell = foldDatCell{fd}; % spikeTimesCell of the current group
     spikeTimes = [spikeTimes; thisSpikeTimesCell]; % append spikeTimes
     
     % combine spikeTrainCell across groups
@@ -42,12 +44,12 @@ for gr = 1:length(varargin) % increment groups
     spikeTrain = [spikeTrain; thisSpikeTrainCell]; % append spikeTrains of different groups
     
     % put class label
-    thisClass = zeros(length(varargin{gr}),1); % class label
-    thisClass(:,1) = gr;         % label each class
+    thisClass = zeros(length(foldDatCell{fd}),1); % class label
+    thisClass(:,1) = fd;         % label each class
     class = [class; thisClass];  % append class label
     
 end
-clearvars gr
+clearvars fd
 
 c = classLabel(class); % class label
 %c = cval(class); % class label

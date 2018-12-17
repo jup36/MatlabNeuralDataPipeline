@@ -3,13 +3,6 @@ S=load('binSpkCountCTXPT08_062218.mat'); % load the corresponding binSpkCount st
 saveNameHeading = 'CTXPT08_062218'; 
 
 unit = 20;
-% reach vs successful reach with stim 
-%reachVSstimReach=stimE.meanReach-stimE.meanStmReach;
-%reachVSstimReach(:,2)=1:length(reachVSstimReach);
-%reachVSstimReach=sortrows(reachVSstimReach,1);
-%fig1 = spikeRasterGramm( [2e3 2e3], {'reach','stimReach'}, [2e3 2e3], S.reach.SpkTimes{unit}, S.stmReach.SpkTimes{unit} );
-%print(fig1, strcat('reachVSstimReach','Unit',num2str(unit)), '-dpdf'); % print figure as pdf
-
 % reach vs all reach-triggered laser trials
 laserVSreach=stimE.meanLaser-stimE.meanReach;
 laserVSreach(:,2)=1:length(laserVSreach);
