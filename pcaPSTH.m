@@ -116,6 +116,14 @@ clearvars b
 % figure; imagescJP(squeeze(nanmean(permbinSpk(pc.pcaCellIdx,:,:),2)),hotcolormap,[-2 5]) % colormap for sanity check
 % imagesc the trial-averaged z-score psths of valid units (subjected to PCA)
 imagescJP(S.binSpkZ(pc.pcUnitSort(:,1),:),cmap,p.Results.cAxis); pbaspect([1 1 1]);
+colorbar; 
+if isfolder(fullfile(filePath,'Figure'))
+    print(fullfile(filePath,'Figure','psthColorMap'),'-dpdf')
+else
+    mkdir(fullfile(filePath,'Figure'))
+    print(fullfile(filePath,'Figure','psthColorMap'),'-dpdf')
+end
+    
 % plot relevant pc loadings
 pcLoadings = unique(pc.pcUnitSort(:,3)); % pcLoadins of the top PCs
 figure; hold on;

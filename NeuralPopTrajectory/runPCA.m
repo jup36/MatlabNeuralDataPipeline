@@ -52,24 +52,33 @@ clearvars u
 % get rid of one unit of the pairs with high cross-correlation (remove duplicate/split units)
 unitTimeAcrossTrials = reshape(unitTimeTrial, [size(unitTimeTrial,1), size(unitTimeTrial,2)*size(unitTimeTrial,3)]); % reshape the unitTimeTrial matrix to get unitTimeAcrossTrials (concatenate across trials)
 
-if xor(contains(saveNameTag,'Ctx','IgnoreCase',true), contains(saveNameTag,'Str','IgnoreCase',true))
+if p.Results.redefineXcorrUnits
+    xcorUnitIdx = getUnitOfHighXcorr( unitTimeAcrossTrials, p.Results.xcorThresholdPer );
     if contains(saveNameTag,'Ctx','IgnoreCase',true)
-        if exist(fullfile(filePath,'xcorUnitIdxCtx.mat'),'file')==2 % if the file exists
-            load(fullfile(filePath,'xcorUnitIdxCtx.mat'),'xcorUnitIdx'); % just load it instead of repeating the xcorr process
-        else
-            xcorUnitIdx = getUnitOfHighXcorr( unitTimeAcrossTrials, p.Results.xcorThresholdPer );
-            save(strcat('xcorUnitIdx','Ctx'), 'xcorUnitIdx') % to speed up running again in the future save this idx, and bypass the process of examining all unit pairs
-        end
+        save(strcat('xcorUnitIdx','Ctx'), 'xcorUnitIdx') % to speed up running again in the future save this idx, and bypass the process of examining all unit pairs
     elseif contains(saveNameTag,'Str','IgnoreCase',true)
-        if exist(fullfile(filePath,'xcorUnitIdxStr.mat'),'file')==2 % if the file exists
-            load(fullfile(filePath,'xcorUnitIdxStr.mat'),'xcorUnitIdx'); % just load it instead of repeating the xcorr process
-        else
-            xcorUnitIdx = getUnitOfHighXcorr( unitTimeAcrossTrials, p.Results.xcorThresholdPer );
-            save(strcat('xcorUnitIdx','Str'), 'xcorUnitIdx') % to speed up running again in the future save this idx, and bypass the process of examining all unit pairs
-        end 
-    end
+        save(strcat('xcorUnitIdx','Str'), 'xcorUnitIdx') % to speed up running again in the future save this idx, and bypass the process of examining all unit pairs
+    end    
 else
-    error('Check if the input variable saveNameTag contains a proper brain region info!!!')
+    if xor(contains(saveNameTag,'Ctx','IgnoreCase',true), contains(saveNameTag,'Str','IgnoreCase',true))
+        if contains(saveNameTag,'Ctx','IgnoreCase',true)
+            if exist(fullfile(filePath,'xcorUnitIdxCtx.mat'),'file')==2 % if the file exists
+                load(fullfile(filePath,'xcorUnitIdxCtx.mat'),'xcorUnitIdx'); % just load it instead of repeating the xcorr process
+            else
+                xcorUnitIdx = getUnitOfHighXcorr( unitTimeAcrossTrials, p.Results.xcorThresholdPer );
+                save(strcat('xcorUnitIdx','Ctx'), 'xcorUnitIdx') % to speed up running again in the future save this idx, and bypass the process of examining all unit pairs
+            end
+        elseif contains(saveNameTag,'Str','IgnoreCase',true)
+            if exist(fullfile(filePath,'xcorUnitIdxStr.mat'),'file')==2 % if the file exists
+                load(fullfile(filePath,'xcorUnitIdxStr.mat'),'xcorUnitIdx'); % just load it instead of repeating the xcorr process
+            else
+                xcorUnitIdx = getUnitOfHighXcorr( unitTimeAcrossTrials, p.Results.xcorThresholdPer );
+                save(strcat('xcorUnitIdx','Str'), 'xcorUnitIdx') % to speed up running again in the future save this idx, and bypass the process of examining all unit pairs
+            end
+        end
+    else
+        error('Check if the input variable saveNameTag contains a proper brain region info!!!')
+    end
 end
 
 unitIdxPCA = unitMeanFR > p.Results.frHighPass & unitMeanFR < p.Results.frLowPass & xcorUnitIdx; % units to be used for pca
@@ -164,6 +173,7 @@ save(saveName, 'pcaResult', 'pcaDat')
         default_crossValFolds = 4; % the number of cross-validation fold
         default_baseSubtrt = true; % the logical to subtract the baseline activity (spike count) or not (by default, subtract the mean spike counts across the bins corresponding to the leftmost 1-s window)
         default_sqrtSC = false;    % the logical to take sqrt of the spike counts or not before conducting dimensionality reduction
+        default_redefineXcorrUnits = false; 
         
         p = inputParser; % create parser object
         addRequired(p,'filePath'); % file directory
@@ -181,6 +191,7 @@ save(saveName, 'pcaResult', 'pcaDat')
         addParameter(p,'crossValFolds', default_crossValFolds)
         addParameter(p,'baseSubtrt', default_baseSubtrt)
         addParameter(p,'sqrtSC', default_sqrtSC)
+        addParameter(p,'redefineXcorrUnits', default_redefineXcorrUnits)
         
         parse(p, filePath, fileName, saveNameTag, vargs{:})
         

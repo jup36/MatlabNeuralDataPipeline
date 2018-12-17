@@ -167,7 +167,7 @@ end
 
 %% save
 cd(filePath)
-save(strcat(saveNameTag,'_nTrj_bTrj_Corr'),'nTrj','bTrj','p') % save the outcomes
+save(strcat(saveNameTag,'_nTrj_bTrj_Corr'),'nTrj','bTrj','p','sortMaxVel','sortMaxPos','sortLickCnt') % save the outcomes
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % NESTED HELPER FUNCTIONS %

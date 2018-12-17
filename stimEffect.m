@@ -113,7 +113,13 @@ g(1,3).set_title('preTagVsTag spike counts');
 
 fig1 = figure('Position',[100 100 1650 550]);
 g.draw();
-print(fig1, strcat(p.Results.fileName,'_stimE_Summary'), '-dpdf'); % print figure as pdf
+
+if isfolder(fullfile(filePath,'Figure')) % if there's Figure folder already
+   print(fig1, fullfile(filePath,'Figure',strcat(p.Results.fileName,'_stimE_Summary')), '-dpdf','-bestfit'); % print figure as pdf
+else
+    mkdir(fullfile(filePath,'Figure')) % otherwise, make a folder
+    print(fig1, fullfile(filePath,'Figure',strcat(p.Results.fileName,'_stimE_Summary')), '-dpdf','-bestfit');
+end
 
 sites  = cell2mat(S.reach.Site); % site IDs
 geoms  = cell2mat(S.reach.geometry); % electrode x-y positions 
@@ -127,7 +133,7 @@ stimE.laserVSreach = laserVSreach;
 
 fig2 = imecOpt3GeomColorMapZ( sites(laserVSreach(stimE.FRidx,2)), laserVSreach(stimE.FRidx,1), 'rb', true, p.Results.colorAxis, p.Results.probeDepth ); % imecOpt3GeomColorMapZ( imecSites, Z, colorScheme, drawAllSites, colorAxis, varargin )
 title('meanLaser-meanReach') 
-print(fig2, strcat(p.Results.fileName,'_stimE_siteColorMap'), '-dpdf'); % print figure as pdf
+print(fig2, fullfile(filePath,'Figure',strcat(p.Results.fileName,'_stimE_siteColorMap')), '-dpdf','-bestfit'); % print figure as pdf
 
 % plot sumTagStmOn-sumPreTagStmOn 
 tagVSpreTag = stimE.sumTagStmOn - stimE.sumPreTagStmOn; 
@@ -137,7 +143,7 @@ stimE.tagVSpreTag = tagVSpreTag;
 
 fig3 = imecOpt3GeomColorMapZ( sites(tagVSpreTag(stimE.FRidx,2)), tagVSpreTag(stimE.FRidx,1), 'rb', true, p.Results.tagColorAxis, p.Results.probeDepth ); % imecOpt3GeomColorMapZ( imecSites, Z, colorScheme, drawAllSites, colorAxis, varargin )
 title('sumTagStmOn-sumPreTagStmOn')
-print(fig3, strcat(p.Results.fileName,'_tagE_siteColorMap'), '-dpdf'); % print figure as pdf
+print(fig3, fullfile(filePath,'Figure',strcat(p.Results.fileName,'_tagE_siteColorMap')), '-dpdf','-bestfit'); % print figure as pdf
 
 % plot tag effect
 scatterColorSpace = linspace(min(abs(stimE.tagEHalfPeakT)),max(abs(stimE.tagEHalfPeakT)),20); % to color code each scatter by the tagEHalfPeakT
@@ -158,6 +164,7 @@ xlim([-5 max([stimE.meanPreTagStmOn;stimE.meanTagStmOn])+5]);
 ylim([-5 max([stimE.meanPreTagStmOn;stimE.meanTagStmOn])+5]);
 pbaspect([1 1 1])
 hold off
+print(fullfile(filePath,'Figure',strcat(p.Results.fileName,'_tagEpreTagOffOnXY')), '-dpdf','-bestfit'); % print figure as pdf
 
 % generate an X-Y plot; activity change by tagging vs. depth from the pial surface with color-coding by the latency to the half-max tagging effect
 figure; 
@@ -170,7 +177,7 @@ pbaspect([1 1 1])
 set(gca,'TickDir','out')
 set(gca,'YDir','reverse')
 hold off
-
+print(fullfile(filePath,'Figure',strcat(p.Results.fileName,'_tagEbyDepth')), '-dpdf','-bestfit'); % print figure as pdf
 
 %% Save stimE
 %stimE.S = S; % do not save the binSpkCount*.mat due to the file size
