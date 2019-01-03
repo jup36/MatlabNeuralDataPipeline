@@ -19,7 +19,7 @@ binX = linspace(0,sum(psthWin),round(sum(psthWin)/binSize)+1);      % bin for sp
 
 % gaussian kernel to be convolved with the psths
 gaussianSigma    = 1;  % gaussian std
-[gaussianKernel] = TNC_CreateGaussian(gaussianSigma.*15,gaussianSigma,gaussianSigma.*30,1); % TNC_CreateGaussian(Mu,Sigma,Time,dT)
+[gaussianKernel] = TNC_CreateGaussian(gaussianSigma.*15,gaussianSigma,gaussianSigma.*25,1); % TNC_CreateGaussian(Mu,Sigma,Time,dT)
 
 for gr = 1:length(varargin) % increment groups
     
