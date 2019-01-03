@@ -140,26 +140,27 @@ end
 clearvars f
 
 eventMarkers = [1, arrayfun(@(x) find(x==nTrj.relativeTimeBins), eventMarkersRelative)]; % find the time bins corresponding to the event markers using the relative eventMarkers (e.g. [-1050 0]) given as the input
-neuralTrajCmap  = summer(p.Results.trialFolds); % get the colormap for fold-by-fold trial-averaged neural trajectories
+neuralTrajCmap1  = summer(p.Results.trialFolds); % get the colormap for fold-by-fold trial-averaged neural trajectories
+neuralTrajCmap2  = spring(p.Results.trialFolds); % get the colormap for fold-by-fold trial-averaged neural trajectories
 eventMarkerCmap = cool(length(eventMarkers)+1); % get the colormap for all the events to be marked
 
 trAvgSortedFoldMaxPos = cellfun(@(x) nanmean(x(1:3,:,:),3), nTrj.sortedFoldMaxPos, 'UniformOutput', false); % take the trial-averaged neural trajectories of each fold based on the maxPos
 trAvgSortedFoldMaxVel = cellfun(@(x) nanmean(x(1:3,:,:),3), nTrj.sortedFoldMaxVel, 'UniformOutput', false); % take the trial-averaged neural trajectories of each fold based on the maxPos
 trAvgSortedFoldLickCnt = cellfun(@(x) nanmean(x(1:3,:,:),3), nTrj.sortedFoldLickCnt, 'UniformOutput', false); % take the trial-averaged neural trajectories of each fold based on the maxPos
 
-plot3DneuralTrajAndEventMarkers( trAvgSortedFoldMaxPos, neuralTrajCmap, eventMarkers, eventMarkerCmap, p.Results.lineWidth, p.Results.markerSize );  % plot the neural trajectories rank-ordered by the maxPos
+plot3DneuralTrajAndEventMarkers( trAvgSortedFoldMaxPos, neuralTrajCmap1, eventMarkers, eventMarkerCmap, p.Results.lineWidth, p.Results.markerSize );  % plot the neural trajectories rank-ordered by the maxPos
 title(strcat('trAvgSortedFoldMaxPos_',saveNameTag),'Interpreter', 'none')
 if p.Results.saveNtrjFigs
     print(strcat(saveNameTag,'_trAvgSortedFoldMaxPos'),'-dpdf');
 end
 
-plot3DneuralTrajAndEventMarkers( trAvgSortedFoldMaxVel, neuralTrajCmap, eventMarkers, eventMarkerCmap, p.Results.lineWidth, p.Results.markerSize );  % plot the neural trajectories rank-ordered by the maxVel
+plot3DneuralTrajAndEventMarkers( trAvgSortedFoldMaxVel, neuralTrajCmap1, eventMarkers, eventMarkerCmap, p.Results.lineWidth, p.Results.markerSize );  % plot the neural trajectories rank-ordered by the maxVel
 title(strcat('trAvgSortedFoldMaxVel_',saveNameTag),'Interpreter', 'none')
 if p.Results.saveNtrjFigs
     print(strcat(saveNameTag,'_trAvgSortedFoldMaxVel'),'-dpdf');
 end
 
-plot3DneuralTrajAndEventMarkers( trAvgSortedFoldLickCnt, neuralTrajCmap, eventMarkers, eventMarkerCmap, p.Results.lineWidth, p.Results.markerSize ); % plot the neural trajectories rank-ordered by the lickCnt
+plot3DneuralTrajAndEventMarkers( trAvgSortedFoldLickCnt, neuralTrajCmap2, eventMarkers, eventMarkerCmap, p.Results.lineWidth, p.Results.markerSize ); % plot the neural trajectories rank-ordered by the lickCnt
 title(strcat('trAvgSortedFoldLickCnt_',saveNameTag),'Interpreter', 'none')
 if p.Results.saveNtrjFigs
     print(strcat(saveNameTag,'_trAvgSortedFoldLickCnt'),'-dpdf');
