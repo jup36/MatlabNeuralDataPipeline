@@ -88,7 +88,7 @@ reach       = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.reachSt
 reachNoStim = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.reachStart(reachStartNoStimIdx)', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag ); 
 reward      = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.reward', ts.reachStart', 1, p.Results.rewardWin, -1, p.Results.psthPlotFlag );        % entire rewardDelivery
 stmLaser    = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.stmLaser', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag );      % laser stim trials
-tagLaser    = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.tagLaser', ts.reachStart', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag );      % laser tag trials
+tagLaser    = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.tagLaser', ts.tagLaser', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag );      % laser tag trials
 stmReach    = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.stmReachStart', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag ); % reachStart with stimulation (completed reaches even during stimulation)
 
 binSpkCountCTX.reach = reach; 
@@ -113,7 +113,7 @@ reach       = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, ts.reachS
 reachNoStim = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, ts.reachStart(reachStartNoStimIdx)', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag ); 
 reward      = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, ts.reward', ts.reachStart', 1, p.Results.rewardWin, -1, p.Results.psthPlotFlag );        % entire rewardDelivery
 stmLaser    = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, ts.stmLaser', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag );      % laser stim trials
-tagLaser    = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, ts.tagLaser', ts.reachStart', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag );      % laser tag trials
+tagLaser    = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, ts.tagLaser', ts.tagLaser', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag );      % laser tag trials
 stmReach    = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, ts.stmReachStart', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag ); % reachStart with stimulation (completed reaches even during stimulation)
 
 binSpkCountSTR.reach = reach; 
@@ -137,7 +137,7 @@ reach       = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, ts.r
 reachNoStim = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, ts.reachStart(reachStartNoStimIdx)', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag ); 
 reward      = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, ts.reward', ts.reachStart', 1, p.Results.rewardWin, -1, p.Results.psthPlotFlag );        % entire rewardDelivery
 stmLaser    = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, ts.stmLaser', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag );      % laser stim trials
-tagLaser    = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, ts.tagLaser', ts.reachStart', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag );      % laser tag trials
+tagLaser    = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, ts.tagLaser', ts.tagLaser', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag );      % laser tag trials
 stmReach    = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, ts.stmReachStart', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag ); % reachStart with stimulation (completed reaches even during stimulation)
 
 binSpkCountStrCtx.reach = reach; 
