@@ -13,7 +13,7 @@ p = parse_input_psthPCA( filePath, fileName, varName, varargin );
 %p = parse_input_psthPCA( filePath, fileName, varName, {} );
 
 % imagesc of the PSTHs (potentially modify to use TNC_CreateRBColormap.m)
-cmap = TNC_CreateRBColormap(100,p.Results.cmap); % generate a colormap for imagesc psth
+cmap = TNC_CreateRBColormapJP(100,p.Results.cmap); % generate a colormap for imagesc psth
 
 %% preprocessing and PCA on trial-averaged z-scored PSTHs
 numbTrialEachFile = zeros(length(fileName),1); % take the number of file in each file to ensure that files have the common number of trials
@@ -40,8 +40,8 @@ for f = 1:length(fileName) % increment files
     valFrCellCnt = 0; % valid cell count
     
     for u = 1:length(S.SpkCountMatZ) % increment units
-        
-        S.binSpkZ(u,:)  = decimate(S.SpkCountMatZ{u},p.Results.dcFactor); % decimate the SpkCountMatZ - unit x bin (50 ms) z score
+        S.binSpkZ(u,:)  = binAvg1msSpkCountMat( S.SpkCountMatZ{u}, p.Results.binSizeZ, p.Results.binSizeZ ); % bin/average the SpkCountMatZ - unit x bin (50 ms) z score
+        %S.binSpkZ(u,:)  = decimate(S.SpkCountMatZ{u},p.Results.dcFactor); % decimate the SpkCountMatZ - unit x bin (50 ms) z score
         
         tempSpkCountMat = cell2mat(getSpkCntMatFromSpkTimes( S.SpkTimes{u}, S.params )); % get the current unit's spikeCountMat (trial-by-1msBin)
         % tempSpkCountMat = full(cell2mat(S.SpkCountMat{u}));     % temp spike count mat STR
@@ -152,7 +152,11 @@ end
 for f = 1:length(fileName)
     cd(fullfile(filePath,'Figure'))
     % imagesc the trial-averaged z-score psths of valid units (subjected to PCA)
-    figure; imagescJP(file(f).S.binSpkZ(file(f).pc.pcUnitSort(:,1),:),cmap,p.Results.cAxis); pbaspect([1 1 1]); % plot the trial-averaged z-scored PSTHs
+    Xs = file(f).S.params.binEdges1ms(1):p.Results.binSizeZ:file(f).S.params.binEdges1ms(end); 
+    figure; 
+    imagescJP(file(f).S.binSpkZ(file(f).pc.pcUnitSort(:,1),:),cmap,p.Results.cAxis,'X',[Xs(1) Xs(end-1)],'cBar',true); 
+    pbaspect([1 1 1]); % plot the trial-averaged z-scored PSTHs
+    xlim(p.Results.imagescXlim)
     print( [fileName{f},'_trialAvgZscore',varName],'-dpdf') 
     
     % plot relevant pc loadings
@@ -177,20 +181,16 @@ for f = 1:length(fileName)
     %clearvars S pc sortedBinSpkCell
 end
 
-
-end % end of the function
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % NESTED HELPER FUNCTIONS %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 function p = parse_input_psthPCA( filePath, fileName, varName, vargs ) % note that a nested function must use vargs not varargin when varargin was used for the main function
 %parse input, and extract name-value pairs for the main function
 % 'pcaPSTH.m'
 
 default_binSize  = 200; % 200 ms bins
 default_stepSize = default_binSize; % by default, use the stepSize same as the binSize
-default_dcFactor = 50;  % decimation factor
+default_binSizeZ = 50;  % binSize for SpkCountMatZ
 default_PCs      = 3;   % use top 3 PCs
 default_expVarCut = 80; % to include top PCs whose summed explained variance greater than 80% of total variance
 default_FRcut = 1; % exclude units with mean FR lower than the FRcut from PCA
@@ -203,6 +203,7 @@ default_cmap = 'cb';    % default colormap
 default_cAxis = [-3 3]; % default colorAxis
 default_rmvNaNunits = false; % exclude units with NaN trials from PCA and DCA preprocessing
 default_rmvNaNtrials = true; % remove the trials in which one or more units have NaN trials
+default_imagescXlim = [-2000 2000]; % default xlim to be used for imagesc plot 1ms 
 
 p = inputParser; % create parser object
 addRequired(p,'filePath');
@@ -211,7 +212,7 @@ addRequired(p,'varName');
 
 addParameter(p,'binSize', default_binSize)
 addParameter(p,'stepSize',default_stepSize)
-addParameter(p,'dcFactor', default_dcFactor)
+addParameter(p,'binSizeZ', default_binSizeZ)
 addParameter(p,'PCs', default_PCs)
 addParameter(p,'expVarCut', default_expVarCut)
 addParameter(p,'FRcut', default_FRcut)
@@ -224,9 +225,10 @@ addParameter(p,'cmap',default_cmap)
 addParameter(p,'cAxis',default_cAxis)
 addParameter(p,'rmvNaNunits',default_rmvNaNunits)
 addParameter(p,'rmvNaNtrials',default_rmvNaNtrials)
+addParameter(p,'imagescXlim',default_imagescXlim)
 
 parse(p, filePath, fileName, varName, vargs{:})
 
 end
 
-
+end % end of the function
