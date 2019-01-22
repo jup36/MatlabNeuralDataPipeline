@@ -153,6 +153,10 @@ for u = 1:size(neural,2)   % increment units
     
     fprintf('processed unit %d\n', u) % report unit progression
     
+    %% Get the unit-Time-Trial mat
+    tmpUnitTrialTimeMat  = cell2mat(getSpkCntMatFromSpkTimes( binSpk.SpkTimes{u}, binSpk.params )); % get the current unit's spikeCountMat (trial-by-1msBin)
+    binSpkOut.unitTimeTrial(u,:,:) = permute(tmpUnitTrialTimeMat,[3 2 1]); % permute to get the unitTimeTrial mat
+    
     %% Select which fields to output
     %binSpkOut.SpkCountMat{u,1}    = binSpk.SpkCountMat{u,1};  % fileSize is too large 
     %binSpkOut.SpkGCountMat{u,1}   = binSpk.SpkGCountMat{u,1}; % fileSize is too large
@@ -170,7 +174,7 @@ for u = 1:size(neural,2)   % increment units
     binSpkOut.geometry{u,1} = binSpk.geometry{u,1};
     binSpkOut.meanWF{u,1} = binSpk.meanWF{u,1};
     binSpkOut.isStr{u,1} = binSpk.isStr{u,1}; 
-    
+    %clearvars tmp*
 end % end of unit iteration
     binSpkOut.params = binSpk.params;
 end % end of function
