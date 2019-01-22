@@ -15,6 +15,7 @@ default_crossValFolds = 4; % the number of cross-validation fold
 default_baseSubtrt = true; % the logical to subtract the baseline activity (spike count) or not (by default, subtract the mean spike counts across the bins corresponding to the leftmost 1-s window)
 default_sqrtSC = false;    % the logical to take sqrt of the spike counts or not before conducting dimensionality reduction
 default_redefineXcorrUnits = false;
+default_unitIdxFile = [];
 
 p = inputParser; % create parser object
 addRequired(p,'filePath'); % file directory
@@ -33,6 +34,7 @@ addParameter(p,'crossValFolds', default_crossValFolds)
 addParameter(p,'baseSubtrt', default_baseSubtrt)
 addParameter(p,'sqrtSC', default_sqrtSC)
 addParameter(p,'redefineXcorrUnits', default_redefineXcorrUnits)
+addParameter(p,'unitIdxFile', default_unitIdxFile)
 
 parse(p, filePath, fileName, saveNameTag, vargs{:})
 

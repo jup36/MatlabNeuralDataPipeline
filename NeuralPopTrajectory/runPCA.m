@@ -10,7 +10,7 @@ function [ pcaResult, pcaDat ] = runPCA( filePath, fileName, saveNameTag, vararg
 % Modified on 9/6/18 to extract SpkCountMat from SpkTimes
 
 p = parse_input_runPCA( filePath, fileName, saveNameTag, varargin );
-% p = parse_input_runPCA( filePath, fileName, saveNameTag, {} ); % use this when running line-by-line
+% p = parse_input_runPCA( filePath, fileName, saveNameTag, { 'frHighPass', 2, 'frLowPass', 50, 'timeRange', [-2e3 2e3], 'pcaBinSize', 50, 'pcaDim', 5, 'pcaKernSD', 100, 'fullCrossVal', false, 'xcorThresholdPer', 0.2, 'crossValFolds', 0, 'baseSubtrt', true, 'sqrtSC', false, 'unitIdxFile', 'meanFRxCorrUnitIdxCtx.mat' } ); % use this when running line-by-line
 saveName = sprintf('%s_%dD_%02dmsBin', p.Results.saveNameTag, p.Results.pcaDim, p.Results.pcaBinSize );
 
 cd(p.Results.filePath)
@@ -52,41 +52,48 @@ clearvars u
 % get rid of one unit of the pairs with high cross-correlation (remove duplicate/split units)
 unitTimeAcrossTrials = reshape(unitTimeTrial, [size(unitTimeTrial,1), size(unitTimeTrial,2)*size(unitTimeTrial,3)]); % reshape the unitTimeTrial matrix to get unitTimeAcrossTrials (concatenate across trials)
 
-if p.Results.redefineXcorrUnits
-    xcorUnitIdx = getUnitOfHighXcorr( unitTimeAcrossTrials, p.Results.xcorThresholdPer );
-    if contains(saveNameTag,'Ctx','IgnoreCase',true)
-        save(strcat('xcorUnitIdx','Ctx'), 'xcorUnitIdx') % to speed up running again in the future save this idx, and bypass the process of examining all unit pairs
-    elseif contains(saveNameTag,'Str','IgnoreCase',true)
-        save(strcat('xcorUnitIdx','Str'), 'xcorUnitIdx') % to speed up running again in the future save this idx, and bypass the process of examining all unit pairs
-    end    
+if ~isempty(p.Results.unitIdxFile) && exist(fullfile(p.Results.filePath,p.Results.unitIdxFile),'file')==2 % if there's a unitIdxFile specifically input, and the file exists
+    unitIdxPCA = load(fullfile(p.Results.filePath,p.Results.unitIdxFile));
+    unitIdxPCA = unitIdxPCA.('meanFRxCorrUnitIdx'); 
 else
-    if xor(contains(saveNameTag,'Ctx','IgnoreCase',true), contains(saveNameTag,'Str','IgnoreCase',true))
+    if p.Results.redefineXcorrUnits
+        xcorUnitIdx = getUnitOfHighXcorr( unitTimeAcrossTrials, p.Results.xcorThresholdPer );
         if contains(saveNameTag,'Ctx','IgnoreCase',true)
-            if exist(fullfile(filePath,'xcorUnitIdxCtx.mat'),'file')==2 % if the file exists
-                load(fullfile(filePath,'xcorUnitIdxCtx.mat'),'xcorUnitIdx'); % just load it instead of repeating the xcorr process
-            else
-                xcorUnitIdx = getUnitOfHighXcorr( unitTimeAcrossTrials, p.Results.xcorThresholdPer );
-                save(strcat('xcorUnitIdx','Ctx'), 'xcorUnitIdx') % to speed up running again in the future save this idx, and bypass the process of examining all unit pairs
-            end
+            save(strcat('xcorUnitIdx','Ctx'), 'xcorUnitIdx') % to speed up running again in the future save this idx, and bypass the process of examining all unit pairs
         elseif contains(saveNameTag,'Str','IgnoreCase',true)
-            if exist(fullfile(filePath,'xcorUnitIdxStr.mat'),'file')==2 % if the file exists
-                load(fullfile(filePath,'xcorUnitIdxStr.mat'),'xcorUnitIdx'); % just load it instead of repeating the xcorr process
-            else
-                xcorUnitIdx = getUnitOfHighXcorr( unitTimeAcrossTrials, p.Results.xcorThresholdPer );
-                save(strcat('xcorUnitIdx','Str'), 'xcorUnitIdx') % to speed up running again in the future save this idx, and bypass the process of examining all unit pairs
-            end
+            save(strcat('xcorUnitIdx','Str'), 'xcorUnitIdx') % to speed up running again in the future save this idx, and bypass the process of examining all unit pairs
         end
     else
-        error('Check if the input variable saveNameTag contains a proper brain region info!!!')
+        if xor(contains(saveNameTag,'Ctx','IgnoreCase',true), contains(saveNameTag,'Str','IgnoreCase',true))
+            if contains(saveNameTag,'Ctx','IgnoreCase',true)
+                if exist(fullfile(filePath,'xcorUnitIdxCtx.mat'),'file')==2 % if the file exists
+                    load(fullfile(filePath,'xcorUnitIdxCtx.mat'),'xcorUnitIdx'); % just load it instead of repeating the xcorr process
+                else
+                    xcorUnitIdx = getUnitOfHighXcorr( unitTimeAcrossTrials, p.Results.xcorThresholdPer );
+                    save(strcat('xcorUnitIdx','Ctx'), 'xcorUnitIdx') % to speed up running again in the future save this idx, and bypass the process of examining all unit pairs
+                end
+            elseif contains(saveNameTag,'Str','IgnoreCase',true)
+                if exist(fullfile(filePath,'xcorUnitIdxStr.mat'),'file')==2 % if the file exists
+                    load(fullfile(filePath,'xcorUnitIdxStr.mat'),'xcorUnitIdx'); % just load it instead of repeating the xcorr process
+                else
+                    xcorUnitIdx = getUnitOfHighXcorr( unitTimeAcrossTrials, p.Results.xcorThresholdPer );
+                    save(strcat('xcorUnitIdx','Str'), 'xcorUnitIdx') % to speed up running again in the future save this idx, and bypass the process of examining all unit pairs
+                end
+            end
+        else
+            error('Check if the input variable saveNameTag contains a proper brain region info!!!')
+        end
     end
+    
+    unitIdxPCA = unitMeanFR > p.Results.frHighPass & unitMeanFR < p.Results.frLowPass & xcorUnitIdx; % units to be used for pca
 end
 
-unitIdxPCA = unitMeanFR > p.Results.frHighPass & unitMeanFR < p.Results.frLowPass & xcorUnitIdx; % units to be used for pca
 
 if isfield(S,'nonNaNtrialId') % in case the nanNaNtrialId has been already sorted by the previous function 'pcaPSTHtwoPopulations.m'
     for tr = 1:length(S.nonNaNtrialId) % increment trials
         pcaDat(tr).trialId = S.nonNaNtrialId(tr,1); % trial ID
         pcaDat(tr).spikes = unitTimeTrial(unitIdxPCA,:,S.nonNaNtrialId(tr,1)); % neuron x timeBin mat for the trial, to include pca-sorted units only, pc.pcUnitSort(pc.pcUnitSort(:,3)==1,1)
+        pcaDat(tr).spikesWoBaseSub = unitTimeTrial(unitIdxPCA,:,S.nonNaNtrialId(tr,1)); % neuron x timeBin mat for the trial, to include pca-sorted units only, pc.pcUnitSort(pc.pcUnitSort(:,3)==1,1)
         if p.Results.baseSubtrt % in case detrending by subtracting the mean baseline activity (By default, the mean spike count across time bins corresponding to the leftmost 1-sec is taken as the baseline activity)
             pcaDat(tr).spikes = pcaDat(tr).spikes - mean(pcaDat(tr).spikes(:,1:floor(1000/S.params.binSize)),2); % just subtract the mean spike count within the leftmost 1-s window from each 1-ms time bin
         end
@@ -95,6 +102,7 @@ else
     for tr = 1:numbTrial % increment trials
         pcaDat(tr).trialId = tr; % trial ID
         pcaDat(tr).spikes = unitTimeTrial(unitIdxPCA,:,tr); % neuron x timeBin mat for the trial, to include pca-sorted units only, pc.pcUnitSort(pc.pcUnitSort(:,3)==1,1)
+        pcaDat(tr).spikesWoBaseSub = unitTimeTrial(unitIdxPCA,:,tr);
         if p.Results.baseSubtrt % in case detrending by subtracting the mean baseline activity (By default, the mean spike count across time bins corresponding to the leftmost 1-sec is taken as the baseline activity)
             pcaDat(tr).spikes = pcaDat(tr).spikes - mean(pcaDat(tr).spikes(:,1:floor(1000/S.params.binSize)),2); % just subtract the mean spike count within the leftmost 1-s window from each 1-ms time bin
         end
@@ -174,6 +182,7 @@ save(saveName, 'pcaResult', 'pcaDat')
         default_baseSubtrt = true; % the logical to subtract the baseline activity (spike count) or not (by default, subtract the mean spike counts across the bins corresponding to the leftmost 1-s window)
         default_sqrtSC = false;    % the logical to take sqrt of the spike counts or not before conducting dimensionality reduction
         default_redefineXcorrUnits = false; 
+        default_unitIdxFile = []; 
         
         p = inputParser; % create parser object
         addRequired(p,'filePath'); % file directory
@@ -192,6 +201,7 @@ save(saveName, 'pcaResult', 'pcaDat')
         addParameter(p,'baseSubtrt', default_baseSubtrt)
         addParameter(p,'sqrtSC', default_sqrtSC)
         addParameter(p,'redefineXcorrUnits', default_redefineXcorrUnits)
+        addParameter(p,'unitIdxFile', default_unitIdxFile)
         
         parse(p, filePath, fileName, saveNameTag, vargs{:})
         

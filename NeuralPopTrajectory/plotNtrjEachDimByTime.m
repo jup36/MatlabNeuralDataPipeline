@@ -1,4 +1,4 @@
-function plotNtrjEachDimByTime( filePath, nTrjDimBinTrial, dim, bins, colorMapFolds )
+function plotNtrjEachDimByTime( filePath, nTrjDimBinTrial, dim, bins, cMap )
 %This function takes a 1-folds cell each containing each fold's neural
 % trajectories (dimension x timeBins x trials), and plot the PC score of the dimension of interest over time (using gramm pack).
 
@@ -9,18 +9,23 @@ x = bins; % x axis
 % get class lables
 nTrjMat = []; 
 c = [];
-%nTrjCmap  = summer(length(nTrjDimBinTrial));
+colorMapFolds  = TNC_CreateRBColormapJP(length(nTrjDimBinTrial),cMap);
 figure;
 hold on; 
 for f = 1:length(nTrjDimBinTrial) % increment folds
-    fold_nTrjMat = permute(squeeze(nTrjDimBinTrial{f}(dim,:,:)),[2 1]); % get the trial-by-timeBin pcScoreMat of the dim of interest at this fold 
+    if size(nTrjDimBinTrial{f},3)==1 % there's only one trial or it's already trial-averaged
+        fold_nTrjMat = nTrjDimBinTrial{f}(dim,:,:); % get the trial-by-timeBin pcScoreMat of the dim of interest at this fold     
+    elseif size(nTrjDimBinTrial{f},3)>1 % there are multiple trials, then take the average here 
+        fold_nTrjMat = permute(squeeze(nTrjDimBinTrial{f}(dim,:,:)),[2 1]); % get the trial-by-timeBin pcScoreMat of the dim of interest at this fold         
+    end
     [fold_nTrjMatMean,~,fold_nTrjMatSem] = meanstdsem(fold_nTrjMat); 
     boundedline(x,fold_nTrjMatMean,fold_nTrjMatSem,'alpha','transparency',0.1,'cmap',colorMapFolds(f,:))
     nTrjMat = [nTrjMat; fold_nTrjMat]; % accumulate the nTrjMat
     % get class labels
-    cFold = num2str(zeros(size(fold_nTrjMat,1),1)+f);
+    cFold = sprintf('%02d',zeros(size(fold_nTrjMat,1),1)+f);
     c = [c;cFold];
 end
+clearvars f
 hold off; 
 set(gca,'tickDir','out')
 pbaspect([1 1 1])

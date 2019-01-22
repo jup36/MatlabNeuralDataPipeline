@@ -10,7 +10,7 @@ while step + binSize <= size(SpkCountMat1ms,2) % this prevents stepping out of b
     currBinMat = SpkCountMat1ms(:,step+1:step+binSize); % current portion of the spike count mat
     steps = [steps,step];   % accumulate steps
     step = step + stepSize; % increment step
-    binAvgMat = [binAvgMat,mean(currBinMat,2)]; % accumulate binned spike count mat
+    binAvgMat = [binAvgMat,nanmean(currBinMat,2)]; % accumulate binned spike count mat
 end
 
 binEdges(1,:) = steps(1,:); % steps

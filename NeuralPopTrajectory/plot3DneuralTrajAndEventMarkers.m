@@ -9,8 +9,6 @@ for fd = 1:length(neuralTrajCell)
     plot3(neuralTrajCell{fd}(1,:),neuralTrajCell{fd}(2,:),neuralTrajCell{fd}(3,:),'LineWidth',lineWidth,'color',neuralTrajCmap(fd,:))
     for evt = 1:length(eventMarkers)
         plot3(neuralTrajCell{fd}(1,eventMarkers(evt)),neuralTrajCell{fd}(2,eventMarkers(evt)),neuralTrajCell{fd}(3,eventMarkers(evt)),'o','MarkerSize',markerSize, 'MarkerFaceColor',eventMarkerCmap(evt,:), 'MarkerEdgeColor',eventMarkerCmap(evt,:));
-        plot3(neuralTrajCell{fd}(1,eventMarkers(evt)),neuralTrajCell{fd}(2,eventMarkers(evt)),neuralTrajCell{fd}(3,eventMarkers(evt)),'o','MarkerSize',markerSize, 'MarkerFaceColor',eventMarkerCmap(evt,:), 'MarkerEdgeColor',eventMarkerCmap(evt,:));
-        plot3(neuralTrajCell{fd}(1,eventMarkers(evt)),neuralTrajCell{fd}(2,eventMarkers(evt)),neuralTrajCell{fd}(3,eventMarkers(evt)),'o','MarkerSize',markerSize, 'MarkerFaceColor',eventMarkerCmap(evt,:), 'MarkerEdgeColor',eventMarkerCmap(evt,:));
     end
 end
 hold off;
