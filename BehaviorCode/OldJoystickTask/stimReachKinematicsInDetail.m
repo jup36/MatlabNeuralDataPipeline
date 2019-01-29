@@ -1,4 +1,4 @@
-function stimReachKinematicsInDetail( filePath, binSpkCntFileName, saveNameTag )
+function stimReachKinematicsInDetail( filePath, saveNameTag )
 %This function is to compare the behavioral kinematic traces of rewarded
 % reaches with VS without the laser perturbation. One critical concern on
 % comparing unrewarded reaches was whether the animal was really reaching or 
@@ -7,8 +7,8 @@ function stimReachKinematicsInDetail( filePath, binSpkCntFileName, saveNameTag )
 % know surely that animals were reaching. 
  
 %% load unitTimeTrial mat from 'binSpkCount*.mat' and preprocess it 
-S = load(fullfile(filePath, binSpkCntFileName), 'reward');
-S = S.('reward');
+%S = load(fullfile(filePath, binSpkCntFileName), 'reward');
+%S = S.('reward');
 
 %% get behavioral data 'BehVariables.mat'
 load(fullfile(filePath,'BehVariables.mat'),'ts','reach0','lick')
@@ -33,8 +33,10 @@ lickBin(ts.lick) = 1; % licks
 gaussianSigma = 2; 
 gaussianKernel = TNC_CreateGaussian(gaussianSigma*15,gaussianSigma,gaussianSigma*30,1); % TNC_CreateGaussian(Mu,Sigma,Time,dT)
 
+valRwdTs = zeros(length(ts.reward),1); 
 for t = 1:length(ts.reward) % increment trials, take the trial-by-trial position/velocity data and bin them to match the neural trjectories (e.g. 50 ms)
     if ts.reward(t)+bTS.rwdBinE1ms(end)<=length(reach0) && ts.reward(t)+bTS.rwdBinE1ms(1)>0
+        valRwdTs(t,1) = true; 
         timeWin = ts.reward(t)+bTS.rwdBinE1ms; % the time window, e.g. -3 to 2 sec relative to the behavioral timestamp
         bTj(t).reachPos = smooth(binAvg1msSpkCountMat(reach0(timeWin),50,50),3)'; % get decimated behavioral trjectories on the same timescale of the neural trjectories
         bTj(t).reachPosReachWin = bTj(t).reachPos(bTS.rwdReachBins);   
@@ -59,8 +61,10 @@ bTS.rchLickWin  = [500 3000];    % reward window relatie to reachStart
 bTS.rchReachBins = bTS.rchBinE50ms>=bTS.rchReachWin(1) & bTS.rchBinE50ms<=bTS.rchReachWin(2);
 bTS.rchLickBins  = bTS.rchBinE50ms>=bTS.rchLickWin(1) & bTS.rchBinE50ms<=bTS.rchLickWin(2);
 
+valStmLaserRwd = zeros(length(bTS.stmLaserRwd),1); 
 for t = 1:length(bTS.stmLaserRwd) 
     if bTS.stmLaserRwd(t)+bTS.rchBinE1ms(end)<=length(reach0) && bTS.stmLaserRwd(t)+bTS.rchBinE1ms(1)>0
+        valStmLaserRwd(t,1) = 1; 
         timeWin = bTS.stmLaserRwd(t)+bTS.rchBinE1ms; % the time window relative to reachStart, -2 to 3 sec
         bTjStimLaser(t).reachPos = smooth(binAvg1msSpkCountMat(reach0(timeWin),50,50),3)'; % get reach position
         bTjStimLaser(t).reachPosReachWin = bTjStimLaser(t).reachPos(bTS.rchReachBins); % reach Position within the reach window
@@ -78,20 +82,20 @@ end
 clearvars t
 
 %% plot the reward-aligned behavioral kinematic  data
-c = cellfun(@num2str, num2cell(rewardStim), 'UniformOutput', false); % class input for color coding in gramm
+c = cellfun(@num2str, num2cell(rewardStim(valRwdTs==1)), 'UniformOutput', false); % class input for color coding in gramm
 clear g
 
 xAxis = bTS.rwdBinE50ms(bTS.rwdReachBins); 
 
-g(1,1)=gramm('x',xAxis,'y',{bTj(:).reachPosReachWin},'color',c);
+g(1,1)=gramm('x',xAxis,'y',{bTj(valRwdTs==1).reachPosReachWin},'color',c);
 g(1,1).stat_summary('type','sem','setylim',true); % setylim true to scale the plot by the summarized data (not by the underlying data points)
 g(1,1).set_names('x','Time (ms)','y','Position a.u.');
 
-g(1,2)=gramm('x',xAxis,'y',{bTj(:).reachVelReachWin},'color',c);
+g(1,2)=gramm('x',xAxis,'y',{bTj(valRwdTs==1).reachVelReachWin},'color',c);
 g(1,2).stat_summary('type','sem','setylim',true); % setylim true to scale the plot by the summarized data (not by the underlying data points)
 g(1,2).set_names('x','Time (ms)','y','Velocity a.u.');
 
-g(1,3)=gramm('x',bTS.rwdBinE50ms,'y',{bTj(:).lickTrace},'color',c);
+g(1,3)=gramm('x',bTS.rwdBinE50ms,'y',{bTj(valRwdTs==1).lickTrace},'color',c);
 g(1,3).stat_summary('type','sem','setylim',true); % setylim true to scale the plot by the summarized data (not by the underlying data points)
 g(1,3).set_names('x','Time (ms)','y','lick Counts per sec');
 
@@ -101,20 +105,20 @@ g.draw();
 print( fullfile(filePath,'Figure','rewardedStimVsNoStimBehavioralKinematics'), '-dpdf', '-bestfit')
 
 %% plot the stimLaser aligned behavioral kinematic data
-c = cellfun(@num2str, num2cell(ones(length(bTjStimLaser),1)),'UniformOutput', false); % class input for color coding in gramm
+c = cellfun(@num2str, num2cell(ones(length(bTjStimLaser(valStmLaserRwd==1)),1)),'UniformOutput', false); % class input for color coding in gramm
 clear g
 
 xAxis = bTS.rchBinE50ms(bTS.rchReachBins); 
 
-g(1,1)=gramm('x',xAxis,'y',{bTjStimLaser(:).reachPosReachWin},'color',c);
+g(1,1)=gramm('x',xAxis,'y',{bTjStimLaser(valStmLaserRwd==1).reachPosReachWin},'color',c);
 g(1,1).stat_summary('type','sem','setylim',true); % setylim true to scale the plot by the summarized data (not by the underlying data points)
 g(1,1).set_names('x','Time (ms)','y','Position a.u.');
 
-g(1,2)=gramm('x',xAxis,'y',{bTjStimLaser(:).reachVelReachWin},'color',c);
+g(1,2)=gramm('x',xAxis,'y',{bTjStimLaser(valStmLaserRwd==1).reachVelReachWin},'color',c);
 g(1,2).stat_summary('type','sem','setylim',true); % setylim true to scale the plot by the summarized data (not by the underlying data points)
 g(1,2).set_names('x','Time (ms)','y','Velocity a.u.');
 
-g(1,3)=gramm('x',bTS.rchBinE50ms,'y',{bTjStimLaser(:).lickTrace},'color',c);
+g(1,3)=gramm('x',bTS.rchBinE50ms,'y',{bTjStimLaser(valStmLaserRwd==1).lickTrace},'color',c);
 g(1,3).stat_summary('type','sem','setylim',true); % setylim true to scale the plot by the summarized data (not by the underlying data points)
 g(1,3).set_names('x','Time (ms)','y','lick Counts per sec');
 
@@ -124,20 +128,20 @@ g.draw();
 print( fullfile(filePath,'Figure','stimLaserRewardBehavioralKinematics'), '-dpdf', '-bestfit')
 
 %% plot the stimLaser aligned behavioral kinematic data
-c = cellfun(@num2str, num2cell(ones(length(bTjStimLaser),1)),'UniformOutput', false); % class input for color coding in gramm
+c = cellfun(@num2str, num2cell(ones(length(bTjStimLaser(valStmLaserRwd==1)),1)),'UniformOutput', false); % class input for color coding in gramm
 clear g
 
 xAxis = bTS.rchBinE50ms(bTS.rchReachBins); 
 
-g(1,1)=gramm('x',xAxis,'y',{bTjStimLaser(:).reachPosReachWin},'color',c);
+g(1,1)=gramm('x',xAxis,'y',{bTjStimLaser(valStmLaserRwd==1).reachPosReachWin},'color',c);
 g(1,1).geom_line(); % setylim true to scale the plot by the summarized data (not by the underlying data points)
 g(1,1).set_names('x','Time (ms)','y','Position a.u.');
 
-g(1,2)=gramm('x',xAxis,'y',{bTjStimLaser(:).reachVelReachWin},'color',c);
+g(1,2)=gramm('x',xAxis,'y',{bTjStimLaser(valStmLaserRwd==1).reachVelReachWin},'color',c);
 g(1,2).geom_line(); % setylim true to scale the plot by the summarized data (not by the underlying data points)
 g(1,2).set_names('x','Time (ms)','y','Velocity a.u.');
 
-g(1,3)=gramm('x',bTS.rchBinE50ms,'y',{bTjStimLaser(:).lickTrace},'color',c);
+g(1,3)=gramm('x',bTS.rchBinE50ms,'y',{bTjStimLaser(valStmLaserRwd==1).lickTrace},'color',c);
 g(1,3).geom_line(); % setylim true to scale the plot by the summarized data (not by the underlying data points)
 g(1,3).set_names('x','Time (ms)','y','lick Counts per sec');
 

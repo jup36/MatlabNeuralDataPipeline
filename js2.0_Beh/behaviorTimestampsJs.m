@@ -196,8 +196,7 @@ for t = 1:length(trStartIdx)  % increment trials
     if ~isempty(find(trEndIdx>trStartIdx(t),1)) % if there's a trEnd
         jsTime25k(t).trStart = trStartIdx(t); % trStart detected by the go-cue onset
         % redefine the trial start as the joystick in position timepoint (trJsReadyTime) by examining the baseline encoder data,
-        % as the trStart defined with the cue tone onset doesn't align
-        % perfectly with the joystick being in the start position.
+        % as the trStart defined with the cue tone onset doesn't align perfectly with the joystick being in the start position.
         jsTime25k(t).trEnd = trEndIdx(find(trEndIdx > trStartIdx(t),1,'first'));  % get the trEnd time point
         
         trBaseRange = trStartIdx(t)-2*nSamp:trStartIdx(t)+(nSamp/10/2)-1; % 2 sec baseline, just take 2 sec before the cue onset, with padding on the righthand side corresponding to 50 ms
@@ -213,16 +212,6 @@ for t = 1:length(trStartIdx)  % increment trials
         jsTime25k(t).pull_torque = trialInfo.pullTq(t); % pull torque
         jsTime25k(t).reachP1 = trialInfo.reachPos1(t); % reach position 1
         
-        %         if t==length(trStartIdx) && t==size(trialsCsv,1)+1 % trialsCsv does not save the last trial at the session completion
-        %             jsTime25k(t).pull_threshold = trialsCsv.pull_threshold(t-1); % pull threshold
-        %             jsTime25k(t).pull_torque = trialsCsv.pull_torque(t-1); % pull torque
-        %             jsTime25k(t).reachP1 = trialsCsv.reach_position_1(t-1); % reach position 1
-        %         else
-        %             jsTime25k(t).pull_threshold = trialsCsv.pull_threshold(t); % pull threshold
-        %             jsTime25k(t).pull_torque = trialsCsv.pull_torque(t); % pull torque
-        %             jsTime25k(t).reachP1 = trialsCsv.reach_position_1(t); % reach position 1
-        %         end
-        
         if isnan(trBaseLatestStillTime)
             jsTime25k(t).trJsReady = nan;
             jsTime25k(t).trJsTraj = nan;
@@ -237,7 +226,7 @@ for t = 1:length(trStartIdx)  % increment trials
             jsTime25k(t).trialType = nan; % trialType
             jsTime1k(t).movKins = nan; % movement kinematics assign nan
             
-        elseif trStartIdx(t)-2*nSamp+trBaseLatestStillTime <= jsTime25k(t).trStart+(nSamp/10/2)-1
+        elseif trStartIdx(t)-2*nSamp+trBaseLatestStillTime <= jsTime25k(t).trStart+(nSamp/10/2) % if there's a joystick still point within 50 ms from the trStart signal
             jsTime25k(t).trJsReady = trStartIdx(t)-2*nSamp+trBaseLatestStillTime; % get the trJsReady time
             
             trRange = jsTime25k(t).trJsReady:jsTime25k(t).trEnd; % trial range aligned to the Js ready time
