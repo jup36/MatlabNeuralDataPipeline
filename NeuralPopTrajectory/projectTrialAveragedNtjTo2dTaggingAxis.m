@@ -1,4 +1,7 @@
 function [nTj, bTj] = projectTrialAveragedNtjTo2dTaggingAxis( filePath, tagPCAFileName, binSpkCntFileName, evtName, saveNameTag, varargin )
+%This function projects neural activity sorted by behavioral kinematic variables onto  
+% the PC axes extracted from tagging responses. Units that passed the criteria for tagging activity PCA
+% (pcaResultTag.unitIdx) are used only for projection to get population trajectories within the 2-d tagging state space.  
 
 p = parse_input_projectTrialAveragedNtjTo2dTaggingAxis( filePath, tagPCAFileName, binSpkCntFileName, evtName, saveNameTag, varargin );
 
@@ -171,6 +174,7 @@ plot2DneuralTrajAndEventMarkers( {avgTagTrjMat}, [1,0,1], tagEvtMarkers, tagEvtC
 
 % plot the reward-aligned velocity sorted/folded trajectories
 plot2DneuralTrajAndEventMarkers( nTj.projToTagAxesSortByMaxVel, nTjCmap, evtMarkers, evtCmap, p.Results.lineWidth, p.Results.markerSize ); 
+title('TagDim_Tag+VelicityFolds','Interpreter', 'none')
 hold off; 
 print( fullfile(filePath,'Figure','tagAxesProjRwdAlignVelFoldTrjs'), '-dpdf')
 
@@ -182,10 +186,11 @@ plot2DneuralTrajAndEventMarkers( {avgTagTrjMat}, [1,0,1], tagEvtMarkers, tagEvtC
 
 % plot the reward-aligned velocity sorted/folded trajectories
 plot2DneuralTrajAndEventMarkers( nTj.projToTagAxesSortByMaxPos, nTjCmap, evtMarkers, evtCmap, p.Results.lineWidth, p.Results.markerSize ); 
+title('TagDim_Tag+PositionFolds','Interpreter', 'none')
 hold off; 
 print( fullfile(filePath,'Figure','tagAxesProjRwdAlignPosFoldTrjs'), '-dpdf')
 
-%% plot tagging activity + reward-aligned + position sorted/folded trjs
+%% plot tagging activity + reward-aligned + lickCount sorted/folded trjs
 figure; 
 hold on; 
 % plot the tagging activity trajectories projected onto the tagging axes
@@ -193,6 +198,7 @@ plot2DneuralTrajAndEventMarkers( {avgTagTrjMat}, [1,0,1], tagEvtMarkers, tagEvtC
 
 % plot the reward-aligned velocity sorted/folded trajectories
 plot2DneuralTrajAndEventMarkers( nTj.projToTagAxesSortByLickCnt, nTjCmap, evtMarkers, evtCmap, p.Results.lineWidth, p.Results.markerSize ); 
+title('TagDim_Tag+LickCountFolds','Interpreter', 'none')
 hold off; 
 print( fullfile(filePath,'Figure','tagAxesProjRwdAlignLickCntFoldTrjs'), '-dpdf')
 

@@ -5,6 +5,8 @@ function PSTH_rasters( filePath, fileInfo, probeDepth, varargin )
 % and its outcome 'BehVariables.mat' must exist in the filePath. 
 % Modified on 6/18/18 to save the combined (all imec channels)
 % 'binSpkCountStrCtx*.mat'
+% Modified in Jan/19 to change the baseline period for tagLaser PSTHs from
+% reachStart to tagLaser. 
 
 p = parse_input_psth(filePath, fileInfo, probeDepth, varargin ); % parse input
 %p = parse_input_psth(filePath,'PT10_071618',4102,{'probeAngle',10,'strCtx',true,'strCtxBorder',2000,'numbSiteProbe',384,...

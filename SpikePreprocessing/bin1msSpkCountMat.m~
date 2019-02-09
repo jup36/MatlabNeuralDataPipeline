@@ -1,4 +1,4 @@
-function [ binMat, binEdges ] = bin1msSpkCountMat( SpkCountMat1ms, binSize, stepSize, varargin )
+function [ binMat, binEdges ] = bin1msSpkCountMat( SpkCountMat1ms, binSize, stepSize )
 % bin1msSpkCountMat takes a trial-by-1msBin spike count matrix and generates 
 %  a binned spikeCountMat (binMat) using the binSize and stepSize specified by the user.   
 %  binEdges contains: the range of each column of the binMat
@@ -35,8 +35,10 @@ else
     binEdges = [ edges1; edges2 ]; 
 end
 
-% normalize the spikeCounts for the size of each bin
-binMat = binMat./repmat((binEdges(2,:)-binEdges(1,:)+1)/binSize,[size(binMat,1), 1, size(binMat,3)]); 
+% normalize the spikeCounts for size of each bin
+
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% nested helper function %%%

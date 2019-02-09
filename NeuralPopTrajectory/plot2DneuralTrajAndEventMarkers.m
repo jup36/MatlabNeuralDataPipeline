@@ -10,6 +10,8 @@ for fd = 1:length(nTrjCell)
 end
 
 %hold off;
+xlim auto
+ylim auto
 pbaspect([1 1 1]); grid on;
 %s=inputname(1); % take the input variable name as a string
 %title(strcat(s));
