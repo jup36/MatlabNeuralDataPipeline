@@ -9,7 +9,16 @@ x = bins; % x axis
 % get class lables
 nTrjMat = []; 
 c = [];
-colorMapFolds  = TNC_CreateRBColormapJP(length(nTrjDimBinTrial),cMap);
+
+
+if ischar(cMap) % extract colors per fold
+    colorMapFolds = TNC_CreateRBColormapJP(length(nTrjDimBinTrial),cMap);
+elseif size(cMap,1)==length(nTrjDimBinTrial) && size(cMap,2)==3 % the input might be a color map per fold
+    colorMapFolds = cMap; 
+end
+
+
+
 figure;
 hold on; 
 for f = 1:length(nTrjDimBinTrial) % increment folds
@@ -22,8 +31,8 @@ for f = 1:length(nTrjDimBinTrial) % increment folds
     boundedline(x,fold_nTrjMatMean,fold_nTrjMatSem,'alpha','transparency',0.1,'cmap',colorMapFolds(f,:))
     nTrjMat = [nTrjMat; fold_nTrjMat]; % accumulate the nTrjMat
     % get class labels
-    cFold = sprintf('%02d',zeros(size(fold_nTrjMat,1),1)+f);
-    c = [c;cFold];
+    cFold = sprintf('%01d',zeros(1,size(fold_nTrjMat,1))+f);
+    c = [c;cFold'];
 end
 clearvars f
 hold off; 

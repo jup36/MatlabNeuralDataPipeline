@@ -24,9 +24,14 @@ else
 end
 
 geometry = getimec3opt3geom; % get the geometry of the imec3opt3 probe
-meta  = getmeta;             % get meta file using the helper function getmeta
-[S_clu,viTime_spk,viSite_spk] = getjrcmatVar; % get the structure variable containing cluster info
 
+if contains(p.Results.probeType,'im','IgnoreCase',true)
+    meta = getmetaImec; % get meta file using the helper function getmeta
+elseif contains(p.Results.probeType,'ni','IgnoreCase',true)
+    meta = getmetaNidq;  
+end
+
+[S_clu,viTime_spk,viSite_spk] = getjrcmatVar; % get the structure variable containing cluster info
 dvCosConvert   = cos(p.Results.probeAngle/180*pi);  % if probe was angled, probe coordinates need to be corrected 
 
 if length(p.Results.probeDepth)~=length(p.Results.numbSiteProbe)
@@ -180,6 +185,7 @@ clearvars binSpkCountStrCtx reach reward stmLaser tagLaser stmReach
         default_reachWin = [2e3 2e3];  % default time window for reach psth
         default_rewardWin = [3e3 1e3]; % default time window for reward psth
         default_tagLaserWin = [5e3 5e3]; % default time window for tagLaser psth
+        default_probeType = 'imec';    % default probe type imec
         
         p = inputParser; % create parser object
         addRequired(p,'filePath');
@@ -194,6 +200,7 @@ clearvars binSpkCountStrCtx reach reward stmLaser tagLaser stmReach
         addParameter(p,'reachWin', default_reachWin)
         addParameter(p,'rewardWin', default_rewardWin)
         addParameter(p,'tagLaserWin', default_tagLaserWin)
+        addParameter(p,'probeType', default_probeType)
         
         parse(p,filePath, fileInfo, probeDepth, vargs{:})
         
@@ -251,6 +258,7 @@ elseif length(fileList)>1
 elseif isempty(fileList)
     error('No *ap.bin file was detected!')
 end
+
 end
 
 function [ S_clu,viTime_spk,viSite_spk ] = getjrcmatVar

@@ -33,11 +33,11 @@ for fd = 1:length(foldDatCell) % increment folds
     thisSpikeTrainCell = cell(length(thisSpikeTimesCell),1); % spikeTrainCell of the current group
     for t = 1:length(thisSpikeTimesCell) % increment trials
         
-        thisSpikeTrainCell{t,1} = histcounts(thisSpikeTimesCell{t,1},binX); % count spikes across bins
+        thisSpikeTrain1ms = zeros(1,sum(psthWin));
+        thisSpikeTrain1ms(thisSpikeTimesCell{t,1}) = 1;
+        thisSpikeTrainCell{t,1} = bin1msSpkCountMat( thisSpikeTrain1ms, 50, 50, 'align', 'center' );        
+        %thisSpikeTrainCell{t,1} = histcounts(thisSpikeTimesCell{t,1},binX); % count spikes across bins
         thisSpikeTrainCell{t,1} = conv(thisSpikeTrainCell{t,1}.*(1000/binSize),gaussianKernel,'same');  % conversion to Hz
-        
-        %thisSpikeTrainCell{t,1} = zeros(1,sum(psthWin));
-        %thisSpikeTrainCell{t,1}(thisSpikeTimesCell{t,1}) = 1;
     end
     clearvars t
     
@@ -57,13 +57,14 @@ c = classLabel(class); % class label
 clear g
 
 % spike rasters
-g(1,1)=gramm('x',spikeTimes,'color',c);
+spikeTimesZeroCentered = cellfun( @(x) x-psthWin(1), spikeTimes, 'UniformOutput',false ); % zero center the spike times
+g(1,1)=gramm('x',spikeTimesZeroCentered,'color',c);
 g(1,1).geom_raster();
 %g(1,1).set_title('geom_raster()');
 g(1,1).set_names('x','Time (ms)','y','Trials');
 
 if ~isequal(psthWin, manualX)
-    g(1,1).axe_property('xlim',[psthWin(1)-manualX(1) psthWin(1)-manualX(1)+sum(manualX)]); % manual xlim
+    g(1,1).axe_property('xlim',[psthWin(1)-manualX(1) psthWin(1)-manualX(1)+sum(manualX)]-psthWin(1)); % manual xlim
 end
 
 % spike histogram (without errorbars)
@@ -73,13 +74,13 @@ end
 % g(1,2).set_title('stat_bin()');
 
 % mean +- sem (or other measures of variability)
-xAxis=linspace(0,sum(psthWin),round(sum(psthWin)/binSize));
+xAxis=linspace(0,sum(psthWin),round(sum(psthWin)/binSize))-psthWin(1);
 g(1,2)=gramm('x',xAxis,'y',spikeTrain,'color',c);
 g(1,2).stat_summary('type','sem','setylim',true); % setylim true to scale the plot by the summarized data (not by the underlying data points)
 g(1,2).set_names('x','Time (ms)','y','FR (Hz)');
 
 if ~isequal(psthWin, manualX)
-    g(1,2).axe_property('xlim',[psthWin(1)-manualX(1) psthWin(1)-manualX(1)+sum(manualX)]); % manual xlim
+    g(1,2).axe_property('xlim',[psthWin(1)-manualX(1) psthWin(1)-manualX(1)+sum(manualX)]-psthWin(1)); % manual xlim
     %g(1,2).set_title('stat_summary()');
 end
 
