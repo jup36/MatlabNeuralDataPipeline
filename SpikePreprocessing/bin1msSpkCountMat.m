@@ -6,7 +6,6 @@ function [ binMat, binEdges ] = bin1msSpkCountMat( SpkCountMat1ms, binSize, step
 p = parse_input_bin1msSpkCountMat( SpkCountMat1ms, binSize, stepSize, varargin );
 %p = parse_input_bin1msSpkCountMat( SpkCountMat1ms, binSize, stepSize, {'align','center'} );
 
-
 step = 0;    % initialize step
 binMat = []; % initialize binned spike count mat
 steps  = []; % initialize accumulated steps

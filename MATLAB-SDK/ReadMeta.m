@@ -1,9 +1,12 @@
-function [meta] = ReadMeta(binName, path)
-
+function [meta] = ReadMeta(fname, path)
+    
+if contains(fname,'.bin')
     % Create the matching metafile name
-    [dumPath,name,dumExt] = fileparts(binName);
+    [dumPath,name,dumExt] = fileparts(fname);
     metaName = strcat(name, '.meta');
-
+elseif contains(fname,'.meta')
+    metaName = fname; 
+end
     % Parse ini file into cell entries C{1}{i} = C{2}{i}
     fid = fopen(fullfile(path, metaName), 'r');
 % -------------------------------------------------------------
