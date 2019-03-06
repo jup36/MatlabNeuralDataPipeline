@@ -158,12 +158,16 @@ else
     end
     
     % store evt indices
+    evtIdx25k.trStartIdx = trStartIdx;
+    evtIdx25k.trEndIdx = trEndIdx; 
     evtIdx25k.rwdIdx  = rwdIdx;
     evtIdx25k.lickIdx = lickIdx;
     evtIdx25k.camTrigRiseIdx = camTrigRiseIdx;
     evtIdx25k.camTrigFallIdx = camTrigFallIdx;
     evtIdx25k.camPulseTrainIdx = camPulseTrainIdx;
     
+    evtIdx1k.trStartIdx = round(trStartIdx./25);
+    evtIdx1k.trEndIdx = round(trEndIdx./25);
     evtIdx1k.rwdIdx  = round(rwdIdx./25);
     evtIdx1k.lickIdx = round(lickIdx./25);
     evtIdx1k.camTrigRiseIdx = round(camTrigRiseIdx./25);
@@ -390,4 +394,3 @@ cd(p.Results.filePath)
 save('BehVariablesJs', 'jsTime1k', 'jsTime25k', 'evtIdx25k', 'evtIdx1k', 'p', 'trialsCsv', 'trialInfo', 'tbytCsvList') % append the position/velocity data variables
 
 end
-
