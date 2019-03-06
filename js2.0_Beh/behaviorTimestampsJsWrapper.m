@@ -18,7 +18,7 @@ for f = 1:length(filePath)
         error('Input a proper file path'); 
     end
     p = parse_input_Js(currentPath, varargin); 
-    % p = parse_input_Js(currentPath, {'trialTimeout',10000,'laserUsed',true,'laserUsed',true, 'numbTagLaser', 50, 'reReadBin', true}); 
+    % p = parse_input_Js(currentPath, {'trialTimeout',10000,'laserUsed',true,'tagLaserUsed', true, 'reReadBin',false, 'numbNeuralProbe', 1}); 
     behaviorTimestampsJs(p);
 end
 
@@ -38,13 +38,14 @@ end
         default_encodeACh = 37; % ch# for stepper encoder A
         default_encodeBCh = 39; % ch# for stepper encoder B
         default_laserCh   = 38;    % ch# for laser triggers
-        default_numbTagLaser = 50; % the # of tagging lasers
         default_lickCh    = 1;  % ch# for lick detect (unattenuated channel)
         default_sgfiltFramelen = 101; % frame length for the sgolayfilt
         default_trialTimeout = 10000; % trial timeout duration
         default_pushThreshold = 50; % pushThreshold
         default_fps = 250; % default camera frame rate
         default_laserUsed = false; % laser used or not in the current experiment
+        default_numbTagLaser = 50; % the # of tagging lasers
+        default_tagLaserUsed = false; % laser tagging trials run in the current experiment
         
         default_meanMass = [10 20 30 40 50 60 70 80 90 100; 2.95 3.52 4.10 4.67 5.25 5.82 6.40 6.97 7.55 8.12]; % torque(%) mass(g) mapping 
         
@@ -61,6 +62,7 @@ end
         addParameter(p,'encodeBCh',default_encodeBCh);
         addParameter(p,'laserCh',default_laserCh);
         addParameter(p,'laserUsed',default_laserUsed);
+        addParameter(p,'tagLaserUsed',default_tagLaserUsed); 
         addParameter(p,'numbTagLaser',default_numbTagLaser); 
         addParameter(p,'lickCh',default_lickCh);
         addParameter(p,'sgfiltFramelen',default_sgfiltFramelen);
@@ -74,4 +76,3 @@ end
 
 
 end
-
