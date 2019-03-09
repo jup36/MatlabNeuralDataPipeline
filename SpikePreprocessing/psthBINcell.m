@@ -45,7 +45,6 @@ for u = 1:size(neural,2)   % increment units
     delta = zeros(1,ceil(neural{1,u}(end))); % delta function of the whole spike train of the current unit
     delta(1,ceil(neural{1,u})) = 1; % delta function of the whole spike train - put 1 at spike times
     tmpSmooth = conv(delta,params.filter.kernel,'same'); % convolution of the delta function with the Gaussian kernel
-    tmpBaseBinGCountMat = zeros(length(baseEvt),length(params.binEdges)-1);   % temporary binned spike count matrix (Gaussian convolved) for the baseline period
     validEvts = zeros(length(currEvt),1); % valid task events being used for spike counts
       
     valEvtCnt = 0; % valid event counter
@@ -75,10 +74,11 @@ for u = 1:size(neural,2)   % increment units
     clearvars tr
     
     % get trial-by-trial baseline binned spike counts
+    tmpBaseBinGCountMat = zeros(length(baseEvt),round(sum(psthWin)/2));   % temporary binned spike count matrix (Gaussian convolved) for the baseline period
     for tr = 1:length(baseEvt)
         if baseEvt(tr) < length(delta)
-            if baseEvt(tr,1)-sum(psthWin) >= 0 % to make sure there's enough (left) room for baseline period sampling
-                tmpBaseBinGCountMat(tr,:) = tmpSmooth(1,baseEvt(tr)-sum(psthWin)+1:baseEvt(tr)); % baseline bin counts from the Gaussian convolved delta function
+            if baseEvt(tr,1)-round(sum(psthWin)/2) >= 0 % to make sure there's enough (left) room for baseline period sampling
+                tmpBaseBinGCountMat(tr,:) = tmpSmooth(1,baseEvt(tr)-round(sum(psthWin)/2)+1:baseEvt(tr)); % baseline bin counts from the Gaussian convolved delta function
             else
                 tmpBaseBinGCountMat(tr,:) = nan; % baseline bin counts from the Gaussian convolved delta function
             end
@@ -95,12 +95,10 @@ for u = 1:size(neural,2)   % increment units
     
     % get the mean and the std SC across trials (these stats are to be used for z-score calculation, thus use the gaussian convolved spike trains)
     tmpBinGCountMat = cell2mat(binSpk.SpkGCountMat{u,1});
-    if stableTrials==-1 % in this case, include all trials without excluding any trials in the beginning
-        
+    if stableTrials==-1 % in this case, include all trials without excluding any trials in the beginning      
         binSpk.trAVG{u,1}        = nanmean(tmpBinGCountMat,1); % mean spike counts
         binSpk.trSEM{u,1}        = nanstd(tmpBinGCountMat,0,1) ./ sqrt(size(tmpBinGCountMat,1)-1); % sem spike counts
         binSpk.trAVGbase{u,1}    = nanmean(tmpBaseBinGCountMat,1);   % mean spike counts averaged across trials for the baseline period
-        
     else                % in this case, exclude initial trials from mean and std calculation
         binSpk.trAVG{u,1}        = nanmean(tmpBinGCountMat(stableTrials:end,:),1); % mean spike counts averaged across trials
         binSpk.trSEM{u,1}        = nanstd(tmpBinGCountMat(stableTrials:end,:),0,1) ./ sqrt(size(tmpBinGCountMat(stableTrials:end,:),1)-1); % sem spike counts
