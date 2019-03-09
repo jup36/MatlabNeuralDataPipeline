@@ -19,7 +19,7 @@ behFile = dir(fullfile(p.Results.filePath,'BehVariablesJs.mat')); % look for 'Be
 if length(behFile)>1 || isempty(behFile)    
     error('File could not be found or multiple BehVariables.mat files exist!');
 else
-    load(behFile.name,'evtIdx1k') % load behavioral timestamps 
+    load(behFile.name, 'evtIdx1k', 'jsTime1k') % load behavioral timestamps 
 end
 
 geometry = getHH3geom; % get the geometry of the imec3opt3 probe
@@ -47,7 +47,6 @@ fclose(fid);
 
 % pick only good units
 inPhy = strcmp(cn{2}, 'good'); 
-%unitNumber = unique(spike_template)+1; % take the unique ones and convert to 1-based 
 unitNumber = cn{1}(inPhy); % final good unit number list
 nP = length(unitNumber);
 
@@ -94,84 +93,49 @@ clearvars u
 
 spkTimesCell = struct2cell(spkTimes'); % the entire spike times converted into a cell 
 
+%% Specify all the time points align neural data to 
+evtIdx1k.trJsReady = [jsTime1k.trJsReady]'; % joystick ready timePoint per trial
+pullTrsIdx = cellfun(@(c)strcmpi(c,'sp'), {jsTime1k.trialType}); % successfull pull trials
+evtIdx1k.pullStarts = [];  
+evtIdx1k.pullStops  = []; 
+for t = 1:length(pullTrsIdx)
+    if pullTrs(t) && ~isempty(jsTime1k(t).movKins.pullStart) && ~isempty(jsTime1k(t).movKins.pullStop)
+        evtIdx1k.pullStarts = [evtIdx1k.pullStarts; jsTime1k(t).trJsReady + jsTime1k(t).movKins.pullStart]; 
+        evtIdx1k.pullStops  = [evtIdx1k.pullStops;  jsTime1k(t).trJsReady + jsTime1k(t).movKins.pullStop]; 
+    end
+end
+clearvars t
+
 % binned spike count CTX 
-reach       = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, ts.reachStart', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag );    % entire reachStart 
-reachNoStim = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, ts.reachStart(reachStartNoStimIdx)', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag ); 
-
-reward      = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evtIdx1k.rwdIdx', ts.reachStart', 1, p.Results.rewardWin, -1, p.Results.psthPlotFlag );       % entire rewardDelivery
-
-stmLaser    = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, ts.stmLaser', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag );      % laser stim trials
-
+%reachStart
+%reachStop 
+pullStarts  = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evtIdx1k.pullStarts, evtIdx1k.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag ); 
+pullStops   = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evtIdx1k.pullStops, evtIdx1k.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag ) ; 
+trStart     = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evtIdx1k.trStartIdx', evtIdx1k.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag ); % align to all trial starts
+trEnd       = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evtIdx1k.trEndIdx', evtIdx1k.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag );   % align to all trial ends
+reward      = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evtIdx1k.rwdIdx', evtIdx1k.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag );     % entire rewardDelivery
+stmLaser    = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evtIdx1k.stimLaserRiseIdx', evtIdx1k.stimLaserRiseIdx', 1, [1e3 5e3], -1, p.Results.psthPlotFlag ); % laser stim trials
 tagLaser    = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evtIdx1k.tagLaserRiseIdx', evtIdx1k.tagLaserRiseIdx', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag ); % laser tag trials
 
-stmReach    = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, ts.stmReachStart', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag ); % reachStart with stimulation (completed reaches even during stimulation)
+binSpkCount.pullStarts = pullStarts; 
+binSpkCount.pullStops  = pullStops; 
+binSpkCount.trStart = trStart; 
+binSpkCount.trEnd   = trEnd; 
+binSpkCount.reward = reward; 
+binSpkCount.stmLaser = stmLaser; 
+binSpkCount.tagLaser = tagLaser; 
+binSpkCount.meta = meta; 
+binSpkCount.p = p; 
+binSpkCount.spkTimesCell = spkTimesCell; % just to save the cell
 
-binSpkCountCTX.reach = reach; 
-binSpkCountCTX.reachNoStim = reachNoStim; 
-binSpkCountCTX.reward = reward; 
-binSpkCountCTX.stmLaser = stmLaser; 
-binSpkCountCTX.tagLaser = tagLaser; 
-binSpkCountCTX.stmReach = stmReach; 
-binSpkCountCTX.meta = meta; 
-binSpkCountCTX.p = p; 
-%binSpkCountCTX.spkTimesCellCTX = spkTimesCellCTX; % just to save the cell
+saveName = strcat('binSpkCount',p.Results.fileInfo);
+save(fullfile(p.Results.filePath,saveName), '-struct', 'binSpkCount') % save the fields of the structure separately 
+save(fullfile(p.Results.filePath,saveName), 'evtIdx1k', 'jsTime1k', '-append') % append the behavioral timestamps
 
-saveNameCTX = strcat('binSpkCountCTX',p.Results.fileInfo);
-save(saveNameCTX, '-struct', 'binSpkCountCTX') % save the fields of the structure separately 
-save(saveNameCTX, 'ts', '-append') % append the behavioral timestamps
-
-clearvars binSpkCountCTX reach reward stmLaser tagLaser stmReach
-
-
-% binned spike count STR
-reach       = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, ts.reachStart', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag );    % entire reachStart 
-reachNoStim = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, ts.reachStart(reachStartNoStimIdx)', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag ); 
-reward      = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, ts.reward', ts.reachStart', 1, p.Results.rewardWin, -1, p.Results.psthPlotFlag );        % entire rewardDelivery
-stmLaser    = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, ts.stmLaser', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag );      % laser stim trials
-tagLaser    = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, ts.tagLaser', ts.tagLaser', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag );      % laser tag trials
-stmReach    = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, ts.stmReachStart', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag ); % reachStart with stimulation (completed reaches even during stimulation)
-
-binSpkCountSTR.reach = reach; 
-binSpkCountSTR.reachNoStim = reachNoStim; 
-binSpkCountSTR.reward = reward; 
-binSpkCountSTR.stmLaser = stmLaser; 
-binSpkCountSTR.tagLaser = tagLaser; 
-binSpkCountSTR.stmReach = stmReach; 
-binSpkCountSTR.meta = meta; 
-binSpkCountSTR.p = p; 
-%binSpkCountSTR.spkTimesCellSTR = spkTimesCellSTR; % just to save the cell
-
-saveNameSTR = strcat('binSpkCountSTR',p.Results.fileInfo);
-save(saveNameSTR, '-struct', 'binSpkCountSTR') % save the fields of the structure separately 
-save(saveNameSTR, 'ts', '-append') % append the behavioral timestamps
-
-clearvars binSpkCountSTR reach reward stmLaser tagLaser stmReach
-
-% binned spike count STR and CTX (combined; all channels)
-reach       = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, ts.reachStart', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag );    % entire reachStart 
-reachNoStim = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, ts.reachStart(reachStartNoStimIdx)', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag ); 
-reward      = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, ts.reward', ts.reachStart', 1, p.Results.rewardWin, -1, p.Results.psthPlotFlag );        % entire rewardDelivery
-stmLaser    = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, ts.stmLaser', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag );      % laser stim trials
-tagLaser    = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, ts.tagLaser', ts.tagLaser', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag );      % laser tag trials
-stmReach    = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, ts.stmReachStart', ts.reachStart', 1, p.Results.reachWin, -1, p.Results.psthPlotFlag ); % reachStart with stimulation (completed reaches even during stimulation)
-
-binSpkCountStrCtx.reach = reach; 
-binSpkCountStrCtx.reachNoStim = reachNoStim; 
-binSpkCountStrCtx.reward = reward; 
-binSpkCountStrCtx.stmLaser = stmLaser; 
-binSpkCountStrCtx.tagLaser = tagLaser; 
-binSpkCountStrCtx.stmReach = stmReach; 
-binSpkCountStrCtx.meta = meta; 
-binSpkCountStrCtx.p = p; 
-
-saveNameStrCtx = strcat('binSpkCountStrCtx',p.Results.fileInfo); 
-save(saveNameStrCtx, '-struct', 'binSpkCountStrCtx') % save the fields of teh structure separately
-save(saveNameStrCtx, 'ts', '-append') % append the behavioral timestamps
-
-clearvars binSpkCountStrCtx reach reward stmLaser tagLaser stmReach
+clearvars pullStarts pullStops trStart trEnd reward stmLaser tagLaser
 
 %% Individual unit raster plot
-%spikeRasterGramm( [1e3 3e3], {'reach','stimReach'}, binSpkCountCTXReach(11).SpkTimes, binSpkCountCTXstmReach(11).SpkTimes );
+%spikeRasterGramm( [1e3 5e3], {'stmLaser'}, [1.5e3 1.5e3], binSpkCount.stmLaser.SpkTimes{4});
 
 %unit = 139; % str unit 128 (laser activated)
 %spikeRasterGramm( [1e3 3e3], {'reach','stim','stimReach'}, binSpkCountSTRReach(unit).SpkTimes, binSpkCountSTRstmLaser(unit).SpkTimes,binSpkCountSTRstmReach(unit).SpkTimes );
@@ -189,7 +153,7 @@ clearvars binSpkCountStrCtx reach reward stmLaser tagLaser stmReach
         default_numbSiteProbe = 64; % default number of sites per probe(s) (can be an arrary, if there are multiple probes used
         default_psthPlotFlag = false;  % default logic indicating psth draw or not 
         default_reachWin = [2e3 2e3];  % default time window for reach psth
-        default_rewardWin = [3e3 1e3]; % default time window for reward psth
+        default_rewardWin = [2e3 2e3]; % default time window for reward psth
         default_tagLaserWin = [5e3 5e3]; % default time window for tagLaser psth
         default_probeType = 'nidq';    % default probe type imec
         

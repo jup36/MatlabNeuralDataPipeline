@@ -1,21 +1,19 @@
-function [S] = JsVideoFileOrganizer(filePath)
+function [S] = jsVideoFileOrganizer(filePath)
 %This function inspects the trial-by-trial 
-
 cd(filePath)
-
 if exist('jsTime1k_K','var')==1
     S=jsTime1k_K;
 else
     pathJsTime1k_K = dir('**/*_kinematics.mat');
-    S=load(fullfile(pathJsTime1k_K.folder,pathJsTime1k_K.name),'jsTime1k_K');
-    S = S.('jsTime1k_K');
+    S=load(fullfile(pathJsTime1k_K.folder,pathJsTime1k_K.name),'jsTime1k_K'); % just building up on the outcome of jsKinematicsAnalysis.m to create one all-inclusive file
+    S = S.('jsTime1k_K'); 
 end
-S = rmfield(S,{'baseJsTrajmm','baseSmJsVel','basePeriodicAbsVelSum'}); 
+S = rmfield(S,{'baseJsTrajmm','baseSmJsVel','basePeriodicAbsVelSum'}); % rmfield remove fields from a structure array 
 
 load(fullfile(filePath,'BehVariablesJs.mat'), 'evtIdx1k', 'p')
-load(fullfile(filePath,'evtIndices.mat'), 'trStartIdx', 'trEndIdx' )
+load(fullfile(filePath,'evtIndices.mat'), 'trStartIdx', 'trEndIdx')
 
-behFilePath = dir(fullfile(p.Results.filePath,'201*')); % dir where the trial-by-trial behavioral csv files are saved
+behFilePath = dir(fullfile(filePath,'201*')); % dir where the trial-by-trial behavioral csv files are saved
 tbytCsvList = dir(fullfile(behFilePath.folder,behFilePath.name,'trial_*'));    % trial-by-trial files
 allTrialCsv = dir(fullfile(behFilePath.folder,behFilePath.name,'trials.csv')); % all trial file
 if length(allTrialCsv)==1
@@ -32,7 +30,7 @@ end
 vFiles = dir('**/*.avi'); % list all the video files
 vFronFiles = vFiles(cellfun(@(c)contains(c,'cam0'), {vFiles(:).name})); % front cam files
 [vFronFiles(:).fileCalled] = deal(0); % accumulate the number of times the video file called before
-[vFronFiles(:).framesUsed] = deal(0); % the number of frames previously assigned before
+[vFronFiles(:).framesUsed] = deal(0); % the number of frames previously assigned (to a trigger pulse) before
 vSideFiles = vFiles(cellfun(@(c)contains(c,'cam1'), {vFiles(:).name})); % side cam files
 [vSideFiles(:).fileCalled] = deal(0); % accumulate the number of times the video file called before
 [vSideFiles(:).framesUsed] = deal(0); % the number of frames previously assigned before
@@ -74,8 +72,8 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                 
                 tempPulseTrainId = evtIdx1k.camPulseTrainIdx(tempTrCamPulseTRise); % pulse train id
                 tempPulseTrainLength = sum(evtIdx1k.camPulseTrainIdx==evtIdx1k.camPulseTrainIdx(tempTrCamPulseTRise)); % pulse train length (the # of pulses)
-                tempPulseTStartIdx = find(evtIdx1k.camPulseTrainIdx==tempPulseTrainId,1,'first');
-                tempPulseTStopIdx = find(evtIdx1k.camPulseTrainIdx==tempPulseTrainId,1,'last');
+                tempPulseTStartIdx = find(evtIdx1k.camPulseTrainIdx==tempPulseTrainId,1,'first'); % locate the 1st cam trig pulse of this trial
+                tempPulseTStopIdx = find(evtIdx1k.camPulseTrainIdx==tempPulseTrainId,1,'last');   % locate the last cam trig pulse of this trial
                 
                 if t<=length(S)-2 % for all trials except the last two
                     S(t).csvFile = fullfile(p.Results.filePath, behFilePath.name, tbytCsvList(tbytCsvdateSort(t)).name); % trial-by-trial csv file
@@ -87,7 +85,7 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                     if length(tempMinCsvVFronTDI)==1
                         tempVFronI = tempMinCsvVFronTDI;
                     else % in case there're multiple files with the minimum time difference, choose the one with later fileStart
-                        tempVFronI = tempMinCsvVFronTDI(find(vSideFileStartDatenum(tempMinCsvVFronTDI) <= tbytCsvList(tbytCsvdateSort(t)).datenum,1,'last'));
+                        tempVFronI = tempMinCsvVFronTDI(find(vFronFileStartDatenum(tempMinCsvVFronTDI) <= tbytCsvList(tbytCsvdateSort(t)).datenum,1,'last'));
                     end
                     
                     % identify the relevant side video file
@@ -138,8 +136,9 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                     % ensure that the vFile start time is before the tbytCsv file completion, also ensure that the vFile completion time is before the next tbytCsv file completion
                     %                     if vFronFileStartDatenum(tempVFronI)<=tbytCsvList(tbytCsvdateSort(t)).datenum && tbytCsvList(tbytCsvdateSort(t+1)).datenum>vFronFiles(tempVFronI).datenum ...
                     %                             && vSideFileStartDatenum(tempVSideI)<=tbytCsvList(tbytCsvdateSort(t)).datenum && tbytCsvList(tbytCsvdateSort(t+1)).datenum>vSideFiles(tempVSideI).datenum
+                    
                     if vFronFileStartDatenum(tempVFronI)<=tbytCsvList(tbytCsvdateSort(t)).datenum && vSideFileStartDatenum(tempVSideI)<=tbytCsvList(tbytCsvdateSort(t)).datenum
-                        if tempFrameTime(1)<S(t).trJsReady && S(t).trEnd<tempFrameTime(end) && tempVF.totalDuration==tempVS.totalDuration && vFronFiles(tempVFronI).fileCalled<2
+                        if tempFrameTime(1)<S(t).trJsReady && S(t).trEnd<tempFrameTime(end) && abs(tempVF.totalDuration-tempVS.totalDuration)<=1 && vFronFiles(tempVFronI).fileCalled<2
                             % mark the video file usage
                             vFronFiles(tempVFronI).fileCalled = vFronFiles(tempVFronI).fileCalled + 1;
                             vSideFiles(tempVSideI).fileCalled = vSideFiles(tempVSideI).fileCalled + 1;
@@ -163,8 +162,7 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                             S(t).sVideoCmplt = datetime(vSideFiles(tempVSideI).datenum,'ConvertFrom','datenum');
                             S(t).tbytCsvFileCmplt = datetime(tbytCsvList(tbytCsvdateSort(t)).datenum,'ConvertFrom','datenum');
                             S(t).vFronFileCalled = vFronFiles(tempVFronI).fileCalled; % # of file called
-                            S(t).vSideFileCalled = vSideFiles(tempVSideI).fileCalled; % # of file called
-                            
+                            S(t).vSideFileCalled = vSideFiles(tempVSideI).fileCalled; % # of file called                         
                         end
                     end
                 else % for the last two trials
@@ -246,4 +244,4 @@ end
 
 % rename and save the structure
 jsTime1k_KV = S;  
-save('jsTime1k_Kinematics_VideoFiles','jsTime1k_KV'); 
+save(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles'),'jsTime1k_KV'); 
