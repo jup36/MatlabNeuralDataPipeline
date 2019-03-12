@@ -382,8 +382,10 @@ n2cPull_threshold = num2cell([jsTime25k(:).pull_threshold]); [jsTime1k.pull_thre
 n2cPull_torque = num2cell([jsTime25k(:).pull_torque]); [jsTime1k.pull_torque] = n2cPull_torque{:};
 n2cReachP1 = num2cell([jsTime25k(:).reachP1]); [jsTime1k.reachP1] = n2cReachP1{:};
 n2cRewardT = num2cell(round([jsTime25k(:).rewardT]./25)); [jsTime1k.rewardT] = n2cRewardT{:};
+if p.Results.laserUsed
 n2cStimLaserOn = num2cell(round([jsTime25k(:).stimLaserOn]./25)); [jsTime1k.stimLaserOn] = n2cStimLaserOn{:};
 n2cStimLaserOff = num2cell(round([jsTime25k(:).stimLaserOff]./25)); [jsTime1k.stimLaserOff] = n2cStimLaserOff{:};
+end
 [jsTime1k.trialType] = jsTime25k(:).trialType;
 
 % generate a plot to inspect a certain trial
