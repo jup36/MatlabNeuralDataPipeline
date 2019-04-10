@@ -95,7 +95,7 @@ clearvars u
 
 spkTimesCell = struct2cell(spkTimes'); % the entire spike times converted into a cell 
 
-%% Specify all the time points to align neural data onto 
+%% Specify all the time points align neural data to 
 evtIdx1k.trJsReady = [jsTime1k.trJsReady]'; % joystick ready timePoint per trial
 pullTrsIdx = cellfun(@(c)strcmpi(c,'sp'), {jsTime1k.trialType}); % successfull pull trials
 evtIdx1k.pullStarts = [];  
@@ -135,9 +135,8 @@ save(fullfile(p.Results.filePath,saveName), 'evtIdx1k', 'jsTime1k', '-append') %
 clearvars pullStarts pullStops trStart trEnd reward stmLaser tagLaser
 
 %% Individual unit raster plot
-unitNumb = 3; 
+unitNumb = 2; 
 spikeRasterGramm( [2e3 2e3], {'pullStarts'}, [2e3 2e3], binSpkCount.pullStarts.SpkTimes{unitNumb});
-spikeRasterGramm( [2e3 2e3], {'reward'}, [2e3 2e3], binSpkCount.reward.SpkTimes{unitNumb});
 spikeRasterGramm( [5e3 5e3], {'tagLaser'}, [2e3 2e3], binSpkCount.tagLaser.SpkTimes{unitNumb});
 
 %unit = 139; % str unit 128 (laser activated)

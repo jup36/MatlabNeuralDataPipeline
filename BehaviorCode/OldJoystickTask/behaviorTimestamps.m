@@ -7,6 +7,8 @@ function behaviorTimestamps(filePath,varargin)
 % e.g. Run, 
 % behaviorTimestamps(filePath,'numbNeuralProbe',0,'numbChEachProbe',64,...
 % ...,'XposCh',33,'YposCh',37,'soleCh',3,'lickCh',5,'laserCh',7,'numbTagLasers',30,'artifactRmv',true)
+% Note that before any normalization negative/positive voltage changes 
+% indicate left/right in X and pull/push in Y Js deflections.  
 % modified on 5/17/18 to process the pseudoLaser signal (pseudoLaser pulses without actual laser delivery)
 % modified on 6/7/18 to clear solenoid artifact from the other channels
 

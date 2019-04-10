@@ -18,7 +18,7 @@ for f = 1:length(filePath)
         error('Input a proper file path'); 
     end
     p = parse_input_Js(currentPath, varargin); 
-    % p = parse_input_Js(currentPath, {'trialTimeout',10000,'laserUsed',true,'tagLaserUsed', true, 'reReadBin',false, 'numbNeuralProbe', 1}); 
+    % p = parse_input_Js(currentPath, {'trialTimeout',10000,'laserUsed',true,'tagLaserUsed', true, 'reReadBin',false, 'numbNeuralProbe', 1, 'rewardDelay', 500}); 
     behaviorTimestampsJs(p);
 end
 
@@ -46,6 +46,7 @@ end
         default_laserUsed = false; % laser used or not in the current experiment
         default_numbTagLaser = 50; % the # of tagging lasers
         default_tagLaserUsed = false; % laser tagging trials run in the current experiment
+        default_rewardDelay = 1000; % the reward TTL pulse is delivered right away not reflecting the delay, so add this to correct for it
         
         default_meanMass = [10 20 30 40 50 60 70 80 90 100; 2.95 3.52 4.10 4.67 5.25 5.82 6.40 6.97 7.55 8.12]; % torque(%) mass(g) mapping 
         
@@ -70,6 +71,7 @@ end
         addParameter(p,'pushThreshold',default_pushThreshold);
         addParameter(p,'meanMass',default_meanMass);
         addParameter(p,'fps',default_fps);
+        addParameter(p,'rewardDelay',default_rewardDelay)
         
         parse(p,filePath,vargs{:})
     end
