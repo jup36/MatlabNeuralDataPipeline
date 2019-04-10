@@ -142,7 +142,6 @@ else
     %camTrigFallIdx1ms = round(camTrigFallIdx./round(nSamp/1000)); % adjust the time resolution to be 1ms
     fprintf('completed camera trigger detection!');
     
-    
     % detect laser
     if p.Results.laserUsed
        % detect all laser (laser delivered during the task)
@@ -160,7 +159,7 @@ else
     % store evt indices
     evtIdx25k.trStartIdx = trStartIdx;
     evtIdx25k.trEndIdx = trEndIdx; 
-    evtIdx25k.rwdIdx  = rwdIdx;
+    evtIdx25k.rwdIdx  = rwdIdx+nSamp*(p.Results.rewardDelay/1000); % correct for the delay
     evtIdx25k.lickIdx = lickIdx;
     evtIdx25k.camTrigRiseIdx = camTrigRiseIdx;
     evtIdx25k.camTrigFallIdx = camTrigFallIdx;
@@ -168,7 +167,7 @@ else
     
     evtIdx1k.trStartIdx = round(trStartIdx./25);
     evtIdx1k.trEndIdx = round(trEndIdx./25);
-    evtIdx1k.rwdIdx  = round(rwdIdx./25);
+    evtIdx1k.rwdIdx  = round(rwdIdx./25)+p.Results.rewardDelay;
     evtIdx1k.lickIdx = round(lickIdx./25);
     evtIdx1k.camTrigRiseIdx = round(camTrigRiseIdx./25);
     evtIdx1k.camTrigFallIdx = round(camTrigFallIdx./25);
@@ -339,7 +338,7 @@ for t = 1:length(trStartIdx) % increment trials
             if jsTime25k(t).rewarded % if rewarded
                 if ~isempty(find(tempSmdctrJsTraj<jsTime25k(t).pull_threshold,1)) % check the negative threshold crossing
                     jsTime25k(t).trialType = 'sp'; % successful pull
-                    jsTime25k(t).rewardT = jsTime25k(t).trEnd+nSamp; % reward if delivered must be 1000ms after the trial end
+                    jsTime25k(t).rewardT = jsTime25k(t).trEnd+nSamp*(p.Results.rewardDelay/1000); % reward if delivered must be 1000ms (or some other delay) after the trial end
                 else % this should be an premature pull which has been accidentally rewarded
                     jsTime25k(t).trialType = nan; % just throw out these trials for now
                     jsTime25k(t).rewardT = nan;
@@ -382,8 +381,10 @@ n2cPull_threshold = num2cell([jsTime25k(:).pull_threshold]); [jsTime1k.pull_thre
 n2cPull_torque = num2cell([jsTime25k(:).pull_torque]); [jsTime1k.pull_torque] = n2cPull_torque{:};
 n2cReachP1 = num2cell([jsTime25k(:).reachP1]); [jsTime1k.reachP1] = n2cReachP1{:};
 n2cRewardT = num2cell(round([jsTime25k(:).rewardT]./25)); [jsTime1k.rewardT] = n2cRewardT{:};
+if p.Results.laserUsed
 n2cStimLaserOn = num2cell(round([jsTime25k(:).stimLaserOn]./25)); [jsTime1k.stimLaserOn] = n2cStimLaserOn{:};
 n2cStimLaserOff = num2cell(round([jsTime25k(:).stimLaserOff]./25)); [jsTime1k.stimLaserOff] = n2cStimLaserOff{:};
+end
 [jsTime1k.trialType] = jsTime25k(:).trialType;
 
 % generate a plot to inspect a certain trial

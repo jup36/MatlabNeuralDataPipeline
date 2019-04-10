@@ -33,7 +33,8 @@ disp(' ');
 disp(['Timestamp: ' datestr(now)]);
 disp(' ');
 
-allFiles = dir(sprintf('%s*_p.csv',fileDirectory));
+%allFiles = dir(sprintf('%s*_p.csv',fileDirectory));
+allFiles = dir('*_p.csv'); 
 
 % Mouse type must be listed directly after 'Behavior' in the directory
 
@@ -43,7 +44,6 @@ slashPostBehav = find(slashesIndex > behaviorIndex, 1, 'first'); % non-applicabl
 mousetype  = fileDirectory(slashesIndex(slashPostBehav)+1: slashesIndex(slashPostBehav+1)-1); % non-applicable to me for now    
 
 for i = 1:size(allFiles,1)
-    
     %% File Name and Information
     
     disp(['Directory: ' fileDirectory]);
@@ -88,13 +88,13 @@ for i = 1:size(allFiles,1)
 
     skipInitTrials = 0;
 
-    fileNameStr = [fileDirectory fileBase '_p.csv'];
+    fileNameStr = fullfile(fileDirectory,strcat(fileBase,'_p.csv'));
     data.trialParams = dlmread(fileNameStr,',',1+skipInitTrials,0); % 11th column is the column containing information about which trials were stimulated
 
-    fileNameStr = [fileDirectory fileBase '.csv'];
+    fileNameStr = fullfile(fileDirectory,strcat(fileBase, '.csv'));
     data.trialTimes = dlmread(fileNameStr,',',2+skipInitTrials,0);  % time information 
         
-    fileNameStr = [fileDirectory fileBase 'pXY.csv']; 
+    fileNameStr = fullfile(fileDirectory,strcat(fileBase, 'pXY.csv')); 
    
     if exist(fileNameStr,'file')== 1 || exist(fileNameStr,'file')== 2
         
