@@ -1,3 +1,31 @@
+function behaviorTimestampsJsWrapper(filePath, varargin)
+%This is a wrapper function to run behaviorTimestampsJs.
+
+defaultPath = 'Z:\parkj\NeuralData\js2.0';
+
+if iscell(filePath)
+    if isempty(filePath)
+       filePath = {uigetdir(defaultPath)};         
+    end
+else
+    error('Input a cell array with a filePath(s) or an empty cell array!'); 
+end
+
+for f = 1:length(filePath) 
+    if ~isempty(dir(fullfile(filePath{f})))
+        currentPath = fullfile(filePath{f}); 
+    else
+        error('Input a proper file path'); 
+    end
+    p = parse_input_Js(currentPath, varargin); 
+    % p = parse_input_Js(currentPath, {'trialTimeout',10000,'laserUsed',true,'tagLaserUsed', true, 'reReadBin',false, 'numbNeuralProbe', 1}); 
+    behaviorTimestampsJs(p);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+% NESTED HELPER FUNCTIONS
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
     function p = parse_input_Js( filePath, vargs )
         % parse input, and extract name-value pairs
         default_reReadBin = false; % by default do not re-read the raw bin file, if done already 
@@ -18,7 +46,7 @@
         default_laserUsed = false; % laser used or not in the current experiment
         default_numbTagLaser = 50; % the # of tagging lasers
         default_tagLaserUsed = false; % laser tagging trials run in the current experiment
-        default_rewardDelay = 1000; % the reward TTL pulse is delivered right away not reflecting the delay, so add this to correct for it
+        default_rewardDelay = 1000; % 
         
         default_meanMass = [10 20 30 40 50 60 70 80 90 100; 2.95 3.52 4.10 4.67 5.25 5.82 6.40 6.97 7.55 8.12]; % torque(%) mass(g) mapping 
         
@@ -43,7 +71,9 @@
         addParameter(p,'pushThreshold',default_pushThreshold);
         addParameter(p,'meanMass',default_meanMass);
         addParameter(p,'fps',default_fps);
-        addParameter(p,'rewardDelay',default_rewardDelay)
         
         parse(p,filePath,vargs{:})
     end
+
+
+end
