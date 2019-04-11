@@ -1,5 +1,9 @@
 function behaviorTimestampsJs(p)
-%behaviorTimestamps
+%This script detects behaviorTimestamps for the js2.0 data. 
+% Note that the reward TTL pulse is generated right after the threshold
+% crossing without reflecting the rewardDelay (default: 1000 ms) used in the task. 
+% Thus, the delay needs to be added here to correct for this, and properly
+% align to the true reward delivery. 
 
 %addpath(genpath(''))
 %filePath = '/Volumes/RAID2/parkj/NeuralData/js2.0/WR25/101718';

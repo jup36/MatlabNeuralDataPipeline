@@ -1,14 +1,14 @@
 function [S] = jsVideoFileOrganizer(filePath)
-%This function inspects the trial-by-trial 
+%This function inspects the trial-by-trial
 cd(filePath)
 if exist('jsTime1k_K','var')==1
     S=jsTime1k_K;
 else
     pathJsTime1k_K = dir('**/*_kinematics.mat');
     S=load(fullfile(pathJsTime1k_K.folder,pathJsTime1k_K.name),'jsTime1k_K'); % just building up on the outcome of jsKinematicsAnalysis.m to create one all-inclusive file
-    S = S.('jsTime1k_K'); 
+    S = S.('jsTime1k_K');
 end
-S = rmfield(S,{'baseJsTrajmm','baseSmJsVel','basePeriodicAbsVelSum'}); % rmfield remove fields from a structure array 
+S = rmfield(S,{'baseJsTrajmm','baseSmJsVel','basePeriodicAbsVelSum'}); % rmfield remove fields from a structure array
 
 load(fullfile(filePath,'BehVariablesJs.mat'), 'evtIdx1k', 'p')
 load(fullfile(filePath,'evtIndices.mat'), 'trStartIdx', 'trEndIdx')
@@ -103,9 +103,9 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                     tempVF.path = fullfile(vFronFiles(tempVFronI).folder, vFronFiles(tempVFronI).name);
                     tempVF.name = vFronFiles(tempVFronI).name;
                     
-                    tempVS = mmread(fullfile(vSideFiles(tempVSideI).folder, vSideFiles(tempVSideI).name),1); % get the trial-by-trial side cam video info, just read the first frame only for speed 
+                    tempVS = mmread(fullfile(vSideFiles(tempVSideI).folder, vSideFiles(tempVSideI).name),1); % get the trial-by-trial side cam video info, just read the first frame only for speed
                     tempVS.path = fullfile(vSideFiles(tempVSideI).folder, vSideFiles(tempVSideI).name);
-                    tempVS.name = vSideFiles(tempVSideI).name;                   
+                    tempVS.name = vSideFiles(tempVSideI).name;
                     
                     if vFronFiles(tempVFronI).fileCalled==1 && abs(tempVF.totalDuration - vFronFiles(tempVFronI).framesUsed) < 4 % if video file used before, and most of the frames were assigned in previous calls
                         tempVFronI = tempVFronI + 1; % go try the next video file
@@ -121,48 +121,50 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                         tempVS.name = vSideFiles(tempVSideI).name;
                     end
                     
-                    [tempFrameDur,tempFrameDurI] = min([tempVF.totalDuration, tempPulseTrainLength]);
-                    if tempFrameDurI==1
-                    elseif tempFrameDurI==2
-                        tempFrameDur=tempFrameDur-2;
-                    end
-                    
-                    if vFronFiles(tempVFronI).fileCalled==0 && vSideFiles(tempVSideI).fileCalled==0 % if not used before take the pulse start as the frame reference
-                        tempFrameTime = evtIdx1k.camTrigFallIdx(tempPulseTStartIdx+1:tempPulseTStartIdx+tempFrameDur); %evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempVF.totalDuration+1:tempPulseTStopIdx); % get the frame times
-                    elseif vFronFiles(tempVFronI).fileCalled==1 && vSideFiles(tempVSideI).fileCalled==1 % if used before take the pulse stop as the frame reference
-                        tempFrameTime = evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempFrameDur+1:tempPulseTStopIdx); %evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempVF.totalDuration+1:tempPulseTStopIdx); % get the frame times
-                    end
-                    
-                    % ensure that the vFile start time is before the tbytCsv file completion, also ensure that the vFile completion time is before the next tbytCsv file completion
-                    %                     if vFronFileStartDatenum(tempVFronI)<=tbytCsvList(tbytCsvdateSort(t)).datenum && tbytCsvList(tbytCsvdateSort(t+1)).datenum>vFronFiles(tempVFronI).datenum ...
-                    %                             && vSideFileStartDatenum(tempVSideI)<=tbytCsvList(tbytCsvdateSort(t)).datenum && tbytCsvList(tbytCsvdateSort(t+1)).datenum>vSideFiles(tempVSideI).datenum
-                    
-                    if vFronFileStartDatenum(tempVFronI)<=tbytCsvList(tbytCsvdateSort(t)).datenum && vSideFileStartDatenum(tempVSideI)<=tbytCsvList(tbytCsvdateSort(t)).datenum
-                        if tempFrameTime(1)<S(t).trJsReady && S(t).trEnd<tempFrameTime(end) && abs(tempVF.totalDuration-tempVS.totalDuration)<=1 && vFronFiles(tempVFronI).fileCalled<2
-                            % mark the video file usage
-                            vFronFiles(tempVFronI).fileCalled = vFronFiles(tempVFronI).fileCalled + 1;
-                            vSideFiles(tempVSideI).fileCalled = vSideFiles(tempVSideI).fileCalled + 1;
-                            
-                            % mark the number of frames already assigned
-                            vFronFiles(tempVFronI).framesUsed = tempFrameDur;
-                            vSideFiles(tempVSideI).framesUsed = tempFrameDur;
-                            
-                            S(t).fVideo = tempVF.path; % front video path
-                            S(t).sVideo = tempVS.path; % side video path
-                            S(t).vFrameTime = tempFrameTime; % mark the frame time points
-                            S(t).framePulseId = tempPulseTrainId;
-                            S(t).origVideoFramesCnt = tempVF.totalDuration;
-                            S(t).fVideoInfo = tempVF;
-                            S(t).sVideoInfo = tempVS;
-                            S(t).framePulses = tempPulseTrainLength;
-                            S(t).usedFrameCnt = tempFrameDur;
-                            S(t).fVideoStart = datetime(vFronFileStartDatenum(tempVFronI),'ConvertFrom','datenum');
-                            S(t).sVideoStart = datetime(vSideFileStartDatenum(tempVSideI),'ConvertFrom','datenum');
-                            S(t).fVideoCmplt = datetime(vFronFiles(tempVFronI).datenum,'ConvertFrom','datenum');
-                            S(t).sVideoCmplt = datetime(vSideFiles(tempVSideI).datenum,'ConvertFrom','datenum');
-                            S(t).tbytCsvFileCmplt = datetime(tbytCsvList(tbytCsvdateSort(t)).datenum,'ConvertFrom','datenum');
-                            S(t).vFronFileCalled = vFronFiles(tempVFronI).fileCalled; % # of file called
-                            S(t).vSideFileCalled = vSideFiles(tempVSideI).fileCalled; % # of file called                         
+                    if tempVF.totalDuration>1 && tempVS.totalDuration>1
+                        [tempFrameDur,tempFrameDurI] = min([tempVF.totalDuration, tempPulseTrainLength]);
+                        if tempFrameDurI==1
+                        elseif tempFrameDurI==2
+                            tempFrameDur=tempFrameDur-2;
+                        end
+                        
+                        if vFronFiles(tempVFronI).fileCalled==0 && vSideFiles(tempVSideI).fileCalled==0 % if not used before take the pulse start as the frame reference
+                            tempFrameTime = evtIdx1k.camTrigFallIdx(tempPulseTStartIdx+1:tempPulseTStartIdx+tempFrameDur); %evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempVF.totalDuration+1:tempPulseTStopIdx); % get the frame times
+                        elseif vFronFiles(tempVFronI).fileCalled==1 && vSideFiles(tempVSideI).fileCalled==1 % if used before take the pulse stop as the frame reference
+                            tempFrameTime = evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempFrameDur+1:tempPulseTStopIdx); %evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempVF.totalDuration+1:tempPulseTStopIdx); % get the frame times
+                        end
+                        
+                        % ensure that the vFile start time is before the tbytCsv file completion, also ensure that the vFile completion time is before the next tbytCsv file completion
+                        %                     if vFronFileStartDatenum(tempVFronI)<=tbytCsvList(tbytCsvdateSort(t)).datenum && tbytCsvList(tbytCsvdateSort(t+1)).datenum>vFronFiles(tempVFronI).datenum ...
+                        %                             && vSideFileStartDatenum(tempVSideI)<=tbytCsvList(tbytCsvdateSort(t)).datenum && tbytCsvList(tbytCsvdateSort(t+1)).datenum>vSideFiles(tempVSideI).datenum
+                        
+                        if vFronFileStartDatenum(tempVFronI)<=tbytCsvList(tbytCsvdateSort(t)).datenum && vSideFileStartDatenum(tempVSideI)<=tbytCsvList(tbytCsvdateSort(t)).datenum
+                            if tempFrameTime(1)<S(t).trJsReady && S(t).trEnd<tempFrameTime(end) && abs(tempVF.totalDuration-tempVS.totalDuration)<=1 && vFronFiles(tempVFronI).fileCalled<2
+                                % mark the video file usage
+                                vFronFiles(tempVFronI).fileCalled = vFronFiles(tempVFronI).fileCalled + 1;
+                                vSideFiles(tempVSideI).fileCalled = vSideFiles(tempVSideI).fileCalled + 1;
+                                
+                                % mark the number of frames already assigned
+                                vFronFiles(tempVFronI).framesUsed = tempFrameDur;
+                                vSideFiles(tempVSideI).framesUsed = tempFrameDur;
+                                
+                                S(t).fVideo = tempVF.path; % front video path
+                                S(t).sVideo = tempVS.path; % side video path
+                                S(t).vFrameTime = tempFrameTime; % mark the frame time points
+                                S(t).framePulseId = tempPulseTrainId;
+                                S(t).origVideoFramesCnt = tempVF.totalDuration;
+                                S(t).fVideoInfo = tempVF;
+                                S(t).sVideoInfo = tempVS;
+                                S(t).framePulses = tempPulseTrainLength;
+                                S(t).usedFrameCnt = tempFrameDur;
+                                S(t).fVideoStart = datetime(vFronFileStartDatenum(tempVFronI),'ConvertFrom','datenum');
+                                S(t).sVideoStart = datetime(vSideFileStartDatenum(tempVSideI),'ConvertFrom','datenum');
+                                S(t).fVideoCmplt = datetime(vFronFiles(tempVFronI).datenum,'ConvertFrom','datenum');
+                                S(t).sVideoCmplt = datetime(vSideFiles(tempVSideI).datenum,'ConvertFrom','datenum');
+                                S(t).tbytCsvFileCmplt = datetime(tbytCsvList(tbytCsvdateSort(t)).datenum,'ConvertFrom','datenum');
+                                S(t).vFronFileCalled = vFronFiles(tempVFronI).fileCalled; % # of file called
+                                S(t).vSideFileCalled = vSideFiles(tempVSideI).fileCalled; % # of file called
+                            end
                         end
                     end
                 else % for the last two trials
@@ -197,38 +199,40 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                     end
                     tempVF = mmread(fullfile(vFronFiles(tempVFronI).folder, vFronFiles(tempVFronI).name),1); % get the trial-by-trial front cam video info
                     tempVF.path = fullfile(vFronFiles(tempVFronI).folder, vFronFiles(tempVFronI).name);
-                    tempVF.name = vFronFiles(tempVFronI).name;                    
+                    tempVF.name = vFronFiles(tempVFronI).name;
                     
                     tempVS = mmread(fullfile(vSideFiles(tempVSideI).folder, vSideFiles(tempVSideI).name),1); % get the trial-by-trial side cam video info
                     tempVS.path = fullfile(vSideFiles(tempVSideI).folder, vSideFiles(tempVSideI).name);
                     tempVS.name = vSideFiles(tempVSideI).name;
                     
-                    tempFrameTime = evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempVF.totalDuration+1:tempPulseTStopIdx); % get the frame times
-                    
-                    if vFronFiles(tempVFronI).fileCalled<2 && vSideFiles(tempVSideI).fileCalled<2 && tempFrameTime(1)<S(t).trJsReady && S(t).trEnd<tempFrameTime(end) && tempVF.totalDuration==tempVS.totalDuration && abs(tempPulseTrainLength-tempVF.totalDuration)<4 % the video frame counts happen to be consistently fewer than the # of frame pulses by 2
-                        % mark the video file usage
-                        vFronFiles(tempVFronI).fileCalled = vFronFiles(tempVFronI).fileCalled + 1;
-                        vSideFiles(tempVSideI).fileCalled = vSideFiles(tempVSideI).fileCalled + 1;
+                    if tempVF.totalDuration>1 && tempVS.totalDuration>1
+                        tempFrameTime = evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempVF.totalDuration+1:tempPulseTStopIdx); % get the frame times
                         
-                        % mark the number of frames already assigned
-                        vFronFiles(tempVFronI).framesUsed = tempFrameDur;
-                        vSideFiles(tempVSideI).framesUsed = tempFrameDur;
-                        
-                        S(t).fVideo = fullfile(tempVF.path, tempVF.name); % front video path
-                        S(t).sVideo = fullfile(tempVS.path, tempVS.name); % side video path
-                        S(t).vFrameTime = tempFrameTime; % mark the frame time points
-                        S(t).framePulseId = tempPulseTrainId;
-                        S(t).origVideoFramesCnt = tempVF.totalDuration;
-                        S(t).fVideoInfo = tempVF;
-                        S(t).sVideoInfo = tempVS;
-                        S(t).framePulses = tempPulseTrainLength;
-                        S(t).usedFrameCnt = tempFrameDur;
-                        S(t).fVideoStart = datetime(vFronFileStartDatenum(tempVFronI),'ConvertFrom','datenum');
-                        S(t).sVideoStart = datetime(vSideFileStartDatenum(tempVSideI),'ConvertFrom','datenum');
-                        S(t).fVideoCmplt = datetime(vFronFiles(tempVFronI).datenum,'ConvertFrom','datenum');
-                        S(t).sVideoCmplt = datetime(vSideFiles(tempVSideI).datenum,'ConvertFrom','datenum');                       
-                        S(t).vFronFileCalled = vFronFiles(tempVFronI).fileCalled; % the # of file called
-                        S(t).vSideFileCalled = vSideFiles(tempVSideI).fileCalled; % the # of file called
+                        if vFronFiles(tempVFronI).fileCalled<2 && vSideFiles(tempVSideI).fileCalled<2 && tempFrameTime(1)<S(t).trJsReady && S(t).trEnd<tempFrameTime(end) && tempVF.totalDuration==tempVS.totalDuration && abs(tempPulseTrainLength-tempVF.totalDuration)<4 % the video frame counts happen to be consistently fewer than the # of frame pulses by 2
+                            % mark the video file usage
+                            vFronFiles(tempVFronI).fileCalled = vFronFiles(tempVFronI).fileCalled + 1;
+                            vSideFiles(tempVSideI).fileCalled = vSideFiles(tempVSideI).fileCalled + 1;
+                            
+                            % mark the number of frames already assigned
+                            vFronFiles(tempVFronI).framesUsed = tempFrameDur;
+                            vSideFiles(tempVSideI).framesUsed = tempFrameDur;
+                            
+                            S(t).fVideo = fullfile(tempVF.path, tempVF.name); % front video path
+                            S(t).sVideo = fullfile(tempVS.path, tempVS.name); % side video path
+                            S(t).vFrameTime = tempFrameTime; % mark the frame time points
+                            S(t).framePulseId = tempPulseTrainId;
+                            S(t).origVideoFramesCnt = tempVF.totalDuration;
+                            S(t).fVideoInfo = tempVF;
+                            S(t).sVideoInfo = tempVS;
+                            S(t).framePulses = tempPulseTrainLength;
+                            S(t).usedFrameCnt = tempFrameDur;
+                            S(t).fVideoStart = datetime(vFronFileStartDatenum(tempVFronI),'ConvertFrom','datenum');
+                            S(t).sVideoStart = datetime(vSideFileStartDatenum(tempVSideI),'ConvertFrom','datenum');
+                            S(t).fVideoCmplt = datetime(vFronFiles(tempVFronI).datenum,'ConvertFrom','datenum');
+                            S(t).sVideoCmplt = datetime(vSideFiles(tempVSideI).datenum,'ConvertFrom','datenum');
+                            S(t).vFronFileCalled = vFronFiles(tempVFronI).fileCalled; % the # of file called
+                            S(t).vSideFileCalled = vSideFiles(tempVSideI).fileCalled; % the # of file called
+                        end
                     end
                 end
             end
@@ -243,5 +247,5 @@ else
 end
 
 % rename and save the structure
-jsTime1k_KV = S;  
-save(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles'),'jsTime1k_KV'); 
+jsTime1k_KV = S;
+save(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles'),'jsTime1k_KV');
