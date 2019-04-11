@@ -34,7 +34,7 @@ nSamp = SampRate(meta);          % sampling rate (default: 25kHz)
 totalTimeSecs = str2double(meta.fileTimeSecs); % total duration of file in seconds
 
 if ~isempty(dir(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat'))) && p.Results.reReadBin==false % if the gainCorrectRawTraces.mat file already exists in the filePath
-    load(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat'), 'lick', 'trStart', 'reward', 'trEnd', 'camTrig', 'encodeA', 'encodeB' ) % if there are gaincorrectedrawtraces already saved, just load them
+    load(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat'), 'lick', 'trStart', 'reward', 'trEnd', 'camTrig', 'encodeA', 'encodeB', 'laser' ) % if there are gaincorrectedrawtraces already saved, just load them
 else
     % Specify the relevant behavioral channel numbers
     trStartCh  = channels{1}+p.Results.trStartCh; % ch# for trial start
