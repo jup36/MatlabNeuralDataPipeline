@@ -1,5 +1,7 @@
+function cgDelayedStimEffectAnalysisJsTrj(filePath)
 
-filePath = '/Volumes/RAID2/parkj/NeuralData/js2.0/WR37/022619/Matfiles';
+
+%filePath = '/Volumes/RAID2/parkj/NeuralData/js2.0/WR37/022619/Matfiles';
 cd(filePath)
 S = load(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles.mat'));  % load jsTime1k_KV.mat
 S = S.('jsTime1k_KV');
@@ -13,47 +15,49 @@ firstRwdTrial = find([S(:).rewarded]==1,1,'first');
 % All trials
 figure; hold on;
 for t = 2:length(S)
-    if isnan(S(t).stimLaserOn)
-        if isstruct(S(t).movKins)
-            trStartPt = S(t).trJsReady-(S(t-1).trEnd+4000); % align to the putative stim on, stim generated 4-sec after the last trial offset with the camTrigger
-            plot(trStartPt+1:trStartPt+length(S(t).movKins.sgJsTrajmm), S(t).movKins.sgJsTrajmm, 'Color',[70,240,240]./255);
-            plot(trStartPt+1, S(t).movKins.sgJsTrajmm(1), 'o', 'MarkerFaceColor', [70,240,240]./255, 'MarkerEdgeColor', 'none', 'MarkerSize', 5);
+    if t >=8
+        if isnan(S(t).stimLaserOn)
+            if isstruct(S(t).movKins)
+                trStartPt = S(t).trJsReady-(S(t-1).trEnd+7000); % align to the putative stim on, stim generated 4-sec after the last trial offset with the camTrigger
+                plot(trStartPt+1:trStartPt+length(S(t).movKins.sgJsTrajmm), S(t).movKins.sgJsTrajmm, 'Color',[70,240,240]./255);
+                plot(trStartPt+1, S(t).movKins.sgJsTrajmm(1), 'o', 'MarkerFaceColor', [70,240,240]./255, 'MarkerEdgeColor', 'none', 'MarkerSize', 5);
+            end
+        elseif ~isnan(S(t).stimLaserOn)
+            if isstruct(S(t).movKins)
+                trStartPt = S(t).trJsReady-(S(t-1).trEnd+7000); % align to the putative stim on, stim generated 4-sec after the last trial offset with the camTrigger
+                plot(trStartPt+1:trStartPt+length(S(t).movKins.sgJsTrajmm), S(t).movKins.sgJsTrajmm, 'Color',[240,50,230]./255);
+                plot(trStartPt+1, S(t).movKins.sgJsTrajmm(1), 'o', 'MarkerFaceColor', [240,50,230]./255, 'MarkerEdgeColor', 'none', 'MarkerSize', 5);
+            end
         end
-    elseif ~isnan(S(t).stimLaserOn)
-        if isstruct(S(t).movKins)
-            trStartPt = S(t).trJsReady-(S(t-1).trEnd+4000); % align to the putative stim on, stim generated 4-sec after the last trial offset with the camTrigger
-            plot(trStartPt+1:trStartPt+length(S(t).movKins.sgJsTrajmm), S(t).movKins.sgJsTrajmm, 'Color',[240,50,230]./255);
-            plot(trStartPt+1, S(t).movKins.sgJsTrajmm(1), 'o', 'MarkerFaceColor', [240,50,230]./255, 'MarkerEdgeColor', 'none', 'MarkerSize', 5);
-        end     
     end
 end
 clearvars t trStartPt
 hold off;
-xlim([0 8000]); xlabel('Time relative to actual/putative stim onset')
+xlim([-1000 10000]); xlabel('Time relative to actual/putative stim onset')
 ylim([-20 20]); ylabel('Joystick position (mm)')
-print(fullfile(filePath,'Figure','JsTrajStimVsNoStim-AllTrials'), '-dpdf','-painters')
+print(fullfile(filePath,'Figure','JsTrajStimVsNoStim-AllTrials'), '-dpdf','-painters','-bestfit')
 
 % Successful trials only
 hold on; 
 for t = 2:length(S)
     if isnan(S(t).stimLaserOn)
         if isstruct(S(t).movKins) && strcmpi(S(t).trialType,'sp')
-            trStartPt = S(t).trJsReady-(S(t-1).trEnd+4000); % align to the putative stim on, stim generated 4-sec after the last trial offset with the camTrigger
+            trStartPt = S(t).trJsReady-(S(t-1).trEnd+7000); % align to the putative stim on, stim generated 4-sec after the last trial offset with the camTrigger
             plot(trStartPt+1:trStartPt+length(S(t).movKins.sgJsTrajmm), S(t).movKins.sgJsTrajmm, 'Color',[70,240,240]./255);
             plot(trStartPt+1, S(t).movKins.sgJsTrajmm(1), 'o', 'MarkerFaceColor', [70,240,240]./255, 'MarkerEdgeColor', 'none', 'MarkerSize', 5);
         end
     elseif ~isnan(S(t).stimLaserOn) && strcmpi(S(t).trialType,'sp')
         if isstruct(S(t).movKins)
-            trStartPt = S(t).trJsReady-(S(t-1).trEnd+4000); % align to the putative stim on, stim generated 4-sec after the last trial offset with the camTrigger
+            trStartPt = S(t).trJsReady-(S(t-1).trEnd+7000); % align to the putative stim on, stim generated 4-sec after the last trial offset with the camTrigger
             plot(trStartPt+1:trStartPt+length(S(t).movKins.sgJsTrajmm), S(t).movKins.sgJsTrajmm, 'Color',[240,50,230]./255);
             plot(trStartPt+1, S(t).movKins.sgJsTrajmm(1), 'o', 'MarkerFaceColor', [240,50,230]./255, 'MarkerEdgeColor', 'none', 'MarkerSize', 5);
         end     
     end
 end
 clearvars t trStartPt
-xlim([0 8000]); xlabel('Time relative to actual/putative stim onset(ms)')
+xlim([-1000 10000]); xlabel('Time relative to actual/putative stim onset(ms)')
 ylim([-20 5]); ylabel('Joystick position (mm)')
-print(fullfile(filePath,'Figure','JsTrajStimVsNoStim-SuccessTrials'), '-dpdf','-painters')
+print(fullfile(filePath,'Figure','JsTrajStimVsNoStim-SuccessTrials'), '-dpdf','-painters','-bestfit')
 hold off;
 
 %% Reach probability P(reachOn|Time), Expected Js position E(JsPosition|Time)
@@ -94,7 +98,7 @@ g(1,2)=gramm('x',X,'y',jsReachOn,'color',stimTrIdx);
 
 g(1,1).stat_summary();
 g(1,1).set_title('E(jsPos)');
-g(1,1).axe_property('ylim',[-15 1]); 
+g(1,1).axe_property('ylim',[-10 1]); 
 
 g(1,2).stat_summary();
 g(1,2).set_title('P(reachOn|Time)');
@@ -104,10 +108,6 @@ g.draw();
 %set(gcf,'renderer','painters')
 print(fullfile(filePath,'Figure','reachProb_expectedJsPos'), '-dpdf','-bestfit','-painters')
 
-
-
-
-
-
+end
 
 
