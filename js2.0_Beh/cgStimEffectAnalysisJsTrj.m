@@ -1,5 +1,6 @@
+function cgStimEffectAnalysisJsTrj(filePath)
 
-filePath = '/Volumes/RAID2/parkj/NeuralData/js2.0/WR37/022619/Matfiles';
+%filePath = '/Volumes/RAID2/parkj/NeuralData/js2.0/WR37/022619/Matfiles';
 cd(filePath)
 S = load(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles.mat'));  % load jsTime1k_KV.mat
 S = S.('jsTime1k_KV');
@@ -104,10 +105,6 @@ g.draw();
 %set(gcf,'renderer','painters')
 print(fullfile(filePath,'Figure','reachProb_expectedJsPos'), '-dpdf','-bestfit','-painters')
 
-
-
-
-
-
+end
 
 
