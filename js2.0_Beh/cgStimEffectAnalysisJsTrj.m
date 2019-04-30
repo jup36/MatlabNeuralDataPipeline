@@ -32,7 +32,7 @@ clearvars t trStartPt
 hold off;
 xlim([0 8000]); xlabel('Time relative to actual/putative stim onset')
 ylim([-20 20]); ylabel('Joystick position (mm)')
-print(fullfile(filePath,'Figure','JsTrajStimVsNoStim-AllTrials'), '-dpdf','-painters')
+print(fullfile(filePath,'Figure','JsTrajStimVsNoStim_AllTrials'), '-dpdf','-painters')
 
 % Successful trials only
 hold on; 
