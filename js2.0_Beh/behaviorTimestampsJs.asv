@@ -150,11 +150,11 @@ else
         evtIdx25k.stimLaserFallIdx = evtIdx25k.laserFallIdx(evtIdx25k.laserFallIdx<trEndIdx(end));
         evtIdx1k.stimLaserRiseIdx = round(evtIdx25k.stimLaserRiseIdx./25);
         evtIdx1k.stimLaserFallIdx = round(evtIdx25k.stimLaserFallIdx./25);
-        if p.Results.tagLaserUsed
-            evtIdx25k.tagLaserRiseIdx = evtIdx25k.laserRiseIdx(end-p.Results.numbTagLaser+1:end);
-            evtIdx25k.tagLaserFallIdx = evtIdx25k.laserFallIdx(end-p.Results.numbTagLaser+1:end);
+        if 
             evtIdx1k.tagLaserRiseIdx = round(evtIdx25k.tagLaserRiseIdx./25);
             evtIdx1k.tagLaserFallIdx = round(evtIdx25k.tagLaserFallIdx./25);
+            evtIdx25k.tagLaserRiseIdx = evtIdx25k.laserRiseIdx(end-p.Results.numbTagLaser+1:end);
+            evtIdx25k.tagLaserFallIdx = evtIdx25k.laserFallIdx(end-p.Results.numbTagLaser+1:end);
         end
     end
     
