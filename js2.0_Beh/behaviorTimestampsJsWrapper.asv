@@ -1,4 +1,32 @@
-function p = parse_input_Js( filePath, vargs )
+function behaviorTimestampsJsWrapper(filePath, varargin)
+%This is a wrapper function to run behaviorTimestampsJs.
+
+defaultPath = 'Z:\parkj\NeuralData\js2.0';
+
+if iscell(filePath)
+    if isempty(filePath)
+       filePath = {uigetdir(defaultPath)};         
+    end
+else
+    error('Input a cell array with a filePath(s) or an empty cell array!'); 
+end
+
+for f = 1:length(filePath) 
+    if ~isempty(dir(fullfile(filePath{f})))
+        currentPath = fullfile(filePath{f}); 
+    else
+        error('Input a proper file path'); 
+    end
+    p = parse_input_Js(currentPath, varargin); 
+    % p = parse_input_Js(currentPath, {'trialTimeout',10000,'laserUsed',true,'tagLaserUsed', true, 'reReadBin',false, 'numbNeuralProbe', 1, 'rewardDelay', 500}); 
+    behaviorTimestampsJs(p);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+% NESTED HELPER FUNCTIONS
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    function p = parse_input_Js( filePath, vargs )
         % parse input, and extract name-value pairs
         default_reReadBin = false; % by default do not re-read the raw bin file, if done already 
         default_numbNeuralProbe = 0;  % specify how many NIboard probes were used (e.g. zero if no NI neural probe was used)
@@ -38,7 +66,7 @@ function p = parse_input_Js( filePath, vargs )
         addParameter(p,'laserCh',default_laserCh);
         addParameter(p,'plaserCh',default_plaserCh); 
         addParameter(p,'laserUsed',default_laserUsed);
-        addParameter(p,'plaserUsed',default_plaserUsed);
+        addPara
         addParameter(p,'tagLaserUsed',default_tagLaserUsed); 
         addParameter(p,'numbTagLaser',default_numbTagLaser); 
         addParameter(p,'lickCh',default_lickCh);
@@ -51,3 +79,6 @@ function p = parse_input_Js( filePath, vargs )
         
         parse(p,filePath,vargs{:})
     end
+
+
+end

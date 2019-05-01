@@ -44,6 +44,7 @@ else
     encodeACh  = channels{1}+p.Results.encodeACh; % ch# for stepper direction
     encodeBCh = channels{1}+p.Results.encodeBCh; % ch# for stepper steps
     laserCh   = channels{1}+p.Results.laserCh;   % ch# for laser triggers
+    plaserCh  = channels{1}+p.Results.plaserCh;  % ch# for pseudolaser triggers
     lickCh = channels{1}+p.Results.lickCh;   % ch# for lick detect
     
     % preallocate the behavioral data arrays
@@ -54,6 +55,7 @@ else
     encodeA   = zeros(1,floor(totalTimeSecs*25000));
     encodeB   = zeros(1,floor(totalTimeSecs*25000));
     laser     = zeros(1,floor(totalTimeSecs*25000));
+    plaser    = zeros(1,floor(totalTimeSecs*25000));
     lick      = zeros(1,floor(totalTimeSecs*25000));
     
     for i = 0:totalTimeSecs-1 % read second-by-second incrementally to avoid a memory issue
@@ -66,6 +68,7 @@ else
         tempEncodeB  = tempDataArray(encodeBCh,:); % do not decimate for higher temporal resolution
         tempLick     = tempDataArray(lickCh,:);
         tempLaser    = tempDataArray(laserCh,:);
+        tempPLaser   = tempDataArray(plaserCh,:);
         
         trStart(1,i*25000+1:(i+1)*25000) = tempTrStart; % accumulated the decimated data second-by-second
         camTrig(1,i*25000+1:(i+1)*25000) = tempCamTrig;
@@ -75,6 +78,8 @@ else
         encodeB(1,i*25000+1:(i+1)*25000)  = tempEncodeB;
         lick(1,i*25000+1:(i+1)*25000) = tempLick;
         laser(1,i*25000+1:(i+1)*25000) = tempLaser;
+        plaser(1,i*25000+1:(i+1)*25000) = tempPLaser;
+        
         fprintf('processed %d\n', i+1)
     end
     clearvars i
@@ -89,6 +94,7 @@ else
         encodeB = GainCorrectIM(encodeB, 1, meta); % gain-corrected voltage trace for encodeB
         lick = GainCorrectIM(lick, 1, meta); % gain-corrected voltage trace for lick
         laser = GainCorrectIM(laser, 1, meta);
+        plaser = GainCorrectIM(plaser, 1, meta);
     else    % in case of recording via NI board
         trStart = GainCorrectNI(trStart, 1, meta); % gain-corrected voltage trace for trStart
         camTrig = GainCorrectNI(camTrig, 1, meta); % gain-corrected voltage trace for camTrig
@@ -98,9 +104,10 @@ else
         encodeB = GainCorrectNI(encodeB, 1, meta); % gain-corrected voltage trace for encodeB
         lick = GainCorrectNI(lick, 1, meta); % gain-corrected voltage trace for lick
         laser = GainCorrectNI(laser, 1, meta);
+        plaser = GainCorrectNI(plaser, 1, meta);
     end
     clearvars temp*
-    save('gainCorrectRawTraces', 'trStart', 'camTrig', 'reward', 'trEnd', 'encodeA', 'encodeB', 'lick', 'laser')
+    save('gainCorrectRawTraces', 'trStart', 'camTrig', 'reward', 'trEnd', 'encodeA', 'encodeB', 'lick', 'laser', 'plaser')
 end
 
 %% task event detection
@@ -156,6 +163,12 @@ else
             evtIdx1k.tagLaserRiseIdx = round(evtIdx25k.tagLaserRiseIdx./25);
             evtIdx1k.tagLaserFallIdx = round(evtIdx25k.tagLaserFallIdx./25);
         end
+    end
+    
+    if p.Results.plaserUsed
+        [evtIdx25k.plaserRiseIdx, evtIdx25k.plaserFallIdx] = detecteventbythreshold(plaser, 25000, 50, 'stdFactor',2, 'plotRez',false, 'chunkPulses', false);
+        evtIdx1k.plaserRiseIdx = round(evtIdx25k.plaserRiseIdx./25);
+        evtIdx1k.plaserFallIdx = round(evtIdx25k.plaserFallIdx./25);
     end
     
     % store evt indices
@@ -263,6 +276,7 @@ for t = 1:length(trStartIdx) % increment trials
                         jsTime25k(t).stimLaserOn  = NaN;
                         jsTime25k(t).stimLaserOff = NaN;
                     end
+                    
                 elseif t > 1
                     tempStim = find(evtIdx25k.stimLaserRiseIdx<jsTime25k(t).trEnd & evtIdx25k.stimLaserRiseIdx>jsTime25k(t-1).trEnd,1);
                     if ~isempty(tempStim)
@@ -271,6 +285,29 @@ for t = 1:length(trStartIdx) % increment trials
                     else
                         jsTime25k(t).stimLaserOn  = NaN;
                         jsTime25k(t).stimLaserOff = NaN;
+                    end
+                end
+            end
+            
+            if p.Results.plaserUsed
+                if t == 1
+                    tempPlaser = find(evtIdx25k.plaserRiseIdx<jsTime25k(t).trEnd);
+                    if ~isempty(tempPlaser)
+                        jsTime25k(t).pLaserOn  = evtIdx25k.plaserRiseIdx(tempPlaser);
+                        jsTime25k(t).pLaserOff = evtIdx25k.plaserFallIdx(tempPlaser);
+                    else
+                        jsTime25k(t).pLaserOn  = NaN;
+                        jsTime25k(t).pLaserOff = NaN;
+                    end
+                    
+                elseif t > 1
+                    tempPlaser = find(evtIdx25k.plaserRiseIdx<jsTime25k(t).trEnd & evtIdx25k.plaserRiseIdx>jsTime25k(t-1).trEnd,1);
+                    if ~isempty(tempPlaser)
+                        jsTime25k(t).pLaserOn  = evtIdx25k.plaserRiseIdx(tempPlaser);
+                        jsTime25k(t).pLaserOff = evtIdx25k.plaserFallIdx(tempPlaser);
+                    else
+                        jsTime25k(t).pLaserOn  = NaN;
+                        jsTime25k(t).pLaserOff = NaN;
                     end
                 end
             end
@@ -332,6 +369,29 @@ for t = 1:length(trStartIdx) % increment trials
                     else
                         jsTime25k(t).stimLaserOn  = NaN;
                         jsTime25k(t).stimLaserOff = NaN;
+                    end
+                end
+            end
+            
+            if p.Results.plaserUsed
+                if t == 1
+                    tempPlaser = find(evtIdx25k.plaserRiseIdx<jsTime25k(t).trEnd);
+                    if ~isempty(tempPlaser)
+                        jsTime25k(t).pLaserOn  = evtIdx25k.plaserRiseIdx(tempPlaser);
+                        jsTime25k(t).pLaserOff = evtIdx25k.plaserFallIdx(tempPlaser);
+                    else
+                        jsTime25k(t).pLaserOn  = NaN;
+                        jsTime25k(t).pLaserOff = NaN;
+                    end
+                    
+                elseif t > 1
+                    tempPlaser = find(evtIdx25k.plaserRiseIdx<jsTime25k(t).trEnd & evtIdx25k.plaserRiseIdx>jsTime25k(t-1).trEnd,1);
+                    if ~isempty(tempPlaser)
+                        jsTime25k(t).pLaserOn  = evtIdx25k.plaserRiseIdx(tempPlaser);
+                        jsTime25k(t).pLaserOff = evtIdx25k.plaserFallIdx(tempPlaser);
+                    else
+                        jsTime25k(t).pLaserOn  = NaN;
+                        jsTime25k(t).pLaserOff = NaN;
                     end
                 end
             end
