@@ -34,7 +34,7 @@ nSamp = SampRate(meta);          % sampling rate (default: 25kHz)
 totalTimeSecs = str2double(meta.fileTimeSecs); % total duration of file in seconds
 
 if ~isempty(dir(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat'))) && p.Results.reReadBin==false % if the gainCorrectRawTraces.mat file already exists in the filePath
-    load(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat'), 'lick', 'trStart', 'reward', 'trEnd', 'camTrig', 'encodeA', 'encodeB', 'laser' ) % if there are gaincorrectedrawtraces already saved, just load them
+    load(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat'), 'lick', 'trStart', 'reward', 'trEnd', 'camTrig', 'encodeA', 'encodeB', 'laser', 'plaser' ) % if there are gaincorrectedrawtraces already saved, just load them
 else
     % Specify the relevant behavioral channel numbers
     trStartCh  = channels{1}+p.Results.trStartCh; % ch# for trial start
@@ -166,7 +166,7 @@ else
     end
     
     if p.Results.plaserUsed
-        [evtIdx25k.plaserRiseIdx, evtIdx25k.plaserFallIdx] = detecteventbythreshold(plaser, 25000, 50, 'stdFactor',2, 'plotRez',false, 'chunkPulses', false);
+        [evtIdx25k.plaserRiseIdx, evtIdx25k.plaserFallIdx] = detecteventbythreshold(plaser, 25000, 50, 'stdFactor',1, 'plotRez',false, 'chunkPulses', false);
         evtIdx1k.plaserRiseIdx = round(evtIdx25k.plaserRiseIdx./25);
         evtIdx1k.plaserFallIdx = round(evtIdx25k.plaserFallIdx./25);
     end
@@ -447,6 +447,11 @@ if p.Results.laserUsed
     n2cStimLaserOn = num2cell(round([jsTime25k(:).stimLaserOn]./25)); [jsTime1k.stimLaserOn] = n2cStimLaserOn{:};
     n2cStimLaserOff = num2cell(round([jsTime25k(:).stimLaserOff]./25)); [jsTime1k.stimLaserOff] = n2cStimLaserOff{:};
 end
+if p.Results.plaserUsed
+    n2cPLaserOn = num2cell(round([jsTime25k(:).pLaserOn]./25)); [jsTime1k.pLaserOn] = n2cPLaserOn{:};
+    n2cPLaserOff = num2cell(round([jsTime25k(:).pLaserOff]./25)); [jsTime1k.pLaserOff] = n2cPLaserOff{:};
+end
+
 [jsTime1k.trialType] = jsTime25k(:).trialType;
 
 % generate a plot to inspect a certain trial
