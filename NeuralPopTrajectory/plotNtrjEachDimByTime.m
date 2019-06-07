@@ -10,14 +10,11 @@ x = bins; % x axis
 nTrjMat = []; 
 c = [];
 
-
 if ischar(cMap) % extract colors per fold
     colorMapFolds = TNC_CreateRBColormapJP(length(nTrjDimBinTrial),cMap);
 elseif size(cMap,1)==length(nTrjDimBinTrial) && size(cMap,2)==3 % the input might be a color map per fold
     colorMapFolds = cMap; 
 end
-
-
 
 figure;
 hold on; 

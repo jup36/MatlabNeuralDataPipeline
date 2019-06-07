@@ -8,7 +8,7 @@ class = [];
 spikeTimes = []; % spike time indices
 spikeTrain = []; % binned spike train
 
-classLabel = cell(1,length(foldDatCell)); 
+classLabel = cell(1,length(foldDatCell));  
 foldIdFmt = 'Fold#%d'; 
 for c = 1:length(classLabel)
     classLabel{1,c} = sprintf(foldIdFmt,c); 
