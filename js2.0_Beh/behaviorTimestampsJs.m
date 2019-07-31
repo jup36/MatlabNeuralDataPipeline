@@ -1,9 +1,5 @@
 function behaviorTimestampsJs(p)
-%This script detects behaviorTimestamps for the js2.0 data. 
-% Note that the reward TTL pulse is generated right after the threshold
-% crossing without reflecting the rewardDelay (default: 1000 ms) used in the task. 
-% Thus, the delay needs to be added here to correct for this, and properly
-% align to the true reward delivery. 
+%behaviorTimestamps
 
 %addpath(genpath(''))
 %filePath = '/Volumes/RAID2/parkj/NeuralData/js2.0/WR25/101718';
@@ -78,7 +74,7 @@ else
         encodeA(1,i*25000+1:(i+1)*25000) = tempEncodeA;
         encodeB(1,i*25000+1:(i+1)*25000)  = tempEncodeB;
         lick(1,i*25000+1:(i+1)*25000) = tempLick;
-        laser(1,i*25000+1:(i+1)*25000) = tempLaser; 
+        laser(1,i*25000+1:(i+1)*25000) = tempLaser;
         fprintf('processed %d\n', i+1)
     end
     clearvars i
@@ -92,7 +88,7 @@ else
         encodeA = GainCorrectIM(encodeA, 1, meta); % gain-corrected voltage trace for encodeA
         encodeB = GainCorrectIM(encodeB, 1, meta); % gain-corrected voltage trace for encodeB
         lick = GainCorrectIM(lick, 1, meta); % gain-corrected voltage trace for lick
-        laser = GainCorrectIM(laser, 1, meta); 
+        laser = GainCorrectIM(laser, 1, meta);
     else    % in case of recording via NI board
         trStart = GainCorrectNI(trStart, 1, meta); % gain-corrected voltage trace for trStart
         camTrig = GainCorrectNI(camTrig, 1, meta); % gain-corrected voltage trace for camTrig
@@ -101,7 +97,7 @@ else
         encodeA = GainCorrectNI(encodeA, 1, meta); % gain-corrected voltage trace for encodeA
         encodeB = GainCorrectNI(encodeB, 1, meta); % gain-corrected voltage trace for encodeB
         lick = GainCorrectNI(lick, 1, meta); % gain-corrected voltage trace for lick
-        laser = GainCorrectNI(laser, 1, meta); 
+        laser = GainCorrectNI(laser, 1, meta);
     end
     clearvars temp*
     save('gainCorrectRawTraces', 'trStart', 'camTrig', 'reward', 'trEnd', 'encodeA', 'encodeB', 'lick', 'laser')
@@ -134,7 +130,7 @@ else
     
     rwdIdx     = detecteventbythreshold(reward, 25000, 50, 'stdFactor',1, 'plotRez',false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse',true);  % reward
     fprintf('completed reward detection!');
-
+    
     % detect licks
     lickIdx = detecteventbythreshold(decimate(lick,nSamp/1000), 1000, 20, 'stdFactor',3, 'plotRez',false, 'chunkPulses', false); % lick, detect licks after downsampling (there seems to be some denoising effect with decimation, see /Volumes/RAID2/parkj/NeuralData/js2.0/WR25/101718/lickSignalExample_1kHzVS25kHz.fig as an example)
     %deciLick = decimate(lick, nSamp/1000); intDeciLick = interp1(1:length(deciLick), deciLick, linespace(1, length(deciLick), length(lick)));
@@ -148,21 +144,23 @@ else
     
     % detect laser
     if p.Results.laserUsed
-       % detect all laser (laser delivered during the task)
-       [evtIdx25k.laserRiseIdx, evtIdx25k.laserFallIdx] = detecteventbythreshold(laser, 25000, 50, 'stdFactor',2, 'plotRez',false, 'chunkPulses', false); 
-       evtIdx25k.stimLaserRiseIdx = evtIdx25k.laserRiseIdx(evtIdx25k.laserRiseIdx<trEndIdx(end)); 
-       evtIdx25k.stimLaserFallIdx = evtIdx25k.laserFallIdx(evtIdx25k.laserFallIdx<trEndIdx(end)); 
-       evtIdx25k.tagLaserRiseIdx = evtIdx25k.laserRiseIdx(end-p.Results.numbTagLaser+1:end); 
-       evtIdx25k.tagLaserFallIdx = evtIdx25k.laserFallIdx(end-p.Results.numbTagLaser+1:end);      
-       evtIdx1k.stimLaserRiseIdx = round(evtIdx25k.stimLaserRiseIdx./25); 
-       evtIdx1k.stimLaserFallIdx = round(evtIdx25k.stimLaserFallIdx./25); 
-       evtIdx1k.tagLaserRiseIdx = round(evtIdx25k.tagLaserRiseIdx./25); 
-       evtIdx1k.tagLaserFallIdx = round(evtIdx25k.tagLaserFallIdx./25);   
+        % detect all laser (laser delivered during the task)
+        [evtIdx25k.laserRiseIdx, evtIdx25k.laserFallIdx] = detecteventbythreshold(laser, 25000, 50, 'stdFactor',2, 'plotRez',false, 'chunkPulses', false);
+        evtIdx25k.stimLaserRiseIdx = evtIdx25k.laserRiseIdx(evtIdx25k.laserRiseIdx<trEndIdx(end));
+        evtIdx25k.stimLaserFallIdx = evtIdx25k.laserFallIdx(evtIdx25k.laserFallIdx<trEndIdx(end));
+        evtIdx1k.stimLaserRiseIdx = round(evtIdx25k.stimLaserRiseIdx./25);
+        evtIdx1k.stimLaserFallIdx = round(evtIdx25k.stimLaserFallIdx./25);
+        if p.Results.tagLaserUsed
+            evtIdx25k.tagLaserRiseIdx = evtIdx25k.laserRiseIdx(end-p.Results.numbTagLaser+1:end);
+            evtIdx25k.tagLaserFallIdx = evtIdx25k.laserFallIdx(end-p.Results.numbTagLaser+1:end);
+            evtIdx1k.tagLaserRiseIdx = round(evtIdx25k.tagLaserRiseIdx./25);
+            evtIdx1k.tagLaserFallIdx = round(evtIdx25k.tagLaserFallIdx./25);
+        end
     end
     
     % store evt indices
     evtIdx25k.trStartIdx = trStartIdx;
-    evtIdx25k.trEndIdx = trEndIdx; 
+    evtIdx25k.trEndIdx = trEndIdx;
     evtIdx25k.rwdIdx  = rwdIdx+nSamp*(p.Results.rewardDelay/1000); % correct for the delay
     evtIdx25k.lickIdx = lickIdx;
     evtIdx25k.camTrigRiseIdx = camTrigRiseIdx;
@@ -257,18 +255,18 @@ for t = 1:length(trStartIdx) % increment trials
             % determine if a laser stim was delivered in this trial
             if p.Results.laserUsed % assign stimLasers to corresponding trials
                 if t == 1
-                    tempStim = find(evtIdx25k.stimLaserRiseIdx<jsTime25k(t).trEnd); 
+                    tempStim = find(evtIdx25k.stimLaserRiseIdx<jsTime25k(t).trEnd);
                     if ~isempty(tempStim)
-                        jsTime25k(t).stimLaserOn  = evtIdx25k.stimLaserRiseIdx(tempStim); 
+                        jsTime25k(t).stimLaserOn  = evtIdx25k.stimLaserRiseIdx(tempStim);
                         jsTime25k(t).stimLaserOff = evtIdx25k.stimLaserFallIdx(tempStim);
                     else
                         jsTime25k(t).stimLaserOn  = NaN;
                         jsTime25k(t).stimLaserOff = NaN;
                     end
                 elseif t > 1
-                    tempStim = find(evtIdx25k.stimLaserRiseIdx<jsTime25k(t).trEnd & evtIdx25k.stimLaserRiseIdx>jsTime25k(t-1).trEnd,1); 
+                    tempStim = find(evtIdx25k.stimLaserRiseIdx<jsTime25k(t).trEnd & evtIdx25k.stimLaserRiseIdx>jsTime25k(t-1).trEnd,1);
                     if ~isempty(tempStim)
-                        jsTime25k(t).stimLaserOn  = evtIdx25k.stimLaserRiseIdx(tempStim); 
+                        jsTime25k(t).stimLaserOn  = evtIdx25k.stimLaserRiseIdx(tempStim);
                         jsTime25k(t).stimLaserOff = evtIdx25k.stimLaserFallIdx(tempStim);
                     else
                         jsTime25k(t).stimLaserOn  = NaN;
@@ -318,18 +316,18 @@ for t = 1:length(trStartIdx) % increment trials
             % determine if a laser stim was delivered in this trial
             if p.Results.laserUsed % assign stimLasers to corresponding trials
                 if t == 1
-                    tempStim = find(evtIdx25k.stimLaserRiseIdx<jsTime25k(t).trEnd); 
+                    tempStim = find(evtIdx25k.stimLaserRiseIdx<jsTime25k(t).trEnd);
                     if ~isempty(tempStim)
-                        jsTime25k(t).stimLaserOn  = evtIdx25k.stimLaserRiseIdx(tempStim); 
+                        jsTime25k(t).stimLaserOn  = evtIdx25k.stimLaserRiseIdx(tempStim);
                         jsTime25k(t).stimLaserOff = evtIdx25k.stimLaserFallIdx(tempStim);
                     else
                         jsTime25k(t).stimLaserOn  = NaN;
                         jsTime25k(t).stimLaserOff = NaN;
                     end
                 elseif t > 1
-                    tempStim = find(evtIdx25k.stimLaserRiseIdx<jsTime25k(t).trEnd & evtIdx25k.stimLaserRiseIdx>jsTime25k(t-1).trEnd,1); 
+                    tempStim = find(evtIdx25k.stimLaserRiseIdx<jsTime25k(t).trEnd & evtIdx25k.stimLaserRiseIdx>jsTime25k(t-1).trEnd,1);
                     if ~isempty(tempStim)
-                        jsTime25k(t).stimLaserOn  = evtIdx25k.stimLaserRiseIdx(tempStim); 
+                        jsTime25k(t).stimLaserOn  = evtIdx25k.stimLaserRiseIdx(tempStim);
                         jsTime25k(t).stimLaserOff = evtIdx25k.stimLaserFallIdx(tempStim);
                     else
                         jsTime25k(t).stimLaserOn  = NaN;
@@ -386,8 +384,8 @@ n2cPull_torque = num2cell([jsTime25k(:).pull_torque]); [jsTime1k.pull_torque] = 
 n2cReachP1 = num2cell([jsTime25k(:).reachP1]); [jsTime1k.reachP1] = n2cReachP1{:};
 n2cRewardT = num2cell(round([jsTime25k(:).rewardT]./25)); [jsTime1k.rewardT] = n2cRewardT{:};
 if p.Results.laserUsed
-n2cStimLaserOn = num2cell(round([jsTime25k(:).stimLaserOn]./25)); [jsTime1k.stimLaserOn] = n2cStimLaserOn{:};
-n2cStimLaserOff = num2cell(round([jsTime25k(:).stimLaserOff]./25)); [jsTime1k.stimLaserOff] = n2cStimLaserOff{:};
+    n2cStimLaserOn = num2cell(round([jsTime25k(:).stimLaserOn]./25)); [jsTime1k.stimLaserOn] = n2cStimLaserOn{:};
+    n2cStimLaserOff = num2cell(round([jsTime25k(:).stimLaserOff]./25)); [jsTime1k.stimLaserOff] = n2cStimLaserOff{:};
 end
 [jsTime1k.trialType] = jsTime25k(:).trialType;
 
