@@ -24,6 +24,12 @@ rewardPStimIdx = cellfun(@(y) find(y==true), rewardPStimI, 'UniformOutput', fals
 rewardPStim = cell2mat(cellfun(@(y) sum(ismember(ts.pseudoLaser,y)), rewardArrC, 'UniformOutput', false)); % logical for stim delivery during the pre-reward period 
 rewardStim(logical(rewardPStim))=2; % put 2 for the pseudoStim trials
 
+rewardArrCtrialInterval2End = arrayfun(@(x,y) x:y, ts.reward(1:end-1), ts.reward(2:end), 'UniformOutput',false); % interval between previous and current rewards
+rewardArrCtrialInterval1 = {max(1,ts.reward(1)-3000):ts.reward(1)};  % 1st trial
+rewardArrCtrialInterval = [rewardArrCtrialInterval1, rewardArrCtrialInterval2End]; 
+rewardStimITrialIntervalC = cellfun(@(y) sum(ismember(ts.stmLaser,y))==1, rewardArrCtrialInterval, 'UniformOutput', false); % index for stim delivery during the pre-reward period 
+rewardStimITrialInterval = cell2mat(rewardStimITrialIntervalC); 
+
 % sum(rewardStim&rewardPStim) % just a sanity check for the stim and pseudostim trials being mutually exclusive 
 
 %% get the event windows
@@ -170,6 +176,13 @@ g.set_title('Kinematics aligned to Laser vs pseudoLaser');
 g.draw();
 
 print( fullfile(filePath,'Figure',strcat(saveNameTag,'stimVSpstimKinematics_alignToStimOn')), '-dpdf', '-bestfit')
+
+%% plot stim vs. no-stim reward aligned
+reachPosRwdAlign = reshape([bTj(:).reachPos],[100 length(bTj)])';  
+stimLaserPos = reshape([bTjStimLaser(:).reachPos],[100 length(bTjStimLaser)])'; 
+[mStimPos,~,sStimPos] = meanstdsem(reachPosRwdAlign(rewardStimITrialInterval,:)); 
+[mNoStimPos,~,sNoStimPos] = meanstdsem(reachPosRwdAlign(~rewardStimITrialInterval,:)); 
+[mStimLaserPos,~,sStimLaserPos] = meanstdsem(stimLaserPos); 
 
 %% plot the stimLaser aligned behavioral kinematic data
 % clear g
