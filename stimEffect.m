@@ -10,7 +10,7 @@ function [stimE] = stimEffect( filePath, fileName, probeDepth, varargin )
 cd(filePath)
 
 p = parse_input_stimEffect( filePath, fileName, probeDepth, varargin );
-% p = parse_input_stimEffect( filePath, fileName, probeDepth, {} ); % use this when running line-by-line
+% p = parse_input_stimEffect( filePath, 'binSpkCountCTXPT05_070318', 4204, {'reachWinEdges',-2e3+1:2e3,'reachOnTime',0,'reachDur',750,'tagWinEdges',-5e3+1:5e3,'tagOnTime',0,'tagDur',1000,'lowFRcut',0.5,'colorAxis',[-3 3],'tagColorAxis',[-20 20]} ); % use this when running line-by-line
 
 if strcmp(p.Results.fileName(1,end-3:end),'.mat')
     fileList = dir(p.Results.fileName);
