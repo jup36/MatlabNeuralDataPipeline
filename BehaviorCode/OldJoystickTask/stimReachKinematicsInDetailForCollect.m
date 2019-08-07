@@ -1,4 +1,4 @@
-function [bTj, bTjStimLaser, bTjPStimLaser] = stimReachKinematicsInDetailForCollect( filePath, pseudoLaserLogic )
+function [bTj, bTjStimLaser, bTjPStimLaser, lTj] = stimReachKinematicsInDetailForCollect( filePath, pseudoLaserLogic )
 %This function is to compare the behavioral kinematic traces of rewarded
 % reaches with VS without the laser perturbation. One critical concern on
 % comparing unrewarded reaches was whether the animal was really reaching or 
@@ -65,6 +65,11 @@ xPosmmRwd0Sq = cellfun(@(a) a.^2,xPosmmRwd0,'UniformOutput',false);
 yPosmmRwd0Sq = cellfun(@(a) a.^2,yPosmmRwd0,'UniformOutput',false);
 reachXYrwd = cellfun(@(a,b) sqrt(a+b), xPosmmRwd0Sq, yPosmmRwd0Sq,'UniformOutput',false);
 
+% get lick times relative to each pseudo laser
+rwdrchTimeArrC = arrayfun(@(a) a-1500:a-1000, ts.reward(1:end),'UniformOutput',false);  
+lTj.lickRelRwdRchC = cellfun(@(a) ts.lick(ismember(ts.lick,a))-a(1), rwdrchTimeArrC,'UniformOutput',false); 
+lTj.lickCountRwdRch = cell2mat(cellfun(@length, lTj.lickRelRwdRchC,'UniformOutput',false)); 
+
 for t = 1:length(reachXYrwd) % increment trials, take the trial-by-trial position/velocity data and bin them to match the neural trjectories (e.g. 50 ms)
     if ts.reward(t)+bTS.rwdBinE1ms(end)<=length(reach0mm) && ts.reward(t)+bTS.rwdBinE1ms(1)>0 && rewardStim(t)~=1
         valRwdTs(t,1) = true;
@@ -96,6 +101,11 @@ yPosmmStim0 = cellfun(@(a) a-median(a(1:500)), yPosmmStim,'UniformOutput', false
 xPosmmStim0Sq = cellfun(@(a) a.^2,xPosmmStim0,'UniformOutput',false);
 yPosmmStim0Sq = cellfun(@(a) a.^2,yPosmmStim0,'UniformOutput',false);
 reachXYStim = cellfun(@(a,b) sqrt(a+b), xPosmmStim0Sq, yPosmmStim0Sq,'UniformOutput',false);
+
+% get lick times relative to each stim laser
+stimTimeArrC = arrayfun(@(a) a:a+500, ts.stmLaser,'UniformOutput',false);  
+lTj.lickRelStimC = cellfun(@(a) ts.lick(ismember(ts.lick,a))-a(1), stimTimeArrC,'UniformOutput',false); 
+lTj.lickCountStim = cell2mat(cellfun(@length, lTj.lickRelStimC,'UniformOutput',false)); 
 
 bTS.stmLaserRwd = ts.stmLaser; %(cell2mat(rewardStimIdx)); % laser stim trials that led to reward  
 bTS.rchBinE1ms  = -2000:3000; % 1ms bin
@@ -145,6 +155,11 @@ if pseudoLaserLogic
     yPosmmPStim0Sq = cellfun(@(a) a.^2,yPosmmPStim0,'UniformOutput',false);
     reachXYPStim = cellfun(@(a,b) sqrt(a+b), xPosmmPStim0Sq, yPosmmPStim0Sq,'UniformOutput',false);
     
+    % get lick times relative to each pseudo laser
+    pstimTimeArrC = arrayfun(@(a) a:a+500, ts.pseudoLaser,'UniformOutput',false);  
+    lTj.lickRelPstimC = cellfun(@(a) ts.lick(ismember(ts.lick,a))-a(1), pstimTimeArrC,'UniformOutput',false); 
+    lTj.lickCountPstim = cell2mat(cellfun(@length, lTj.lickRelPstimC,'UniformOutput',false)); 
+    
     bTS.pstmLaserRwd = ts.pseudoLaser; %(cell2mat(rewardPStimIdx)); % pseudo-laser stim trials that led to reward
     valPStmLaserRwd = zeros(length(reachXYPStim ),1);
     for t = 1:length(reachXYPStim)
@@ -164,6 +179,9 @@ if pseudoLaserLogic
         end
     end
     clearvars t
+    
+else
+    bTjPStimLaser = []; 
 end
 
 %% plot the reward-aligned behavioral kinematic  data
