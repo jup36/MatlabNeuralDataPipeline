@@ -7,13 +7,13 @@ current_memory = sys.PhysicalMemory.Available;
 buffer_size = min([current_memory * 0.5, BUFFER_SIZE]);
 
 % load meta data
-meta = save.readMeta(bin_file);
+meta = readMeta(bin_file); % save.readMeta(bin_file);
 
 % file size check
 data_info = dir(bin_file);
 data_size = data_info.bytes;
-assert(data_size == meta.fileSizeBytes, 'Corrected file');
-assert(mod(data_size, 2 * meta.nSavedChans) == 0, 'Corrected file');
+%assert(data_size == meta.fileSizeBytes, 'Corrected file');
+%assert(mod(data_size, 2 * meta.nSavedChans) == 0, 'Corrected file');
 
 % set offset, read size
 sample_number = data_size / (2 * meta.nSavedChans);

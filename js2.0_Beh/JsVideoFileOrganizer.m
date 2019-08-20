@@ -1,4 +1,4 @@
-function [S] = jsVideoFileOrganizer(filePath)
+function [S] = JsVideoFileOrganizer(filePath)
 %This function inspects the trial-by-trial
 cd(filePath)
 if exist('jsTime1k_K','var')==1

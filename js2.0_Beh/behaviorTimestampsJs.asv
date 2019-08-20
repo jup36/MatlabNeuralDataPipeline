@@ -52,9 +52,12 @@ else
     data_size = data_info.bytes;
     sample_number = data_size / (2 * str2double(meta.nSavedChans));
     totalTimeSecs = floor(sample_number/str2double(meta.niSampRate)); 
-    if ~isequal(str2double(meta.fileSizeBytes),data_size)
+    if isequal(str2double(meta.fileSizeBytes),data_size)
         warning('Working on a modified bin file!')
         meta.fileSizeBytes = num2str(data_size); 
+        [dumPath,name,dumExt] = fileparts(binFile);
+        metaName = strcat(name, '.meta');
+        save()
     end
     
     % preallocate the behavioral data arrays

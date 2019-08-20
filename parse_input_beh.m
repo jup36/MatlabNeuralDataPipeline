@@ -9,6 +9,7 @@ function p = parse_input_beh( filePath, vargs ) % note that a nested function mu
         default_soleCh = 3;  % channel # for solenoid (water reward delivery)
         default_lickCh = 5;  % channel # for lick port
         default_laserCh = 7; % channel # for laser (laser TTL)
+        default_camTrigCh = 40; % channel # for camera trigger 
         default_numbTagLasers = 60; % the number of tagging trials given at the end of the experiment
         default_artifactRmv = true; % if true, removes the solenoid artifact from Xpos and Ypos channels by template subtraction
         default_reachBeforeLastReward = true; % logical to detect reaches before the last reward delivery
@@ -26,6 +27,7 @@ function p = parse_input_beh( filePath, vargs ) % note that a nested function mu
         addParameter(p,'soleCh',default_soleCh)
         addParameter(p,'lickCh',default_lickCh)
         addParameter(p,'laserCh',default_laserCh)
+        addParameter(p,'camTrigCh',default_camTrigCh)
         addParameter(p,'numbTagLasers',default_numbTagLasers)
         addParameter(p,'artifactRmv',default_artifactRmv)
         addParameter(p,'reachBeforeLastReward',default_reachBeforeLastReward)
