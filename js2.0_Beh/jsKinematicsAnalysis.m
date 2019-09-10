@@ -7,8 +7,15 @@ function jsKinematicsAnalysis(filePath)
 %filePath = 'Z:\parkj\NeuralData\js2.0\WR25\110718_LowHighShift';
 
 cd(filePath)
-load('BehVariablesJs.mat', 'jsTime1k', 'p')
 
+if exist(fullfile(filePath,'BehVariablesJs.mat'),'file')==2
+    load(fullfile(filePath,'BehVariablesJs.mat'), 'jsTime1k', 'p')
+elseif exist(fullfile(filePath,'nidq','BehVariablesJs.mat'),'file')==2
+    load(fullfile(filePath,'nidq','BehVariablesJs.mat'), 'jsTime1k', 'p')
+elseif exist(fullfile(filePath,'imec','BehVariablesJs.mat'),'file')==2
+    load(fullfile(filePath,'imec','BehVariablesJs.mat'), 'jsTime1k', 'p')
+end
+    
 % get meanMass
 if isfield(p.Results,'meanMass')
     meanMass = p.Results.meanMass;

@@ -4,13 +4,13 @@ function  intTrj = interplh(trj,trjlh,lm)
 intTrj = nan(length(trj),1); 
 x = 1:length(trj);
 
-trj(trjlh<.9)=nan;
+%trj(trjlh<.1)=nan;
 
-%trjSpl = trj; 
-%trjSpl(trjlh<.1)=nan;
+trjSpl = trj; 
+trjSpl(trjlh<.1)=nan;
 
-%trjPch = trj; 
-%trjPch(trjlh<.1)=nan;
+trjPch = trj; 
+trjPch(trjlh<.1)=nan;
 
 %sum(isnan(trj))/length(trj); 
 
@@ -18,18 +18,17 @@ if sum(isnan(trj(end-4:end)))==0 && sum(isnan(trj))/length(trj)<.4 % interpolati
     %trjwnan = trj;
     %figure; hold on;
     %trj(isnan(trj)) = interp1(x(~isnan(trj)),trj(~isnan(trj)),x(isnan(trj)),'spline');
-    %trjSpl(isnan(trj)) = interp1(x(~isnan(trj)),trj(~isnan(trj)),x(isnan(trj)),'spline');
-    %trjPch(isnan(trj)) = interp1(x(~isnan(trj)),trj(~isnan(trj)),x(isnan(trj)),'pchip');
-    trj(isnan(trj)) = interp1(x(~isnan(trj)),trj(~isnan(trj)),x(isnan(trj)),'pchip');
+    trjSpl(isnan(trj)) = interp1(x(~isnan(trj)),trj(~isnan(trj)),x(isnan(trj)),'spline');
+    trjPch(isnan(trj)) = interp1(x(~isnan(trj)),trj(~isnan(trj)),x(isnan(trj)),'pchip');
     
-    %hold on; 
-    %plot(trj); plot(trjSpl); plot(trjPch); 
     %plot(trj)
     %plot(trjwnan)
     %hold off;
-    if sum(trj>lm)+sum(trj<0)==0 % enforce the trajectories within the frame
+    if unique(trj<=lm) && unique(trj>=0) % enforce the trajectories within the frame
         intTrj = trj;
     end
 end
+
+plot()
 
 end
