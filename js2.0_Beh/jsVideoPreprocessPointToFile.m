@@ -1,10 +1,10 @@
-function jsVideoPreprocess(filePath, nTr, varargin)
+function jsVideoPreprocessPointToFile(filePath, nTr, varargin)
 
 %filePath = 'Z:\parkj\NeuralData\js2.0\WR25\110718_LowHighShift';
 cd(filePath)
 
 pVP = parse_input_jsVideo(filePath, nTr, varargin);
-% pVP = parse_input_jsVideo(filePath, 19, {'slowPlay',10, 'frTimeRange', [-1000 1000]});
+% pVP = parse_input_jsVideo(filePath, 1, {'slowPlay',5, 'frTimeRange', [-1000 1000]});
 
 % load the structure with video file info and Js kinematics (jsTime1k_KV)
 if exist('jsTime1k_KV','var') ~= 1
@@ -179,7 +179,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % NESTED HELPER FUNCTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%
-    function p = parse_input_jsVideo(filePath, nTr, vargs)
+    function p = parse_input_jsVideoPointTo(filePath, nTr, vargs)
         % parse input, and extract name-value pairs
         default_frameRate = 250; % the default frame rate of videos
         default_slowPlay = 1; % fold to be slowed down for playback

@@ -1,4 +1,4 @@
-function jsVideoPreprocess(filePath, nTr, varargin)
+function jsVideoPreprocessStimTrials(filePath, nTr, varargin)
 
 %filePath = 'Z:\parkj\NeuralData\js2.0\WR25\110718_LowHighShift';
 cd(filePath)
@@ -52,15 +52,19 @@ for i = 1:length(nTr)
         error('To select frames, define the START & END of the frameTimeRange!')
     end
     
+    stimTime = [S(nTr(i)).stimLaserOn:S(nTr(i)).stimLaserOff]-(S(nTr(i)).trJsReady+S(nTr(i)).movKins.pullStart); % stimTime aligned to pullStart 
     % get the frame-by-frame time info
     if strcmp(S(nTr(i)).trialType,'sp') % for a successful trial, align time to pullStart
         frameTime = S(nTr(i)).vFrameTime-(S(nTr(i)).trJsReady+S(nTr(i)).movKins.pullStart); % frameTime aligned to pullStart
         pullTime = 0:S(nTr(i)).movKins.pullStop - S(nTr(i)).movKins.pullStart; % pull time bins aligned to pullStart
-        pullTimeFrames = ismember(frameTime,pullTime); % logical indicating pullTime frames      
+        pullTimeFrames = ismember(frameTime,pullTime); % logical indicating pullTime frames
+        stimTimeFrames = ismember(frameTime,stimTime); % logical indicating stimTime frames
         % identify the frames to include
         frameTimeLogic = ones(1,length(frameTime)); % by default, include all frames
         if ~isempty(pVP.Results.frTimeRange)
             frameTimeLogic = ismember(frameTime,frameTimeRange);
+        elseif isempty(pVP.Results.frTimeRange)
+            frameTimeLogic = ismember(frameTime,frameTime); % just include all
         end
         [~,pullStartI] = find(abs(frameTime)==min(abs(frameTime))); % mark the frames closest to pullStart
         frameTimeC = num2cell(frameTime); % frameTime cell
@@ -72,10 +76,13 @@ for i = 1:length(nTr)
         frameTime = S(nTr(i)).vFrameTime-(S(nTr(i)).trJsReady+S(nTr(i)).movKins.pushStart); % frameTime aligned to pushStart
         pushTime = 0:S(nTr(i)).movKins.pushStop - S(nTr(i)).movKins.pushStart; % push time bins aligned to pullStart
         pushTimeFrames = ismember(frameTime,pushTime); % logical indicating pullTime frames   
+        stimTimeFrames = ismember(frameTime,stimTime); % logical indicating stimTime frames
         % identify the frames to include
         frameTimeLogic = ones(1,length(frameTime)); % by default, include all frames
         if ~isempty(pVP.Results.frTimeRange)
             frameTimeLogic = ismember(frameTime,frameTimeRange);
+        elseif isempty(pVP.Results.frTimeRange)
+            frameTimeLogic = ismember(frameTime,frameTime); % just include all
         end
         [~,pushStartI] = find(abs(frameTime)==min(abs(frameTime))); % mark the frames closest to pushStart
         frameTimeC = num2cell(frameTime); % frameTime cell
@@ -87,6 +94,7 @@ for i = 1:length(nTr)
         frameTime = S(nTr(i)).vFrameTime-(S(nTr(i)).trJsReady+S(nTr(i)).movKins.pull.startI); % frameTime aligned to pullStart
         pullTime = 0:S(nTr(i)).movKins.pull.stopI - S(nTr(i)).movKins.pull.startI; % pull time bins aligned to pullStart
         pullTimeFrames = ismember(frameTime,pullTime); % logical indicating pullTime frames     
+        stimTimeFrames = ismember(frameTime,stimTime); % logical indicating stimTime frames
         [~,pullStartI] = find(abs(frameTime)==min(abs(frameTime))); % mark the frames closest to pullStart
         frameTimeC = num2cell(frameTime); % frameTime cell
         frameTimeC = cellfun(@num2str,frameTimeC,'UniformOutput',false);
@@ -96,13 +104,18 @@ for i = 1:length(nTr)
         frameTimeLogic = ones(1,length(frameTime)); % by default, include all frames
         if ~isempty(pVP.Results.frTimeRange)
             frameTimeLogic = ismember(frameTime,frameTimeRange);
+        elseif isempty(pVP.Results.frTimeRange)
+            frameTimeLogic = ismember(frameTime,frameTime); % just include all
         end
     else
         frameTime = S(nTr(i)).vFrameTime-(S(nTr(i)).trJsReady); % frameTime aligned to js ready time
+        stimTimeFrames = ismember(frameTime,stimTime); % logical indicating stimTime frames
         % identify the frames to include
         frameTimeLogic = ones(1,length(frameTime)); % by default, include all frames
         if ~isempty(pVP.Results.frTimeRange)
             frameTimeLogic = ismember(frameTime,frameTimeRange);
+        elseif isempty(pVP.Results.frTimeRange)
+            frameTimeLogic = ismember(frameTime,frameTime); % just include all
         end
         frameTimeC = num2cell(frameTime); % frameTime cell
         frameTimeC = cellfun(@num2str,frameTimeC,'UniformOutput',false);
@@ -120,6 +133,7 @@ for i = 1:length(nTr)
     
     txtPos = round([S(nTr(i)).fVideoInfo.width*19/20 S(nTr(i)).fVideoInfo.height*9/10]); % text position on frames
     circlePos = round([S(nTr(i)).fVideoInfo.width*19/20 S(nTr(i)).fVideoInfo.height*1/15]); % circle position on frames to indicate frames of action 
+    stimMarkPos = round([S(nTr(i)).fVideoInfo.width*15/20 S(nTr(i)).fVideoInfo.height*1/15]); % stim Marking position
     slowFactor = sprintf('%.2f',1/pVP.Results.slowPlay); % to display the playback speed up to two decimal points
     fr = 0;
     while hasFrame(fvid) && hasFrame(svid) && fr <= length(frameTimeC)
@@ -143,6 +157,10 @@ for i = 1:length(nTr)
             
             imshow(imgt);
             text(1,txtPos(2),strcat(frameTimeC{fr},'_x',slowFactor),'FontSize',18,'Color',text_color,'Interpreter', 'none','LineStyle','none'); % insert text indicating time/playback speed info
+            if stimTimeFrames(fr)
+                text(1,stimMarkPos(2),'Laser','FontSize',18,'Color',[70 240 240]./255,'Interpreter', 'none','LineStyle','none'); % insert text indicating time/playback speed info
+            end
+               
             hold on; 
             % add a circle to indicate action frames
             if strcmp(S(nTr(i)).trialType,'sp')
