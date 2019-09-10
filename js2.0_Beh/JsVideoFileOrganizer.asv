@@ -65,7 +65,7 @@ end
 
 if ~isempty(vFronFiles)&&~isempty(vSideFiles)
     if abs(length(trStartIdx)-length(tbytCsvList))<=1 % the length of the tbytCsvList is supposed to be smaller than that of the trStartIdx (or S) as the last trial's csv file is not generated
-        for t = 1:length(S)
+        for t = 1:184 %length(S)
             % find the front and side video files of the current trial
             tempTrCamPulseTRise = find(evtIdx1k.camTrigRiseIdx<S(t).trStart,1,'last'); % identify the pulse before the trStart the relevant train of pulses should encompass the trStart and trEnd
             tempTrCamPulseTFall = find(evtIdx1k.camTrigFallIdx>S(t).trEnd,1,'first');  % identify the pulse after the trEnd
@@ -213,11 +213,6 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                     tempVS.name = vSideFiles(tempVSideI).name;
                     
                     if tempVF.totalDuration>1 && tempVS.totalDuration>1
-                        [tempFrameDur,tempFrameDurI] = min([tempVF.totalDuration, tempPulseTrainLength]);
-                        if tempFrameDurI==1
-                        elseif tempFrameDurI==2
-                            tempFrameDur=tempFrameDur-2;
-                        end
                         %tempFrameTime = evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempVF.totalDuration+1:tempPulseTStopIdx); % get the frame times
                         if vFronFiles(tempVFronI).fileCalled==0 && vSideFiles(tempVSideI).fileCalled==0 % if not used before take the pulse start as the frame reference
                             tempFrameTime = evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempVF.totalDuration+1:tempPulseTStopIdx); %evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempVF.totalDuration+1:tempPulseTStopIdx); % get the frame times
@@ -239,8 +234,8 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                             vFronFiles(tempVFronI).framesUsed = tempFrameDur;
                             vSideFiles(tempVSideI).framesUsed = tempFrameDur;
                             
-                            S(t).fVideo = tempVF.path; % front video path
-                            S(t).sVideo = tempVS.path; % side video path
+                            S(t).fVideo = fullfile(tempVF.path, tempVF.name); % front video path
+                            S(t).sVideo = fullfile(tempVS.path, tempVS.name); % side video path
                             S(t).vFrameTime = tempFrameTime; % mark the frame time points
                             S(t).framePulseId = tempPulseTrainId;
                             S(t).origVideoFramesCnt = tempVF.totalDuration;
@@ -260,7 +255,7 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                 end
             end
             fprintf('organized csv and video files for trial #%d\n', t);
-            clearvars tempVF tempVS temp*
+            clearvars tempVF tempVS
         end
     else
         error('Some trial-by-trial csv files might be missing!')
