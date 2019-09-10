@@ -14,7 +14,7 @@ function behaviorTimestamps(filePath,varargin)
 
 %addpath(genpath('/Volumes/RAID2/parkj/MATLAB'))
 p = parse_input_beh(filePath, varargin ); % parse input
-%p = parse_input_beh(filePath, {} ); % use this line instead when running line-by-line 
+%p = parse_input_beh(filePath, {'numbNeuralProbe',0,'numbChEachProbe',64,'XposCh',33,'YposCh',37,'soleCh',3,'lickCh',5,'laserCh',7,'numbTagLasers',60,'artifactRmv',true,'filterLickCh',false,'highPassFilterFC',400} ); % use this line instead when running line-by-line 
 
 cd(p.Results.filePath)
 

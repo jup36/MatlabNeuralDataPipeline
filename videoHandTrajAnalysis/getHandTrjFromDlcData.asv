@@ -81,13 +81,13 @@ fList = {fron(:).FileName}; % front video list
 sList = {side(:).FileName}; % side video list
 
 for t = 1:length(fVideoInfo)
-    trj3d(t).fg1f = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).fg2f = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).hdf  = nan(3,length(vFrameTime{t,1}));
+    trj3d(t).fg1f = nan(3,length(vFrameTime{1,1}));
+    trj3d(t).fg2f = nan(3,length(vFrameTime{1,1}));
+    trj3d(t).hdf  = nan(3,length(vFrameTime{1,1}));
     
-    trj3d(t).fg1s = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).fg2s = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).hds  = nan(3,length(vFrameTime{t,1}));
+    trj3d(t).fg1s = NaN;
+    trj3d(t).fg2s = NaN;
+    trj3d(t).hds  = NaN;
     
     if isstruct(fVideoInfo{t}) && isstruct(sVideoInfo{t})        
         [fPath,fName,~] = fileparts(fVideoInfo{t}.path);
@@ -126,11 +126,11 @@ for t = 1:length(fVideoInfo)
             %figure; plot3(sTrj3d(1,:),sTrj3d(2,:),sTrj3d(3,:))
             
             % take the median and smooth
-            trj3d(t).allPartsF(:,:,1)=trj3d(t).fg1f; trj3d(t).allPartsF(:,:,2)=trj3d(t).fg2f; trj3d(t).allPartsF(:,:,3)=trj3d(t).hdf; 
-            trj3d(t).allPartsS(:,:,1)=trj3d(t).fg1s; trj3d(t).allPartsS(:,:,2)=trj3d(t).fg2s; trj3d(t).allPartsS(:,:,3)=trj3d(t).hds; 
+            tmpAllPartsF(:,:,1)=trj3d(t).fg1f; tmpAllPartsF(:,:,2)=trj3d(t).fg2f; tmpAllPartsF(:,:,3)=trj3d(t).hdf; 
+            tmpAllPartsS(:,:,1)=trj3d(t).fg1s; tmpAllPartsS(:,:,2)=trj3d(t).fg2s; tmpAllPartsS(:,:,3)=trj3d(t).hds; 
             
-            trj3d(t).allPartsMedF = nanmedian(trj3d(t).allPartsF,3); 
-            trj3d(t).allPartsMedS = nanmedian(trj3d(t).allPartsS,3); 
+            trj3d(t).allPartsMedF = nanmedian(tmpAllPartsF,3); 
+            trj3d(t).allPartsMedS = nanmedian(tmpAllPartsS,3); 
             
             % to use sg filter get sgfiltFramelen
             if length(trj3d(t).allPartsMedF) >= 101
@@ -150,7 +150,7 @@ for t = 1:length(fVideoInfo)
             % select the valid portion of each trajectory when a file contained multiple trials 
             if length(vUseFrameIdx{t})>length(vFrameTime{t})
                 trj3d(t).allPartsMedSgFron = trj3d(t).allPartsMedSgFron(:,vUseFrameIdx{t});
-                trj3d(t).allPartsMedSgSide = trj3d(t).allPartsMedSgSide(:,vUseFrameIdx{t});
+                trj3d(t).allPartsMedSgSide = trj3d(t).allPartsMedSgFron(:,vUseFrameIdx{t});
             end
         end
     end
