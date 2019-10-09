@@ -30,7 +30,7 @@ binName = binFile.name;
 % Parse the corresponding metafile
 meta  = ReadMeta(binName, p.Results.filePath); % get the meta data (structure)
 channels = textscan(meta.acqMnMaXaDw,'%n %n %n %n','Delimiter',',');
-nSamp = SampRate(meta);          % sampling rate (default: 25kHz)
+nSamp = round(SampRate(meta),0); % sampling rate (default: 25kHz)
 %totalTimeSecsMeta = str2double(meta.fileTimeSecs); % total duration of file in seconds
 
 if ~isempty(dir(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat'))) && p.Results.reReadBin==false % if the gainCorrectRawTraces.mat file already exists in the filePath
@@ -68,8 +68,8 @@ else
     plaser    = zeros(1,floor(totalTimeSecs*25000));
     lick      = zeros(1,floor(totalTimeSecs*25000));
     
-    for i = 0:totalTimeSecs-1 % read second-by-second incrementally to avoid a memory issue
-        tempDataArray = ReadBin(i*nSamp, nSamp, meta, binName, p.Results.filePath); % read bin data for each second
+    for k = 0:totalTimeSecs-1 % read second-by-second incrementally to avoid a memory issue
+        tempDataArray = ReadBin(k*nSamp, nSamp, meta, binName, p.Results.filePath); % read bin data for each second
         tempTrStart  = tempDataArray(trStartCh,:); % decimate the data
         tempCamTrig  = tempDataArray(camTrigCh,:); % do not decimate for higher temporal resolution
         tempReward   = tempDataArray(rewardCh,:);
@@ -79,20 +79,22 @@ else
         tempLick     = tempDataArray(lickCh,:);
         tempLaser    = tempDataArray(laserCh,:);
         tempPLaser   = tempDataArray(plaserCh,:);
+        %tempSync = tempDataArray(3,:); 
         
-        trStart(1,i*25000+1:(i+1)*25000) = tempTrStart; % accumulated the decimated data second-by-second
-        camTrig(1,i*25000+1:(i+1)*25000) = tempCamTrig;
-        reward(1,i*25000+1:(i+1)*25000) = tempReward;
-        trEnd(1,i*25000+1:(i+1)*25000)  = tempTrEnd;
-        encodeA(1,i*25000+1:(i+1)*25000) = tempEncodeA;
-        encodeB(1,i*25000+1:(i+1)*25000)  = tempEncodeB;
-        lick(1,i*25000+1:(i+1)*25000) = tempLick;
-        laser(1,i*25000+1:(i+1)*25000) = tempLaser;
-        plaser(1,i*25000+1:(i+1)*25000) = tempPLaser;
+        trStart(1,k*25000+1:(k+1)*25000) = tempTrStart; % accumulated the decimated data second-by-second
+        camTrig(1,k*25000+1:(k+1)*25000) = tempCamTrig;
+        reward(1,k*25000+1:(k+1)*25000) = tempReward;
+        trEnd(1,k*25000+1:(k+1)*25000)  = tempTrEnd;
+        encodeA(1,k*25000+1:(k+1)*25000) = tempEncodeA;
+        encodeB(1,k*25000+1:(k+1)*25000)  = tempEncodeB;
+        lick(1,k*25000+1:(k+1)*25000) = tempLick;
+        laser(1,k*25000+1:(k+1)*25000) = tempLaser;
+        plaser(1,k*25000+1:(k+1)*25000) = tempPLaser;
+        %sync(1,k*25000+1:(k+1)*25000) = tempSync; 
         
-        fprintf('processed %d\n', i+1)
+        fprintf('processed %d\n', k+1)
     end
-    clearvars i
+    clearvars k
     
     % Gain correction for channnels of interest
     if strcmp(meta.typeThis, 'imec') % in case recording via imec

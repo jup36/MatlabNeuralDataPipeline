@@ -5,7 +5,7 @@ function [corrRiseTS, corrFallTS, pulseTrainIdx] = detecteventbythreshold(timese
 % detectTimeout: detection timeout (ms)
 
 p = parse_input_detectevent( timeseries, sampFreq, detectTimeout, varargin ); % parse input
-%p = parse_input_detectevent( timeseries, sampFreq, detectTimeout, {} ); % use this line instead when running line-by-line
+%p = parse_input_detectevent( timeseries, sampFreq, detectTimeout, {'stdFactor', 1, 'plotRez',false, 'chunkPulses', true, 'chunkInterval', 2000, 'correctLongPulse', true} ); % use this line instead when running line-by-line
 %p = parse_input_detectevent( timeseries, sampFreq, detectTimeout, {'detectLater',trStartIdx(1),'correctLongPulse',true} ); % use this line instead when running line-by-line
 
 meanTS = mean(abs(timeseries)); % mean timeseries
@@ -36,25 +36,27 @@ addRiseTS = [];
 addFallTS = [];
 longPulseCnt = 0; 
 if p.Results.correctLongPulse
-    if length(valFallTS)==length(valRiseTS)
-        pulseInterval = mode(valFallTS-valRiseTS(1:length(valFallTS))); % normal pulse width
+    if abs(length(valFallTS)-length(valRiseTS))>=2
+        error('The # of pulse rises and falls do not match!')
+    elseif length(valRiseTS)-length(valFallTS)==1
+        valRiseTS = valRiseTS(1:end-1); 
+    elseif length(valFallTS)-length(valRiseTS)==1
+        valFallTS = valFallTS(1:end-1); 
+    end
+    pulseInterval = mode(valFallTS-valRiseTS(1:length(valFallTS))); % normal pulse width
         for ts = 1:length(valRiseTS)
             if ~isempty(find(valFallTS>valRiseTS(ts),1))
                 if valFallTS(find(valFallTS>valRiseTS(ts),1))-valRiseTS(ts)>pulseInterval*2 % this is a long pulse
                     longPulseCnt = longPulseCnt+1;
                     addFallTS(longPulseCnt) = valRiseTS(ts)+pulseInterval; % add a fall 
-                    addRiseTS(longPulseCnt) = valFallTS(find(valFallTS>valRiseTS(ts),1))-pulseInterval; % add a rise
-                    
+                    addRiseTS(longPulseCnt) = valFallTS(find(valFallTS>valRiseTS(ts),1))-pulseInterval; % add a rise                   
                 else
                 end
             else
             end
         end
         corrRiseTS = sort([valRiseTS, addRiseTS]);
-        corrFallTS = sort([valFallTS, addFallTS]); 
-    elseif length(valFallTS)~=length(valRiseTS)
-        error('The # of pulse rises and falls do not match!')
-    end
+        corrFallTS = sort([valFallTS, addFallTS]);
 else
     corrRiseTS= valRiseTS; 
     corrFallTS= valFallTS; 
