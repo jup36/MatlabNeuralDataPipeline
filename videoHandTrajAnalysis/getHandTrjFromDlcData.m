@@ -4,20 +4,46 @@ function getHandTrjFromDlcData(filePath, hTrjPath)
 %filePath = 'S:\Junchol_Data\JS2.0\WR40_081419'; % data folder (beefcake)
 %hTrjPath = '/Volumes/dudmanlab/dilucid-drop-output/mouseJoystick3/081419_WR40';
 %hTrjPath = 'T:\dilucid-drop-output\mouseJoystick3\081419_WR40'; % hand trajectory folder
-filePathClb = 'C:\Users\parkj\Documents\TOOLBOX_calib'; % caltech camera calibration toolbox
-calibParams = load(fullfile(filePathClb,'Calib_Results_stereo_011619.mat'),'om','T','fc_left','cc_left','kc_left','alpha_c_left','fc_right','cc_right','kc_right','alpha_c_right');
 
-load(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles'),'jsTime1k_KV'); % load jsTime1k_KV
+%% load streo-calibration data 
+stereoCalibFile = 'C:\Users\parkj\Documents\TOOLBOX_calib\Calib_Results_stereo_011619.mat'; % caltech camera calibration toolbox
+if exist(fullfile(stereoCalibFile),'file')==2
+    calibParams = load(fullfile(stereoCalibFile),'om','T','fc_left','cc_left','kc_left','alpha_c_left','fc_right','cc_right','kc_right','alpha_c_right');
+else
+    disp('Point to "Calib_Results_stereo_011619.mat" with stereo camera calibration data!')
+    [calibFileSelect,calibPathSelect] = uigetfile('C:\Users\parkj\Documents\TOOLBOX_calib');
+    load(fullfile(calibPathSelect,calibFileSelect),'om','T','fc_left','cc_left','kc_left','alpha_c_left','fc_right','cc_right','kc_right','alpha_c_right'); % load stereo camera calibration data
+end
+    
+%% collect jsTime1k_Kinematics data
+jsKinFile = dir(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles.mat')); 
+
+if length(jsKinFile)==1
+    load(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles.mat'),'jsTime1k_KV'); % load jsTime1k_KV
+else
+    disp('Point to "jsTime1k_Kinematics_VideoFiles.mat" with the variable "jsTime1k_KV"!')
+    [jsKinFileSelect,jsKinPathSelect] = uigetfile(filePath);
+    load(fullfile(jsKinPathSelect,jsKinFileSelect),'jsTime1k_KV'); % load jsTime1k_KV
+end
+
 fVideoInfo = {jsTime1k_KV(:).fVideoInfo}';
 sVideoInfo = {jsTime1k_KV(:).sVideoInfo}';
 vFrameTime = {jsTime1k_KV(:).vFrameTime}';
 vUseFrameIdx = {jsTime1k_KV(:).vUseFrameIdx}';
 clearvars jsTime1k_KV
 
-% load streo-calibration data
-allCsv = dir(fullfile(hTrjPath,'*.csv')); % all trial file
-fronIdx = find(cell2mat(cellfun(@isstruct, fVideoInfo,'Un',0))==1,1,'first');
-sideIdx = find(cell2mat(cellfun(@isstruct, sVideoInfo,'Un',0))==1,1,'first');
+%% get the list of dlc output csv files
+if exist(fullfile(hTrjPath),'dir')==7
+    allCsv = dir(fullfile(hTrjPath,'*.csv')); % all trial file
+else
+    disp('Point to the folder with dlc output csv files (E.g. "cam0_cam_0_2019_08_14_14_19_01.csv")!')
+    hTrjPath = uigetdir('T:\dilucid-drop-output\mouseJoystick3');
+    allCsv = dir(fullfile(hTrjPath,'*.csv')); % all trial file
+end
+    
+%% get frame dimensions
+fronIdx = find(cell2mat(cellfun(@isstruct, fVideoInfo,'Un',0))==1,1,'first'); % get the 1st valid fron video file
+sideIdx = find(cell2mat(cellfun(@isstruct, sVideoInfo,'Un',0))==1,1,'first'); % get the 1st valid side video file
 
 [~,vFolderName] = fileparts(hTrjPath);
 fVid = VideoReader(fullfile(filePath,vFolderName,fVideoInfo{fronIdx}.name)); % read the 1st front video to get frame info
@@ -212,12 +238,12 @@ for t = 1:length(fVideoInfo) % increment trials of jsTime1k_KV
 end
 clearvars t
 save(fullfile(filePath,'trj3d.mat'), 'trj3d'); % save the raw pixel values
-% load(fullfile(filePath,'rawFHtrj'), 'fron','side'); % save the raw pixel values
 
 end
 
 % rewardTrs = find([jsTime1k_KV(:).rewarded]==1);
-% rwdTrI = 45;
+% close all; 
+% rwdTrI = 100;
 % x = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
 % y = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
 % z = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
@@ -227,9 +253,20 @@ end
 % patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
 % colormap parula
 % colorbar
-% %caxis([400 1200])
-% %print(fullfile(filePath,'Figure',sprintf('tr#%d',rewardTrs(rwdTrI))),'-dpdf','-painters','-bestfit')
+% caxis([400 1000])
 % 
+% x = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% y = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% z = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
+% 
+% figure;
+% patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
+% colormap parula
+% colorbar
+% caxis([400 1000])
+% 
+% print(fullfile(filePath,'Figure',sprintf('tr#%d',rewardTrs(rwdTrI))),'-dpdf','-painters','-bestfit')
 % jsTime1k_KV(rewardTrs(rwdTrI)).fVideo
 % jsTime1k_KV(rewardTrs(rwdTrI)).sVideo
 % 
@@ -238,32 +275,106 @@ end
 % fronFg1Fig2Dist = cell2mat(cellfun(@(a,b,c,d) sqrt((a-b).^2+(c-d).^2), {fron(:).fg1X}, {fron(:).fg2X}, {fron(:).fg1Y}, {fron(:).fg2Y},'Un',0)'); % front, point-by-point distance between two fingers
 % fronFg1hdDist = cell2mat(cellfun(@(a,b,c,d) sqrt((a-b).^2+(c-d).^2), {fron(:).fg1X}, {fron(:).hdX}, {fron(:).fg1Y}, {fron(:).hdY},'Un',0)'); % front, point-by-point distance between two fingers
 
-function  intTrj = interplh(trj,trjlh,lm)
+function  [intTrj,fstPt] = interplh(trj,trjlh,lm, zeroFirstNaNs)
 % interpolates a timeseries (trj) based on it's likelihood (trjlh), enforce the Trjs to be within the frame dimension (lm)
 %trj = tmpTrj.fg1Y;
+
+%trj = tmpTrj.js1X; trj1h = tmpTrj.js1lh; lm = wd; zeroFirstNaNs = true;
 intTrj = nan(length(trj),1);
 x = 1:length(trj);
 
-trj(trjlh<.1)=nan;
+trj(trjlh<.9)=nan;
+fstPt = NaN;
 
-if sum(isnan(trj(end-4:end)))==0 && sum(isnan(trj))/length(trj)<.4 % interpolation would be problematic with NaNs at the end
-    trj(isnan(trj)) = interp1(x(~isnan(trj)),trj(~isnan(trj)),x(isnan(trj)),'pchip');
-    if sum(trj>lm)+sum(trj<0)==0 % enforce the trajectories within the frame
-        intTrj = trj;
+if sum(isnan(trj))/length(trj)<.4 % interpolation would be problematic with NaNs at the end
+    valPts = strfind(num2str(trjlh>.9)','111');
+    if sum(isnan(trj(end-4:end)))==0 % deal with last NaNs
+        lastValPt = length(trj);
+    elseif ~isempty(valPts)
+        lastValPt = valPts(end)+2; % last valid point
     end
+   
+    fstPt = find(trjlh>.9,1,'first');
+    tempTrj = trj(fstPt:lastValPt); % the valid portion of the trajectory
+    tempTrjIdx = 1:length(trj)>=fstPt & 1:length(trj)<=lastValPt; % index for valid points
+    if sum(isnan(tempTrj))>0
+        % intrapolate points between the first and last valid points
+        tempTrj(isnan(tempTrj)) = interp1(x(~isnan(tempTrj)),tempTrj(~isnan(tempTrj)),x(isnan(tempTrj)),'pchip');
+    end
+    trj(tempTrjIdx) = tempTrj;
+    % extrapolate if each of the invalid portions at both sides is less than .1 of the full trj length
+    if fstPt < length(trj)*.1 && lastValPt > length(trj)*.9
+        trj(tempTrjIdx==0) = interp1(x(tempTrjIdx),trj(tempTrjIdx),x(tempTrjIdx==0),'pchip','extrap');
+    end
+    % put zeros for first NaNs, which often is the case for joystick trajectories
+    if zeroFirstNaNs
+        trj(1:fstPt) = 0;
+    end
+    trj = min(trj,lm);
+    trj = max(trj,0);
+    intTrj = trj;
 end
-end
-
-function [fTrj3d, sTrj3d] = stereoTriangulation(fXY, sXY, pr)
-% performs triangulation using the stereo-triangulation data (pr)
-
-[fTrj3d, sTrj3d] = stereo_triangulation(fXY,sXY,pr.om,pr.T,pr.fc_left,pr.cc_left,pr.kc_left,...
-    pr.alpha_c_left,pr.fc_right,pr.cc_right,pr.kc_right,pr.alpha_c_right);
-
-%plot3(fTrj3d(1,:),fTrj3d(2,:),fTrj3d(3,:))
-%plot3(sTrj3d(1,:),sTrj3d(2,:),sTrj3d(3,:))
 
 end
+
+
+% function  [intTrj,fstPt] = interplh(trj,trjlh,lm, dealFirstNaNs)
+% % interpolates a timeseries (trj) based on it's likelihood (trjlh), enforce the Trjs to be within the frame dimension (lm)  
+% %trj = tmpTrj.fg1Y;
+% 
+% %trj = tmpTrj.js1X; trj1h = tmpTrj.js1lh; lm = wd; dealFirstNaNs = true;
+% intTrj = nan(length(trj),1); 
+% x = 1:length(trj);
+% 
+% trj(trjlh<.9)=nan;
+% fstPt = NaN;
+
+%trjSpl = trj; 
+%trjSpl(trjlh<.1)=nan;
+
+%trjPch = trj; 
+%trjPch(trjlh<.1)=nan;
+
+%sum(isnan(trj))/length(trj); 
+
+% if sum(isnan(trj(end-4:end)))==0 && sum(isnan(trj))/length(trj)<.4 % interpolation would be problematic with NaNs at the end
+%     
+%     if dealFirstNaNs % initial NaNs cannot be interpolated (e.g. joystick before/during positioning) - just interpolate subsequent to the 1st non-NaN value
+%         fstPt = find(trjlh>.9,1,'first'); 
+%         tempTrj = trj(fstPt:end); 
+%         if sum(isnan(tempTrj))>0
+%             x = 1:length(tempTrj); 
+%             tempTrj(isnan(tempTrj)) = interp1(x(~isnan(tempTrj)),tempTrj(~isnan(tempTrj)),x(isnan(tempTrj)),'pchip');
+%         end
+%         
+%         trj(fstPt:end) = tempTrj; 
+%         trj = min(trj,lm); 
+%         trj = max(trj,0); 
+%         trj(1:fstPt) = 0;
+%         intTrj = trj; 
+%     %trjwnan = trj;
+%     %figure; hold on;
+%     %trj(isnan(trj)) = interp1(x(~isnan(trj)),trj(~isnan(trj)),x(isnan(trj)),'spline');
+%     %trjSpl(isnan(trj)) = interp1(x(~isnan(trj)),trj(~isnan(trj)),x(isnan(trj)),'spline');
+%     %trjPch(isnan(trj)) = interp1(x(~isnan(trj)),trj(~isnan(trj)),x(isnan(trj)),'pchip');
+%     else % initial NaNs are not really an issue for body parts
+%         trj(isnan(trj)) = interp1(x(~isnan(trj)),trj(~isnan(trj)),x(isnan(trj)),'pchip');
+%         if sum(trj>lm)+sum(trj<0)==0 % enforce the trajectories within the frame
+%             intTrj = trj;
+%         end    
+%         fstPt = NaN;
+%     %hold on; 
+%     %plot(trj); plot(trjSpl); plot(trjPch); 
+%     %plot(trj)
+%     %plot(trjwnan)
+%     %hold off;
+%     end
+%     
+% 
+% end
+% 
+% end
+
 
 
 
