@@ -40,7 +40,7 @@ for i = 1:length(nTr)
     
     %videoPlayer = vision.VideoPlayer;
     % new video
-    outputVideo = VideoWriter(fullfile(tbytVideoPath,tbytVideoName));
+    outputVideo = VideoWriter(fullfile(tbytVideoPath,tbytVideoName),'MPEG-4');
     outputVideo.FrameRate = 250/pVP.Results.slowPlay; %fvid.FrameRate;
     outputVideo.Quality = 100;
     open(outputVideo);
