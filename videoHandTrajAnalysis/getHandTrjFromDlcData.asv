@@ -241,34 +241,34 @@ save(fullfile(filePath,'trj3d.mat'), 'trj3d'); % save the raw pixel values
 
 end
 
-% rewardTrs = find([jsTime1k_KV(:).rewarded]==1);
-% close all; 
-% rwdTrI = 100;
-% x = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-% y = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-% z = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-% c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
-% 
-% figure;
-% patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
-% colormap parula
-% colorbar
-% caxis([400 1000])
-% 
-% x = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-% y = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-% z = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-% c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
-% 
-% figure;
-% patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
-% colormap parula
-% colorbar
-% caxis([400 1000])
-% 
-% print(fullfile(filePath,'Figure',sprintf('tr#%d',rewardTrs(rwdTrI))),'-dpdf','-painters','-bestfit')
-% jsTime1k_KV(rewardTrs(rwdTrI)).fVideo
-% jsTime1k_KV(rewardTrs(rwdTrI)).sVideo
+rewardTrs = find([jsTime1k_KV(:).rewarded]==1);
+close all; 
+rwdTrI = 1;
+x = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+y = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+z = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
+
+figure;
+patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
+colormap parula
+colorbar
+caxis([400 1000])
+
+x = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+y = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+z = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
+
+figure;
+patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
+colormap parula
+colorbar
+caxis([400 1000])
+
+print(fullfile(filePath,'Figure',sprintf('tr#%d',rewardTrs(rwdTrI))),'-dpdf','-painters','-bestfit')
+jsTime1k_KV(rewardTrs(rwdTrI)).fVideo
+jsTime1k_KV(rewardTrs(rwdTrI)).sVideo
 
 
 
