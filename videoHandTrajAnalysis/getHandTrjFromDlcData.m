@@ -214,12 +214,11 @@ for t = 1:length(fVideoInfo) % increment trials of jsTime1k_KV
                 end
             end
             trj3d(t).allPartsMedSgFron = sgolayfilt(trj3d(t).allPartsMedF',5,33)';%sgfiltFramelen)';
-            trj3d(t).allPartsMedSgSide = sgolayfilt(trj3d(t).allPartsMedS',5,33)';%sgfiltFramelen)';
+            trj3d(t).allPartsMedSgSide = sgolayfilt(trj3d(t).allPartsMedS',5,33)';%sgfiltFramelen)';        
             % plot3(trj3d(t).allPartsMedSgFron(1,:),trj3d(t).allPartsMedSgFron(2,:),trj3d(t).allPartsMedSgFron(3,:));
             % plot3(trj3d(t).allPartsMedSgSide(1,:),trj3d(t).allPartsMedSgSide(2,:),trj3d(t).allPartsMedSgSide(3,:));
             
             % For joystick trajectories, just smooth using sgolayfilt
-            
             trj3d(t).js1SgFron = sgolayfilt(trj3d(t).js1f',5,33)'; % for js trj just smooth
             trj3d(t).js1SgSide = sgolayfilt(trj3d(t).js1s',5,33)'; % for js trj just smooth
             
@@ -231,6 +230,14 @@ for t = 1:length(fVideoInfo) % increment trials of jsTime1k_KV
                 trj3d(t).allPartsMedSgFron = trj3d(t).allPartsMedSgFron(:,vUseFrameIdx{t});
                 trj3d(t).allPartsMedSgSide = trj3d(t).allPartsMedSgSide(:,vUseFrameIdx{t});
             end
+            % arrange rows to get intuitive XYZ trajectories
+            trj3d(t).allPartsMedSgFronXYZ(1,:) = trj3d(t).allPartsMedSgFron(1,:); % X to be AP hand movement
+            trj3d(t).allPartsMedSgFronXYZ(2,:) = trj3d(t).allPartsMedSgFron(3,:); % Y to be ML hand movement
+            trj3d(t).allPartsMedSgFronXYZ(3,:) = -trj3d(t).allPartsMedSgFron(2,:); % Z to be UpOrDown hand movement 
+            
+            trj3d(t).allPartsMedSgSideXYZ(1,:) = trj3d(t).allPartsMedSgSide(1,:); 
+            trj3d(t).allPartsMedSgSideXYZ(2,:) = trj3d(t).allPartsMedSgSide(3,:); 
+            trj3d(t).allPartsMedSgSideXYZ(3,:) = -trj3d(t).allPartsMedSgSide(2,:);     
         end
     end
     clearvars tmp*

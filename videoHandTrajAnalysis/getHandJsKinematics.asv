@@ -1,0 +1,87 @@
+
+filePath = 'S:\Junchol_Data\JS2p0\WR40_081419'; 
+
+%% load 'trj3d.mat'
+cd(filePath)
+trj3d = dir('**/*trj3d.mat');
+T=load(fullfile(trj3d.folder,trj3d.name),'trj3d');
+clearvars trj3d
+T = T.('trj3d');
+
+hTrjF = {T(:).allPartsMedSgFronXYZ}; % all parts median and Savitzky-Golay filtered hand trajectory front cam 
+hTrjS = {T(:).allPartsMedSgSideXYZ}; % all parts median and Savitzky-Golay filtered hand trajectory side cam 
+
+%% collect jsTime1k_Kinematics data
+jsKinFile = dir(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles.mat')); 
+
+if length(jsKinFile)==1
+    load(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles.mat'),'jsTime1k_KV'); % load jsTime1k_KV
+else
+    disp('Point to "jsTime1k_Kinematics_VideoFiles.mat" with the variable "jsTime1k_KV"!')
+    [jsKinFileSelect,jsKinPathSelect] = uigetfile(filePath);
+    load(fullfile(jsKinPathSelect,jsKinFileSelect),'jsTime1k_KV'); % load jsTime1k_KV
+end
+
+%% get the 3d-position/velocity
+% local median? or global (concatanation of all trials) median? 
+gmhTrj = median(cell2mat(hTrjS),2); % global median
+%lmhTrj = median(hTrjS{7},2); % local median per trial
+
+% get trajectories relative to the global median first, the preparatory
+% period median can be defined after isolating reach starts
+
+medDist = @(x) sqrt(sum((x-gmhTrj).^2)); % function to get the point-by-point distance from the global median position  
+for t = 1:length(hTrjS)
+    if ~isempty(hTrjS{t})
+        hTrjSnorm{1,t} = hTrjS{t}-gmhTrj; % normalize by subtracting the global median     
+        hTrjSDistMed{1,t} = splitapply(medDist, hTrjS{t}, 1:size(hTrjS{t},2)); % get 
+        hVelSnorm{1,t} = diff([hTrjSnorm{1,t}(:,1) hTrjSnorm{1,t}],1,2)./(4/1000); 
+    end
+end
+% plot/print a trial's X, Y, Z velocity 
+x = (1:size(hVelSnorm{7},2))*4;
+hold on; plot(x,hVelSnorm{7}(1,:)); plot(x,hVelSnorm{7}(2,:)); plot(x,hVelSnorm{7}(3,:)); hold off
+xlabel('Time(ms)'); ylabel('Velocity(mm/s)')
+print(fullfile(filePath,'Figure',sprintf('xyzVel_tr#%d',7)),'-dpdf','-painters','-bestfit'); 
+
+
+
+%% get the joystick trajectory
+
+
+%% examine trajectories by plotting
+%rewardTrs = find([jsTime1k_KV(:).rewarded]==1);
+close all; 
+rwdTrI = 2;
+x = T(rewardTrs(rwdTrI)).allPartsMedSgSideXYZ(1,:); %T(rewardTrs(rwdTrI)).vUseFrameIdx);
+y = T(rewardTrs(rwdTrI)).allPartsMedSgSideXYZ(2,:); %T(rewardTrs(rwdTrI)).vUseFrameIdx);
+z = T(rewardTrs(rwdTrI)).allPartsMedSgSideXYZ(3,:); %T(rewardTrs(rwdTrI)).vUseFrameIdx);
+c = 1:sum(T(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
+
+figure;
+plot3(gmhTrj(1), gmhTrj(2), abs(gmhTrj(3)), 'ro')
+patch([x nan],[y nan],[z nan],[c nan],'FaceColor','none','EdgeColor','interp')
+%patch([x nan],[z nan],-[y nan],[c nan],'FaceColor','none','EdgeColor','interp')
+xlabel('X(mm)')
+ylabel('Y(mm)')
+zlabel('Z(mm)')
+
+%patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
+colormap parula
+colorbar
+caxis([400 1000])
+
+% x = T(rewardTrs(rwdTrI)).allPartsMedSgFron(1,:); %T(rewardTrs(rwdTrI)).vUseFrameIdx);
+% y = T(rewardTrs(rwdTrI)).allPartsMedSgFron(2,:); %T(rewardTrs(rwdTrI)).vUseFrameIdx);
+% z = T(rewardTrs(rwdTrI)).allPartsMedSgFron(3,:); %T(rewardTrs(rwdTrI)).vUseFrameIdx);
+% c = 1:sum(T(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
+% 
+% figure;
+% patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
+% colormap parula
+% colorbar
+% caxis([400 1000])
+% 
+% print(fullfile(filePath,'Figure',sprintf('tr#%d',rewardTrs(rwdTrI))),'-dpdf','-painters','-bestfit')
+% jsTime1k_KV(rewardTrs(rwdTrI)).fVideo
+% jsTime1k_KV(rewardTrs(rwdTrI)).sVideo

@@ -214,12 +214,11 @@ for t = 1:length(fVideoInfo) % increment trials of jsTime1k_KV
                 end
             end
             trj3d(t).allPartsMedSgFron = sgolayfilt(trj3d(t).allPartsMedF',5,33)';%sgfiltFramelen)';
-            trj3d(t).allPartsMedSgSide = sgolayfilt(trj3d(t).allPartsMedS',5,33)';%sgfiltFramelen)';
+            trj3d(t).allPartsMedSgSide = sgolayfilt(trj3d(t).allPartsMedS',5,33)';%sgfiltFramelen)';        
             % plot3(trj3d(t).allPartsMedSgFron(1,:),trj3d(t).allPartsMedSgFron(2,:),trj3d(t).allPartsMedSgFron(3,:));
             % plot3(trj3d(t).allPartsMedSgSide(1,:),trj3d(t).allPartsMedSgSide(2,:),trj3d(t).allPartsMedSgSide(3,:));
             
             % For joystick trajectories, just smooth using sgolayfilt
-            
             trj3d(t).js1SgFron = sgolayfilt(trj3d(t).js1f',5,33)'; % for js trj just smooth
             trj3d(t).js1SgSide = sgolayfilt(trj3d(t).js1s',5,33)'; % for js trj just smooth
             
@@ -231,6 +230,8 @@ for t = 1:length(fVideoInfo) % increment trials of jsTime1k_KV
                 trj3d(t).allPartsMedSgFron = trj3d(t).allPartsMedSgFron(:,vUseFrameIdx{t});
                 trj3d(t).allPartsMedSgSide = trj3d(t).allPartsMedSgSide(:,vUseFrameIdx{t});
             end
+            
+            
         end
     end
     clearvars tmp*
@@ -241,34 +242,34 @@ save(fullfile(filePath,'trj3d.mat'), 'trj3d'); % save the raw pixel values
 
 end
 
-rewardTrs = find([jsTime1k_KV(:).rewarded]==1);
-close all; 
-rwdTrI = 1;
-x = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-y = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-z = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
-
-figure;
-patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
-colormap parula
-colorbar
-caxis([400 1000])
-
-x = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-y = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-z = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
-
-figure;
-patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
-colormap parula
-colorbar
-caxis([400 1000])
-
-print(fullfile(filePath,'Figure',sprintf('tr#%d',rewardTrs(rwdTrI))),'-dpdf','-painters','-bestfit')
-jsTime1k_KV(rewardTrs(rwdTrI)).fVideo
-jsTime1k_KV(rewardTrs(rwdTrI)).sVideo
+% rewardTrs = find([jsTime1k_KV(:).rewarded]==1);
+% close all; 
+% rwdTrI = 100;
+% x = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% y = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% z = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
+% 
+% figure;
+% patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
+% colormap parula
+% colorbar
+% caxis([400 1000])
+% 
+% x = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% y = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% z = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
+% 
+% figure;
+% patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
+% colormap parula
+% colorbar
+% caxis([400 1000])
+% 
+% print(fullfile(filePath,'Figure',sprintf('tr#%d',rewardTrs(rwdTrI))),'-dpdf','-painters','-bestfit')
+% jsTime1k_KV(rewardTrs(rwdTrI)).fVideo
+% jsTime1k_KV(rewardTrs(rwdTrI)).sVideo
 
 
 

@@ -16,7 +16,8 @@ else
 end
 S = rmfield(S,{'baseJsTrajmm','baseSmJsVel','basePeriodicAbsVelSum'}); % rmfield remove fields from a structure array
 
-load(fullfile(filePath,'BehVariablesJs.mat'), 'evtIdx1k', 'p')
+pathBehVar = dir('**/*BehVariablesJs.mat');
+load(fullfile(pathBehVar.folder,pathBehVar.name), 'evtIdx1k', 'p')
 trStartIdx = evtIdx1k.trStartIdx; 
 %load(fullfile(filePath,'evtIndices.mat'), 'trStartIdx', 'trEndIdx')
 
