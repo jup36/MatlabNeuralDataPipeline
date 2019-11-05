@@ -1,4 +1,4 @@
-function [S] = JsVideoFileOrganizer(filePath)
+function [S] = jsVideoFileOrganizer(filePath)
 %This function inspects the trial-by-trial front and side videos, and
 % assign them to corresponding trials. The output is a structure named 'jsTime1k_KV'.  
 % This function has been updated in september/2019 to add a field named
@@ -16,8 +16,10 @@ else
 end
 S = rmfield(S,{'baseJsTrajmm','baseSmJsVel','basePeriodicAbsVelSum'}); % rmfield remove fields from a structure array
 
-load(fullfile(filePath,'BehVariablesJs.mat'), 'evtIdx1k', 'p')
-load(fullfile(filePath,'evtIndices.mat'), 'trStartIdx', 'trEndIdx')
+pathBehVar = dir('**/*BehVariablesJs.mat');
+load(fullfile(pathBehVar.folder,pathBehVar.name), 'evtIdx1k', 'p')
+trStartIdx = evtIdx1k.trStartIdx; 
+%load(fullfile(filePath,'evtIndices.mat'), 'trStartIdx', 'trEndIdx')
 
 behFilePath = dir(fullfile(filePath,'201*')); % dir where the trial-by-trial behavioral csv files are saved
 tbytCsvList = dir(fullfile(behFilePath.folder,behFilePath.name,'trial_*'));    % trial-by-trial files
@@ -34,6 +36,9 @@ end
 %% organize the trial-by-trial csv and avi files
 % spot the trial-by-trial video files
 vFiles = dir('**/*.avi'); % list all the video files
+if isempty(vFiles)
+    error('No Video files were found!!')
+end
 vFronFiles = vFiles(cellfun(@(c)contains(c,'cam0'), {vFiles(:).name})); % front cam files
 [vFronFiles(:).fileCalled] = deal(0); % accumulate the number of times the video file called before
 [vFronFiles(:).framesUsed] = deal(0); % the number of frames previously assigned (to a trigger pulse) before
