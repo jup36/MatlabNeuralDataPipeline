@@ -1,7 +1,7 @@
 function getHandTrjFromDlcData(filePath, hTrjPath)
 
-%filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081419';
-%filePath = 'S:\Junchol_Data\JS2p0\WR40_081419'; % data folder (beefcake)
+%filePath = '/Volumes/Beefcake/Junchol_Data/JS2.0/WR40_081419';
+%filePath = 'S:\Junchol_Data\JS2.0\WR40_081419'; % data folder (beefcake)
 %hTrjPath = '/Volumes/dudmanlab/dilucid-drop-output/mouseJoystick3/081419_WR40';
 %hTrjPath = 'T:\dilucid-drop-output\mouseJoystick3\081419_WR40'; % hand trajectory folder
 
@@ -12,7 +12,7 @@ if exist(fullfile(stereoCalibFile),'file')==2
 else
     disp('Point to "Calib_Results_stereo_011619.mat" with stereo camera calibration data!')
     [calibFileSelect,calibPathSelect] = uigetfile('C:\Users\parkj\Documents\TOOLBOX_calib');
-    calibParams = load(fullfile(calibPathSelect,calibFileSelect),'om','T','fc_left','cc_left','kc_left','alpha_c_left','fc_right','cc_right','kc_right','alpha_c_right'); % load stereo camera calibration data
+    load(fullfile(calibPathSelect,calibFileSelect),'om','T','fc_left','cc_left','kc_left','alpha_c_left','fc_right','cc_right','kc_right','alpha_c_right'); % load stereo camera calibration data
 end
     
 %% collect jsTime1k_Kinematics data
@@ -239,21 +239,10 @@ for t = 1:length(fVideoInfo) % increment trials of jsTime1k_KV
             trj3d(t).allPartsMedSgSideXYZ(2,:) = trj3d(t).allPartsMedSgSide(3,:); 
             trj3d(t).allPartsMedSgSideXYZ(3,:) = -trj3d(t).allPartsMedSgSide(2,:);     
         
-            trj3d(t).js1SgFronXYZ(1,:) = trj3d(t).js1SgFron(1,:); 
-            trj3d(t).js1SgFronXYZ(2,:) = trj3d(t).js1SgFron(3,:); 
-            trj3d(t).js1SgFronXYZ(3,:) = -trj3d(t).js1SgFron(2,:); 
+            trj3d(t).js1SgFronXYZ
+            trj3d(t).JS1SgFronXYZ
             
-            trj3d(t).js1SgSideXYZ(1,:) = trj3d(t).js1SgSide(1,:);
-            trj3d(t).js1SgSideXYZ(2,:) = trj3d(t).js1SgSide(3,:);
-            trj3d(t).js1SgSideXYZ(3,:) = -trj3d(t).js1SgSide(2,:);
-            
-            trj3d(t).js2SgFronXYZ(1,:) = trj3d(t).js2SgFron(1,:); 
-            trj3d(t).js2SgFronXYZ(2,:) = trj3d(t).js2SgFron(3,:); 
-            trj3d(t).js2SgFronXYZ(3,:) = -trj3d(t).js2SgFron(2,:); 
-            
-            trj3d(t).js2SgSideXYZ(1,:) = trj3d(t).js2SgSide(1,:);
-            trj3d(t).js2SgSideXYZ(2,:) = trj3d(t).js2SgSide(3,:);
-            trj3d(t).js2SgSideXYZ(3,:) = -trj3d(t).js2SgSide(2,:);
+            trj3d(t).
         end
     end
     clearvars tmp*
