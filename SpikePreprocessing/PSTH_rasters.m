@@ -18,9 +18,10 @@ cd(p.Results.filePath)   % change directory to the data folder
 behFile = dir(fullfile(p.Results.filePath,'BehVariables.mat')); % look for 'BehVariables.mat' file    
 
 if length(behFile)>1 || isempty(behFile)    
-    error('File could not be found or multiple BehVariables.mat files exist!');
+    [selectFile,selectPath] = uigetfile(fullfile(p.Results.filePath),'Select the BehVariables.mat file!'); 
+    load(fullfile(selectPath,selectFile), 'jsTime1k') % load behavioral timestamps
 else
-    load(behFile.name,'ts') % load behavioral timestamps 
+    load(behFile.name, 'jsTime1k') % load behavioral timestamps 
 end
 
 geometry = getimec3opt3geom; % get the geometry of the imec3opt3 probe
