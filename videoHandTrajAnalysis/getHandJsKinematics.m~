@@ -11,9 +11,6 @@ T = T.('trj3d');
 
 hTrjF = {T(:).allPartsMedSgFronXYZ}; % all parts median and Savitzky-Golay filtered hand trajectory front cam
 hTrjS = {T(:).allPartsMedSgSideXYZ}; % all parts median and Savitzky-Golay filtered hand trajectory side cam
-jsBot = {T(:).js1s}; 
-jsTop = {T(:).js2s}; 
-
 
 %% collect jsTime1k_Kinematics data
 jsKinFile = dir(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles.mat'));
@@ -48,7 +45,7 @@ for t = 1:length(hTrjS)
         if sum(nearMedLogic & lowVelLogic)>10
             basePosM = median(hTrjS{t}(:,nearMedLogic & lowVelLogic), 2); % low velocity (<5 mm/s) points
         else
-            basePosM = gmhTrj; % just take the global median points
+            basePosM = gmhTrj; % 
         end
         baseDst = @(x) sqrt(sum((x-basePosM).^2)); % func to get the point-by-point Dstance from the global median position
         jkv(t).hTrjDstBase = splitapply(baseDst, hTrjS{t}, 1:size(hTrjS{t},2)); % point-by-point position relative to trial-by-trial baseline
