@@ -159,10 +159,8 @@ for t = 1:length(fVideoInfo) % increment trials of jsTime1k_KV
             fHdXY  = [fron(fIdx).hdIntX, fron(fIdx).hdIntY]'; % hand front XY
             fjsTXY = [fron(fIdx).jsTIntX, fron(fIdx).jsTIntY]'; % joystick1 front XY
             fjsBXY = [fron(fIdx).jsBIntX, fron(fIdx).jsBIntY]'; % joystick2 front XY
-            trj3d(t).jsfstPtFB = max([fron(fIdx).jsBfstPtX, fron(fIdx).jsBfstPtY]); 
-            trj3d(t).jsfstPtFT = max([fron(fIdx).jsTfstPtX, fron(fIdx).jsTfstPtY]); 
-            trj3d(t).jsfstPtSB = max([side(sIdx).jsBfstPtX, side(sIdx).jsBfstPtY]); 
-            trj3d(t).jsfstPtST = max([side(sIdx).jsTfstPtX, side(sIdx).jsTfstPtY]); 
+            trj3d(t).jsfstPtB = max([fron(fIdx).jsBfstPtX, fron(fIdx).jsBfstPtY, side(sIdx).jsBfstPtX, side(sIdx).jsBfstPtY]); 
+            trj3d(t).jsfstPtT = max([fron(fIdx).jsTfstPtX, fron(fIdx).jsTfstPtY, side(sIdx).jsTfstPtX, side(sIdx).jsTfstPtY]); 
             
             sFg1XY = [side(sIdx).fg1IntX, side(sIdx).fg1IntY]'; % finger1 side XY
             sFg2XY = [side(sIdx).fg2IntX, side(sIdx).fg2IntY]'; % finger2 side XY
@@ -269,42 +267,42 @@ save(fullfile(filePath,'trj3d.mat'), 'trj3d'); % save the raw pixel values
 
 end
 
-rewardTrs = find([jsTime1k_KV(:).rewarded]==1);
-rwdTrI = 2;
-x = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSideXYZ(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-y = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSideXYZ(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-z = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSideXYZ(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
-
-figure;
-patch([x nan],[y nan],[z nan],[c nan],'FaceColor','none','EdgeColor','interp')
-colormap parula
-colorbar
-caxis([400 1000])
-
-figure; hold on
-xT = trj3d(rewardTrs(rwdTrI)).jsTSgSideXYZ(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-yT = trj3d(rewardTrs(rwdTrI)).jsTSgSideXYZ(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-zT = trj3d(rewardTrs(rwdTrI)).jsTSgSideXYZ(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
-
-patch([xT nan],[yT nan],[zT nan],[c nan],'FaceColor','none','EdgeColor','interp')
-
-xB = trj3d(rewardTrs(rwdTrI)).jsBSgSideXYZ(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-yB = trj3d(rewardTrs(rwdTrI)).jsBSgSideXYZ(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-zB = trj3d(rewardTrs(rwdTrI)).jsBSgSideXYZ(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
-
-patch([xB nan],[yB nan],[zB nan],[c nan],'FaceColor','none','EdgeColor','interp')
-
-colormap cool
-colorbar
-caxis([400 1000])
-
-print(fullfile(filePath,'Figure',sprintf('tr#%d',rewardTrs(rwdTrI))),'-dpdf','-painters','-bestfit')
-jsTime1k_KV(rewardTrs(rwdTrI)).fVideo
-jsTime1k_KV(rewardTrs(rwdTrI)).sVideo
-
+% rewardTrs = find([jsTime1k_KV(:).rewarded]==1);
+% rwdTrI = 2;
+% x = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSideXYZ(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% y = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSideXYZ(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% z = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSideXYZ(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
+% 
+% figure;
+% patch([x nan],[y nan],[z nan],[c nan],'FaceColor','none','EdgeColor','interp')
+% colormap parula
+% colorbar
+% caxis([400 1000])
+% 
+% figure; hold on
+% xT = trj3d(rewardTrs(rwdTrI)).jsTSgSideXYZ(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% yT = trj3d(rewardTrs(rwdTrI)).jsTSgSideXYZ(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% zT = trj3d(rewardTrs(rwdTrI)).jsTSgSideXYZ(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
+% 
+% patch([xT nan],[yT nan],[zT nan],[c nan],'FaceColor','none','EdgeColor','interp')
+% 
+% xB = trj3d(rewardTrs(rwdTrI)).jsBSgSideXYZ(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% yB = trj3d(rewardTrs(rwdTrI)).jsBSgSideXYZ(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% zB = trj3d(rewardTrs(rwdTrI)).jsBSgSideXYZ(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
+% 
+% patch([xB nan],[yB nan],[zB nan],[c nan],'FaceColor','none','EdgeColor','interp')
+% 
+% colormap cool
+% colorbar
+% caxis([400 1000])
+% 
+% print(fullfile(filePath,'Figure',sprintf('tr#%d',rewardTrs(rwdTrI))),'-dpdf','-painters','-bestfit')
+% jsTime1k_KV(rewardTrs(rwdTrI)).fVideo
+% jsTime1k_KV(rewardTrs(rwdTrI)).sVideo
+% 
 
 
 % fronFg1Fig2Dist = cell2mat(cellfun(@(a,b,c,d) sqrt((a-b).^2+(c-d).^2), {fron(:).fg1X}, {fron(:).fg2X}, {fron(:).fg1Y}, {fron(:).fg2Y},'Un',0)'); % front, point-by-point distance between two fingers
@@ -334,7 +332,7 @@ trj(trjlh<.9)=nan;
 fstPt = NaN;
 
 if zeroFirstNaNs
-    isnanThres = .9; % in case for Joystick, there's a lot of NaNs expected while Js positioning
+    isnanThres = .7; % in case for Joystick, there's a lot of NaNs expected while Js positioning
 else
     isnanThres = .4; 
 end
