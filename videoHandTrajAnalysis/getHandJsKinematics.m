@@ -11,9 +11,8 @@ T = T.('trj3d');
 
 hTrjF = {T(:).allPartsMedSgFronXYZ}; % all parts median and Savitzky-Golay filtered hand trajectory front cam
 hTrjS = {T(:).allPartsMedSgSideXYZ}; % all parts median and Savitzky-Golay filtered hand trajectory side cam
-jsBot = {T(:).js1s}; 
-jsTop = {T(:).js2s}; 
-
+jsBot = {T(:).jsBs}; 
+jsTop = {T(:).jsTs}; 
 
 %% collect jsTime1k_Kinematics data
 jsKinFile = dir(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles.mat'));
