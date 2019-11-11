@@ -147,6 +147,7 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                         elseif vFronFiles(tempVFronI).fileCalled>=1 && vSideFiles(tempVSideI).fileCalled>=1 % if used before take the pulse stop as the frame reference
                             tempFrameTime = evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempFrameDur+1:tempPulseTStopIdx); %evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempVF.totalDuration+1:tempPulseTStopIdx); % get the frame times
                             tempFrameIdxPrevEnd = find(S(t-1).vUseFrameIdx==true,1,'last');
+                            tempFrameIdx = false(tempVF.totalDuration,1);
                             tempFrameIdx(tempFrameIdxPrevEnd+3:min(tempFrameIdxPrevEnd+2+tempFrameDur,tempVF.totalDuration))=true;
                             tempFrameIdx(1:tempFrameIdxPrevEnd)=false;
                         end
@@ -237,6 +238,7 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                         elseif vFronFiles(tempVFronI).fileCalled>=1 && vSideFiles(tempVSideI).fileCalled>=1 % if used before take the pulse stop as the frame reference
                             tempFrameTime = evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempFrameDur+1:tempPulseTStopIdx); %evtIdx1k.camTrigFallIdx(tempPulseTStopIdx-tempVF.totalDuration+1:tempPulseTStopIdx); % get the frame times
                             tempFrameIdxPrevEnd = find(S(t-1).vUseFrameIdx==true,1,'last');
+                            tempFrameIdx = false(tempVF.totalDuration,1);
                             tempFrameIdx(tempFrameIdxPrevEnd+3:min(tempFrameIdxPrevEnd+2+tempFrameDur,tempVF.totalDuration))=true;
                             tempFrameIdx(1:tempFrameIdxPrevEnd)=false;
                         end
@@ -271,7 +273,7 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                 end
             end
             fprintf('organized csv and video files for trial #%d\n', t);
-            clearvars tempVF tempVS temp*
+            %clearvars tempVF tempVS temp*
         end
     else
         error('Some trial-by-trial csv files might be missing!')
