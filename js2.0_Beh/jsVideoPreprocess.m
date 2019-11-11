@@ -97,7 +97,7 @@ for i = 1:length(nTr)
         if ~isempty(pVP.Results.frTimeRange)
             frameTimeLogic = ismember(frameTime,frameTimeRange);
         end
-    else
+    else % time-out
         frameTime = S(nTr(i)).vFrameTime-(S(nTr(i)).trJsReady); % frameTime aligned to js ready time
         % identify the frames to include
         frameTimeLogic = ones(1,length(frameTime)); % by default, include all frames

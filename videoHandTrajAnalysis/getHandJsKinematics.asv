@@ -11,7 +11,7 @@ function getHandJsKinematics( filePath )
 % trajectories relative to front camera are used currently. 
 
 %% load 'trj3d.mat'
-cd(filePath)
+cd(filePath)s
 trj3d = dir('**/*trj3d.mat');
 T=load(fullfile(trj3d.folder,trj3d.name),'trj3d');
 clearvars trj3d
@@ -26,18 +26,18 @@ jsTop = {T(:).jsTSgFronXYZ};
 jsKinFile = dir(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles.mat'));
 
 if length(jsKinFile)==1
-    jkvt = load(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles.mat'),'jsTime1k_KV'); % load jsTime1k_KV
+    jkv = load(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles.mat'),'jsTime1k_KV'); % load jsTime1k_KV
 else
     disp('Point to "jsTime1k_Kinematics_VideoFiles.mat" with the variable "jsTime1k_KV"!')
     [jsKinFileSelect,jsKinPathSelect] = uigetfile(filePath);
-    jkvt = load(fullfile(jsKinPathSelect,jsKinFileSelect),'jsTime1k_KV'); % load jsTime1k_KV
+    jkv = load(fullfile(jsKinPathSelect,jsKinFileSelect),'jsTime1k_KV'); % load jsTime1k_KV
 end
 
-jkvt = jkvt.('jsTime1k_KV');
+jkv = jkv.('jsTime1k_KV');
 clearvars jsTime1k_KV
 
 % sanity check if the number of trials match
-if size(jkvt,2)~=size(T,2)
+if size(jkv,2)~=size(T,2)
     error('the trial numbers differ between jsTime1k_KV and trj3d!')
 end
 
@@ -49,14 +49,14 @@ medDst = @(x) sqrt(sum((x-gmhTrj).^2)); % func to get the point-by-point Dstance
 
 for t = 1:length(hTrjF)
     if ~isempty(hTrjF{t})
-        jkvt(t).hTrjF = hTrjF{t}; 
-        jkvt(t).hTrjDstMed = splitapply(medDst, hTrjF{t}, 1:size(hTrjF{t},2)); % point-by-point position relative to the global median
-        jkvt(t).hTrjVelMed = diff([jkvt(t).hTrjDstMed(:,1) jkvt(t).hTrjDstMed],1,2)./(4/1000);
+        jkv(t).hTrjF = hTrjF{t}; 
+        jkv(t).hTrjDstMed = splitapply(medDst, hTrjF{t}, 1:size(hTrjF{t},2)); % point-by-point position relative to the global median
+        jkv(t).hTrjVelMed = diff([jkv(t).hTrjDstMed(:,1) jkv(t).hTrjDstMed],1,2)./(4/1000);
         % find the baseline points of low velocity and short-distance from the global median
-        [~,sortIhTrjDstMed]=sort(jkvt(t).hTrjDstMed); % sort by distance from the global median
-        nearMedLogic = zeros(1,length(jkvt(t).hTrjDstMed));
+        [~,sortIhTrjDstMed]=sort(jkv(t).hTrjDstMed); % sort by distance from the global median
+        nearMedLogic = zeros(1,length(jkv(t).hTrjDstMed));
         nearMedLogic(sortIhTrjDstMed(1:min(250, length(sortIhTrjDstMed))))=1; % taking points not too far from the global median excludes low-velocity points such as time spent with the limb on the JS without moving          
-        lowVelLogic = abs(jkvt(t).hTrjVelMed)<5; % low-velocity points 
+        lowVelLogic = abs(jkv(t).hTrjVelMed)<5; % low-velocity points 
         
         if sum(nearMedLogic & lowVelLogic)>10
             basePosM = median(hTrjF{t}(:,nearMedLogic & lowVelLogic), 2); % low velocity (<5 mm/s) points
@@ -64,29 +64,29 @@ for t = 1:length(hTrjF)
             basePosM = gmhTrj; % just take the global median points
         end
         baseDst = @(x) sqrt(sum((x-basePosM).^2)); % func to get the point-by-point Dstance from the global median position
-        jkvt(t).hTrjDstBase = splitapply(baseDst, hTrjF{t}, 1:size(hTrjF{t},2)); % point-by-point position relative to trial-by-trial baseline
-        jkvt(t).hTrjVelBase = diff([jkvt(t).hTrjDstBase(:,1) jkvt(t).hTrjDstBase],1,2)./(4/1000); % point-by-point velocity
-        jkvt(t).hTrjDstBaseXyz = hTrjF{t}-basePosM; % normalize by subtracting the median of the baseline position X, Y, Z
-        jkvt(t).hTrjVelBaseXyz = diff([jkvt(t).hTrjDstBaseXyz(:,1) jkvt(t).hTrjDstBaseXyz],1,2);
+        jkv(t).hTrjDstBase = splitapply(baseDst, hTrjF{t}, 1:size(hTrjF{t},2)); % point-by-point position relative to trial-by-trial baseline
+        jkv(t).hTrjVelBase = diff([jkv(t).hTrjDstBase(:,1) jkv(t).hTrjDstBase],1,2)./(4/1000); % point-by-point velocity
+        jkv(t).hTrjDstBaseXyz = hTrjF{t}-basePosM; % normalize by subtracting the median of the baseline position X, Y, Z
+        jkv(t).hTrjVelBaseXyz = diff([jkv(t).hTrjDstBaseXyz(:,1) jkv(t).hTrjDstBaseXyz],1,2);
         %elseif isempty(hTrjF{t})
-        %    jkvt(t).hTrjDstMed = []; jkvt(t).hTrjVelMed = []; jkvt(t).hTrjDstBase = []; jkvt(t).hTrjVelBase = []; jkvt(t).hTrjDstBaseXyz = []; jkvt(t).hTrjVelBaseXyz = [];
+        %    jkv(t).hTrjDstMed = []; jkv(t).hTrjVelMed = []; jkv(t).hTrjDstBase = []; jkv(t).hTrjVelBase = []; jkv(t).hTrjDstBaseXyz = []; jkv(t).hTrjVelBaseXyz = [];
     end
 end
 clearvars t
 
 %% get the hand velocity and position cut to detect reaches
-vel = [jkvt(:).hTrjVelBase]; % baseline normalized 1-d velocity across all time points
+vel = [jkv(:).hTrjVelBase]; % baseline normalized 1-d velocity across all time points
 sortVel=sort(vel); % sort velocity data
 velCut = sortVel(round(length(sortVel)*.98)); % set the 98% cutoff for the velocity data (velocity cutoff is required, since reaches are expected to occur at high velocity)
 
-pos = [jkvt(:).hTrjDstBase]; % 1-d position relative to the trial-by-trial baseline
+pos = [jkv(:).hTrjDstBase]; % 1-d position relative to the trial-by-trial baseline
 sortPos = sort(pos); % sort position data
 sortPos(sortPos<median(sortPos))=median(sortPos); % replace less-than median position values with the median position value
 posCut = 10; % set the Distance cut off as 10 mm from the baseline sortPos(round(length(sortPos)*.90));
 
-for t = 1:size(jkvt,2)
-    [jkvt(t).hTrjRstart, jkvt(t).hTrjRstop] = getReachTimesJs2p0(jkvt(t).hTrjDstBase, jkvt(t).hTrjVelBase, posCut, velCut);
-    % posTrace= jkvt(t).hTrjDstBase; velTrace= jkvt(t).hTrjVelBase;
+for t = 1:size(jkv,2)
+    [jkv(t).hTrjRstart, jkv(t).hTrjRstop] = getReachTimesJs2p0(jkv(t).hTrjDstBase, jkv(t).hTrjVelBase, posCut, velCut);
+    % posTrace= jkv(t).hTrjDstBase; velTrace= jkv(t).hTrjVelBase;
 end
 clearvars t
 
@@ -97,66 +97,66 @@ for tr = 1:length(jsBot)
         jsValFst = max(T(tr).jsfstPtFB, T(tr).jsfstPtFT);
         frValFst = find(T(tr).vUseFrameIdx,1,'first');
         if jsValFst>frValFst % in most cases, js valid pts are after the first valid frame
-            jkvt(tr).jsTrjValB = T(tr).jsBSgFronXYZ(:,jsValFst:end);
-            jkvt(tr).jsTrjValT = T(tr).jsTSgFronXYZ(:,jsValFst:end);
+            jkv(tr).jsTrjValB = T(tr).jsBSgFronXYZ(:,jsValFst:end);
+            jkv(tr).jsTrjValT = T(tr).jsTSgFronXYZ(:,jsValFst:end);
         elseif jsValFst<frValFst % in some cases, when corresponding frames started after the js positioining 
-            jkvt(tr).jsTrjValB = T(tr).jsBSgFronXYZ;
-            jkvt(tr).jsTrjValT = T(tr).jsTSgFronXYZ;
+            jkv(tr).jsTrjValB = T(tr).jsBSgFronXYZ;
+            jkv(tr).jsTrjValT = T(tr).jsTSgFronXYZ;
         end  
     end
 end
 clearvars tr
 
 % the global median joystick coordinates to be used as reference points
-gmJsTrjT = median(cell2mat({jkvt(:).jsTrjValT}),2); % the global median joystick top
-gmJsTrjB = median(cell2mat({jkvt(:).jsTrjValB}),2); % the global median joystick bottom
+gmJsTrjT = median(cell2mat({jkv(:).jsTrjValT}),2); % the global median joystick top
+gmJsTrjB = median(cell2mat({jkv(:).jsTrjValB}),2); % the global median joystick bottom
 
 medDstJsT = @(x) sqrt(sum((x-gmJsTrjT).^2)); % func to get the point-by-point Dstance from the global median position
 medDstJsB = @(x) sqrt(sum((x-gmJsTrjB).^2)); % func to get the point-by-point Dstance from the global median position
-for tr = 1:size(jkvt,2) 
+for tr = 1:size(jkv,2) 
     % get the distance from the global median 
-    if ~isempty(jkvt(tr).jsTrjValT) && ~isempty(jkvt(tr).jsTrjValB)
+    if ~isempty(jkv(tr).jsTrjValT) && ~isempty(jkv(tr).jsTrjValB)
         % distance
-        jkvt(tr).jsDstValGmT = splitapply(medDstJsT, jkvt(tr).jsTrjValT, 1:size(jkvt(tr).jsTrjValT,2)); % point-by-point position relative to the global median; 
-        jkvt(tr).jsDstValGmB = splitapply(medDstJsB, jkvt(tr).jsTrjValB, 1:size(jkvt(tr).jsTrjValB,2));
+        jkv(tr).jsDstValGmT = splitapply(medDstJsT, jkv(tr).jsTrjValT, 1:size(jkv(tr).jsTrjValT,2)); % point-by-point position relative to the global median; 
+        jkv(tr).jsDstValGmB = splitapply(medDstJsB, jkv(tr).jsTrjValB, 1:size(jkv(tr).jsTrjValB,2));
         % velocity
-        jkvt(tr).jsVelValGmT = diff([jkvt(tr).jsDstValGmT(:,1) jkvt(tr).jsDstValGmT],1,2)./(4/1000);
-        jkvt(tr).jsVelValGmB = diff([jkvt(tr).jsDstValGmB(:,1) jkvt(tr).jsDstValGmB],1,2)./(4/1000);
+        jkv(tr).jsVelValGmT = diff([jkv(tr).jsDstValGmT(:,1) jkv(tr).jsDstValGmT],1,2)./(4/1000);
+        jkv(tr).jsVelValGmB = diff([jkv(tr).jsDstValGmB(:,1) jkv(tr).jsDstValGmB],1,2)./(4/1000);
     end
 end
 clearvars tr
 
-jsTargetPos = unique([jkvt(:).reachP1]); 
+jsTargetPos = unique([jkv(:).reachP1]); 
 for rp = 1:length(jsTargetPos)
-    tmpJsPosIdx = [jkvt(:).reachP1]==jsTargetPos(rp); 
+    tmpJsPosIdx = [jkv(:).reachP1]==jsTargetPos(rp); 
     
     % bind all position/velocity data corresponding to the current joystick position (joystick top) 
-    tmpJsTrjValT = [jkvt(tmpJsPosIdx).jsTrjValT]; % Js top Trj
-    tmpJsVelValT = [jkvt(tmpJsPosIdx).jsVelValGmT]; % Js top Vel
+    tmpJsTrjValT = [jkv(tmpJsPosIdx).jsTrjValT]; % Js top Trj
+    tmpJsVelValT = [jkv(tmpJsPosIdx).jsVelValGmT]; % Js top Vel
     tmpJsTrjValTlowVelMedT = median(tmpJsTrjValT(:,abs(tmpJsVelValT)<1),2); % Js top low-vel points median
-    [jkvt(tmpJsPosIdx).jsTreachPosT] = deal(tmpJsTrjValTlowVelMedT); 
+    [jkv(tmpJsPosIdx).jsTreachPosT] = deal(tmpJsTrjValTlowVelMedT); 
     
     % bind all position/velocity data corresponding to the current joystick position (joystick bottom)
-    tmpJsTrjValB = [jkvt(tmpJsPosIdx).jsTrjValB]; % Js bottom Trj
-    tmpJsVelValB = [jkvt(tmpJsPosIdx).jsVelValGmB]; % Js bottom Vel
+    tmpJsTrjValB = [jkv(tmpJsPosIdx).jsTrjValB]; % Js bottom Trj
+    tmpJsVelValB = [jkv(tmpJsPosIdx).jsVelValGmB]; % Js bottom Vel
     tmpJsTrjValTlowVelMedB = median(tmpJsTrjValB(:,abs(tmpJsVelValB)<1),2); % Js bottom low-vel points median
-    [jkvt(tmpJsPosIdx).jsTreachPosB] = deal(tmpJsTrjValTlowVelMedB); 
+    [jkv(tmpJsPosIdx).jsTreachPosB] = deal(tmpJsTrjValTlowVelMedB); 
     
 end
 clearvars rp tmp*
 
-save(fullfile(filePath,'jsTime1k_KinematicsTrajectories.mat'), 'jkvt'); % save the raw pixel values
+save(fullfile(filePath,'trj3d.mat'), 'jkv'); % save the raw pixel values
 end
 %% examine trajectories by plotting
 %rewardTrs = find([jsTime1k_KV(:).rewarded]==1);
 % close all;
 % trI = 8;
-% x = jkvt(trI).hTrjF(1,:); %T(jkvt(trI)).vUseFrameIdx);
-% y = jkvt(trI).hTrjF(2,:); %T(jkvt(trI)).vUseFrameIdx);
-% z = jkvt(trI).hTrjF(3,:); %T(jkvt(trI)).vUseFrameIdx);
-% c = 1:sum(jkvt(trI).vUseFrameIdx); % generate a colormap;
+% x = jkv(trI).hTrjF(1,:); %T(jkv(trI)).vUseFrameIdx);
+% y = jkv(trI).hTrjF(2,:); %T(jkv(trI)).vUseFrameIdx);
+% z = jkv(trI).hTrjF(3,:); %T(jkv(trI)).vUseFrameIdx);
+% c = 1:sum(jkv(trI).vUseFrameIdx); % generate a colormap;
 % 
-% jsAtTarget = [jkvt(trI).jsTreachPosT jkvt(trI).jsTreachPosB]; % joystick at the reach target position
+% jsAtTarget = [jkv(trI).jsTreachPosT jkv(trI).jsTreachPosB]; % joystick at the reach target position
 % jsX = jsAtTarget(1,:); % Js at the reach target position X
 % jsY = jsAtTarget(2,:); % Js at the reach target position Y
 % jsZ = jsAtTarget(3,:); % Js at the reach target position Z
@@ -175,16 +175,16 @@ end
 % %patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
 % colormap cool
 % colorbar
-% caxis([1 sum(jkvt(trI).vUseFrameIdx)])
+% caxis([1 sum(jkv(trI).vUseFrameIdx)])
 % print(fullfile(filePath,'Figure',sprintf('hTrjDstBaseXyz_tr#%d',trI)),'-dpdf','-painters','-bestfit');
 % 
 
 % close all;
 % trI = 10;
-% x = jkvt(trI).hTrjDstBaseXyz(1,jkvt(10).vUseFrameIdx); %T(jkvt(trI)).vUseFrameIdx);
-% y = jkvt(trI).hTrjDstBaseXyz(2,jkvt(10).vUseFrameIdx); %T(jkvt(trI)).vUseFrameIdx);
-% z = jkvt(trI).hTrjDstBaseXyz(3,jkvt(10).vUseFrameIdx); %T(jkvt(trI)).vUseFrameIdx);
-% c = 1:sum(jkvt(trI).vUseFrameIdx); % generate a colormap;
+% x = jkv(trI).hTrjDstBaseXyz(1,jkv(10).vUseFrameIdx); %T(jkv(trI)).vUseFrameIdx);
+% y = jkv(trI).hTrjDstBaseXyz(2,jkv(10).vUseFrameIdx); %T(jkv(trI)).vUseFrameIdx);
+% z = jkv(trI).hTrjDstBaseXyz(3,jkv(10).vUseFrameIdx); %T(jkv(trI)).vUseFrameIdx);
+% c = 1:sum(jkv(trI).vUseFrameIdx); % generate a colormap;
 % 
 % figure;
 % %plot3(gmhTrj(1), gmhTrj(2), abs(gmhTrj(3)), 'ro')
@@ -197,7 +197,7 @@ end
 % %patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
 % colormap cool
 % colorbar
-% caxis([1 sum(jkvt(trI).vUseFrameIdx)])
+% caxis([1 sum(jkv(trI).vUseFrameIdx)])
 % print(fullfile(filePath,'Figure',sprintf('hTrjDstBaseXyz_tr#%d',trI)),'-dpdf','-painters','-bestfit');
 
 
