@@ -128,17 +128,17 @@ fList = {fron(:).FileName}; % front video list
 sList = {side(:).FileName}; % side video list
 
 for t = 1:length(fVideoInfo) % increment trials of jsTime1k_KV
-    trj3d(t).fg1f = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).fg2f = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).hdf  = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).jsTf = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).jsBf = nan(3,length(vFrameTime{t,1}));
+    trj3d(t).fg1f = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).fg2f = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).hdf  = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).jsTf = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).jsBf = nan(3,length(vUseFrameIdx{t,1}));
     
-    trj3d(t).fg1s = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).fg2s = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).hds  = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).jsTs = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).jsBs = nan(3,length(vFrameTime{t,1}));
+    trj3d(t).fg1s = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).fg2s = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).hds  = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).jsTs = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).jsBs = nan(3,length(vUseFrameIdx{t,1}));
     
     if isstruct(fVideoInfo{t}) && isstruct(sVideoInfo{t})
         [fPath,fName,~] = fileparts(fVideoInfo{t}.path);

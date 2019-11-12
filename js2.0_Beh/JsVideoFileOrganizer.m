@@ -1,4 +1,4 @@
-function [S] = jsVideoFileOrganizer(filePath)
+function [S] = JsVideoFileOrganizer(filePath)
 %This function inspects the trial-by-trial front and side videos, and
 % assign them to corresponding trials. The output is a structure named 'jsTime1k_KV'.  
 % This function has been updated in september/2019 to add a field named
@@ -11,19 +11,19 @@ if exist('jsTime1k_K','var')==1
     S=jsTime1k_K;
 else
     pathJsTime1k_K = dir('**/*_kinematics.mat');
-    S=load(fullfile(pathJsTime1k_K.folder,pathJsTime1k_K.name),'jsTime1k_K'); % just building up on the outcome of jsKinematicsAnalysis.m to create one all-inclusive file
+    S=load(fullfile(pathJsTime1k_K(1).folder,pathJsTime1k_K(1).name),'jsTime1k_K'); % just building up on the outcome of jsKinematicsAnalysis.m to create one all-inclusive file
     S = S.('jsTime1k_K');
 end
 S = rmfield(S,{'baseJsTrajmm','baseSmJsVel','basePeriodicAbsVelSum'}); % rmfield remove fields from a structure array
 
 pathBehVar = dir('**/*BehVariablesJs.mat');
-load(fullfile(pathBehVar.folder,pathBehVar.name), 'evtIdx1k', 'p')
+load(fullfile(pathBehVar(1).folder,pathBehVar(1).name), 'evtIdx1k', 'p')
 trStartIdx = evtIdx1k.trStartIdx; 
 %load(fullfile(filePath,'evtIndices.mat'), 'trStartIdx', 'trEndIdx')
 
 behFilePath = dir(fullfile(filePath,'201*')); % dir where the trial-by-trial behavioral csv files are saved
-tbytCsvList = dir(fullfile(behFilePath.folder,behFilePath.name,'trial_*'));    % trial-by-trial files
-allTrialCsv = dir(fullfile(behFilePath.folder,behFilePath.name,'trials.csv')); % all trial file
+tbytCsvList = dir(fullfile(behFilePath(1).folder,behFilePath(1).name,'trial_*'));    % trial-by-trial files
+allTrialCsv = dir(fullfile(behFilePath(1).folder,behFilePath(1).name,'trials.csv')); % all trial file
 if length(allTrialCsv)==1
     trialsFileName = fullfile(allTrialCsv.folder,allTrialCsv.name);
     trialsCsv = readtable(trialsFileName);
