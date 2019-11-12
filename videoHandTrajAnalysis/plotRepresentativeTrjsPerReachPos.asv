@@ -12,7 +12,7 @@ cSeed{1,3} = [152 251 152]./255;
 cSeed{2,4} = [255 0 255]./255; % M
 cSeed{1,4} = [255 225 255]./255;
 
-numbTrialsToPlot = 10;
+numbTrialsToPlot = 10; 
 
 % ensure that the jkvt structure is in the workspace
 if exist('jkvt','var')
@@ -75,18 +75,17 @@ for p = 1:length(jsTargetP)
         for t = 1:length(trsToPlot)
             tt = trsToPlot(t);
             
-            if ~isempty(jkvt(tt).hTrjRstart) && ~isempty(jkvt(tt).hTrjRstop)
-                
-                rStart = jkvt(tt).hTrjRstart(end);
-                rStop = jkvt(tt).hTrjRstop(end);
-                
-                if ~isempty(rStart) && ~isempty(rStop) && rStart<rStop
-                    x = jkvt(tt).hTrjF(1,rStart:rStop);
-                    y = jkvt(tt).hTrjF(2,rStart:rStop);
-                    z = jkvt(tt).hTrjF(3,rStart:rStop);
-                    cr = 1:size(jkvt(tt).hTrjF(rStart:rStop),2); % generate a colormap;
-                    patch([x nan],[y nan],[z nan],[cr nan],'EdgeColor',c)
-                end
+            ~isempty
+            
+            rStart = jkvt(tt).hTrjRstart(end);
+            rStop = jkvt(tt).hTrjRstop(end);
+            
+            if ~isempty(rStart) && ~isempty(rStop) && rStart<rStop
+                x = jkvt(tt).hTrjF(1,rStart:rStop);
+                y = jkvt(tt).hTrjF(2,rStart:rStop);
+                z = jkvt(tt).hTrjF(3,rStart:rStop);
+                cr = 1:size(jkvt(tt).hTrjF(rStart:rStop),2); % generate a colormap;
+                patch([x nan],[y nan],[z nan],[cr nan],'EdgeColor',c)
             end
         end
         clearvars t
@@ -106,7 +105,7 @@ for p = 1:length(jsTargetP)
         print(fullfile(filePath,'Figure',sprintf('representativeTrajOfReachPos%d',jsTargetP(p))),'-dpdf','-painters','-bestfit');
     end
 end
-clearvars p
+clearvars p 
 
 
 end

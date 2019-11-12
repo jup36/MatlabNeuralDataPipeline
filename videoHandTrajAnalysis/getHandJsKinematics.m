@@ -42,7 +42,7 @@ if size(jkvt,2)~=size(T,2)
 end
 
 %% get the 3d-position/velocity
-gmhTrj = median(cell2mat(hTrjF),2); % global median
+gmhTrj = nanmedian(cell2mat(hTrjF),2); % global median
 
 % get trajectories relative to the global median first, the preparatory period median can be defined after isolating reach starts
 medDst = @(x) sqrt(sum((x-gmhTrj).^2)); % func to get the point-by-point Dstance from the global median position
@@ -59,7 +59,7 @@ for t = 1:length(hTrjF)
         lowVelLogic = abs(jkvt(t).hTrjVelMed)<5; % low-velocity points 
         
         if sum(nearMedLogic & lowVelLogic)>10
-            basePosM = median(hTrjF{t}(:,nearMedLogic & lowVelLogic), 2); % low velocity (<5 mm/s) points
+            basePosM = nanmedian(hTrjF{t}(:,nearMedLogic & lowVelLogic), 2); % low velocity (<5 mm/s) points
         else
             basePosM = gmhTrj; % just take the global median points
         end
@@ -77,11 +77,12 @@ clearvars t
 %% get the hand velocity and position cut to detect reaches
 vel = [jkvt(:).hTrjVelBase]; % baseline normalized 1-d velocity across all time points
 sortVel=sort(vel); % sort velocity data
+sortVel=sortVel(~isnan(sortVel)); 
 velCut = sortVel(round(length(sortVel)*.98)); % set the 98% cutoff for the velocity data (velocity cutoff is required, since reaches are expected to occur at high velocity)
 
 pos = [jkvt(:).hTrjDstBase]; % 1-d position relative to the trial-by-trial baseline
 sortPos = sort(pos); % sort position data
-sortPos(sortPos<median(sortPos))=median(sortPos); % replace less-than median position values with the median position value
+sortPos(sortPos<nanmedian(sortPos))=nanmedian(sortPos); % replace less-than median position values with the median position value
 posCut = 10; % set the Distance cut off as 10 mm from the baseline sortPos(round(length(sortPos)*.90));
 
 for t = 1:size(jkvt,2)
@@ -108,8 +109,8 @@ end
 clearvars tr
 
 % the global median joystick coordinates to be used as reference points
-gmJsTrjT = median(cell2mat({jkvt(:).jsTrjValT}),2); % the global median joystick top
-gmJsTrjB = median(cell2mat({jkvt(:).jsTrjValB}),2); % the global median joystick bottom
+gmJsTrjT = nanmedian(cell2mat({jkvt(:).jsTrjValT}),2); % the global median joystick top
+gmJsTrjB = nanmedian(cell2mat({jkvt(:).jsTrjValB}),2); % the global median joystick bottom
 
 medDstJsT = @(x) sqrt(sum((x-gmJsTrjT).^2)); % func to get the point-by-point Dstance from the global median position
 medDstJsB = @(x) sqrt(sum((x-gmJsTrjB).^2)); % func to get the point-by-point Dstance from the global median position
@@ -133,13 +134,13 @@ for rp = 1:length(jsTargetPos)
     % bind all position/velocity data corresponding to the current joystick position (joystick top) 
     tmpJsTrjValT = [jkvt(tmpJsPosIdx).jsTrjValT]; % Js top Trj
     tmpJsVelValT = [jkvt(tmpJsPosIdx).jsVelValGmT]; % Js top Vel
-    tmpJsTrjValTlowVelMedT = median(tmpJsTrjValT(:,abs(tmpJsVelValT)<1),2); % Js top low-vel points median
+    tmpJsTrjValTlowVelMedT = nanmedian(tmpJsTrjValT(:,abs(tmpJsVelValT)<1),2); % Js top low-vel points median
     [jkvt(tmpJsPosIdx).jsTreachPosT] = deal(tmpJsTrjValTlowVelMedT); 
     
     % bind all position/velocity data corresponding to the current joystick position (joystick bottom)
     tmpJsTrjValB = [jkvt(tmpJsPosIdx).jsTrjValB]; % Js bottom Trj
     tmpJsVelValB = [jkvt(tmpJsPosIdx).jsVelValGmB]; % Js bottom Vel
-    tmpJsTrjValTlowVelMedB = median(tmpJsTrjValB(:,abs(tmpJsVelValB)<1),2); % Js bottom low-vel points median
+    tmpJsTrjValTlowVelMedB = nanmedian(tmpJsTrjValB(:,abs(tmpJsVelValB)<1),2); % Js bottom low-vel points median
     [jkvt(tmpJsPosIdx).jsTreachPosB] = deal(tmpJsTrjValTlowVelMedB); 
     
 end
