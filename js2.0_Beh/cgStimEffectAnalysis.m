@@ -1,5 +1,5 @@
 
-filePath = '/Volumes/RAID2/parkj/NeuralData/js2.0/WR37/022619/Matfiles';
+filePath = '/Volumes/RAID2/parkj/NeuralData/js2p0/WR37/022619/';
 cd(filePath)
 S = load(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles.mat'));  % load jsTime1k_KV.mat
 S = S.('jsTime1k_KV');

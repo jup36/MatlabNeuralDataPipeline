@@ -3,7 +3,7 @@
 % write out coordinates: channel, x, y into a tab delimited text file
 % or make coordinate input appropriate for JRClust or Kilosort
 % 
-function SGLXMetaToCoords()
+function SGLXMetaToCoords(varargin)
 
 
 % Output selection: 0 for text coordinate file; 
@@ -11,14 +11,22 @@ function SGLXMetaToCoords()
 %                   2 for strings to paste into JRClust .prm file
 outType = 1;
 
-% Ask user for metadata file
-[metaName,path] = uigetfile('*.meta', 'Select Metadata File');
+if nargin >= 1
+    meta = varargin{1}; 
+    metaName = varargin{2}; 
+    % Shank separation for multishank
+    shankSep = 250;
+elseif nargin <1
+    % Ask user for metadata file
+    [metaName,path] = uigetfile('*.meta', 'Select Metadata File');
+    
+    % Shank separation for multishank
+    shankSep = 250;
+    
+    % Parse in file to get the metadata structure
+    meta = ReadMeta(metaName, path);
+end
 
-% Shank separation for multishank
-shankSep = 250;
-
-% Parse in file to get the metadata structure
-meta = ReadMeta(metaName, path);
 
 if isfield(meta, 'imDatPrb_type')
     pType = str2num(meta.imDatPrb_type);

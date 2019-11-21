@@ -94,7 +94,6 @@ spike_rate = n_spike / session_duration;
 % convolution
 X_h = basis.conv(spike_bin, h_base, h_time(1)/DT);
 
-
 %% 4. getting average response for parameter fitting (not necessary)
 % 4.1. Firing rate by behavior
 if CALC_PRM
