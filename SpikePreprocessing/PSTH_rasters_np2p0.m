@@ -43,8 +43,9 @@ elseif contains(p.Results.probeType,'ni','IgnoreCase',true)
 end
 
 % get probe geometry file 
-SGLXMetaToCoords(meta) % make a chanMap file from meta, set outType=1 for ks2 format
-
+if isempty(dir(fullfile(p.Results.filePath,'*_kilosortChanMap.mat')))
+    SGLXMetaToCoords() % make a chanMap file from meta, set outType=1 for ks2 format
+end
 geomFile = dir(fullfile(p.Results.filePath,'*_kilosortChanMap.mat'));  % look for '*_kilosortChanMap.mat' file 
 load(fullfile(geomFile.folder,geomFile.name),'xcoords','ycoords'); 
 geometry = [xcoords, ycoords]; % probe x, y coordinates 

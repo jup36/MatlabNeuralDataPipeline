@@ -9,8 +9,7 @@ function PSTH_rasters( filePath, fileInfo, probeDepth, varargin )
 % reachStart to tagLaser. 
 
 p = parse_input_psth(filePath, fileInfo, probeDepth, varargin ); % parse input
-%p = parse_input_psth(filePath,'PT10_071618',4102,{'probeAngle',10,'strCtx',true,'strCtxBorder',2000,'numbSiteProbe',384,...
-%'psthPlotFlag',false,'reachWin',[2e3 3e3],'rewardWin',[3e3 2e3],'tagLaserWin',[5e3 5e3]}) % when running line-by-line
+%p = parse_input_psth(filePath,'IT06_040218',4000,{'probeAngle',10,'strCtx',true,'strCtxBorder',2000,'numbSiteProbe',384,'psthPlotFlag',false,'reachWin',[2e3 3e3],'rewardWin',[3e3 2e3],'tagLaserWin',[5e3 5e3]}) % when running line-by-line
 
 %% Load files 
 cd(p.Results.filePath)   % change directory to the data folder
@@ -19,10 +18,11 @@ behFile = dir(fullfile(p.Results.filePath,'BehVariables.mat')); % look for 'BehV
 
 if length(behFile)>1 || isempty(behFile)    
     [selectFile,selectPath] = uigetfile(fullfile(p.Results.filePath),'Select the BehVariables.mat file!'); 
-    load(fullfile(selectPath,selectFile), 'jsTime1k') % load behavioral timestamps
+    b = load(fullfile(selectPath,selectFile)); % load behavioral timestamps
 else
-    load(behFile.name, 'jsTime1k') % load behavioral timestamps 
+    b = load('behVariables.mat'); %b = load(fullfile(behFile.folder,behFile.name)); % load behavioral timestamps 
 end
+ts = b.('ts'); 
 
 geometry = getimec3opt3geom; % get the geometry of the imec3opt3 probe
 
