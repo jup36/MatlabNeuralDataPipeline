@@ -11,7 +11,7 @@ function PSTH_rasters_js2p0( filePath, fileInfo, probeDepth, varargin )
 p = parse_input_psth_js2p0(filePath, fileInfo, probeDepth, varargin); % parse input
 %filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/imec'; 
 %fileInfo = 'WR40_081919'; 
-%p = parse_input_psth_js2p0(filePath,'WR40_081919',4200,{'probeAngle',10,'numbSiteProbe',384,'psthPlotFlag',false,'reachWin',[3e3 3e3],'rewardWin',[3e3 3e3],'tagLaserWin',[5e3 5e3]}) % when running line-by-line
+%p = parse_input_psth_js2p0(filePath,'WR40_081919',4072,{'probeAngle',10,'numbSiteProbe',384,'psthPlotFlag',false,'reachWin',[3e3 3e3],'rewardWin',[3e3 3e3],'tagLaserWin',[5e3 5e3]}) % when running line-by-line
 
 %% Load files 
 cd(p.Results.filePath)   % change directory to the data folder
@@ -185,7 +185,7 @@ binSpkCountCTX.stmLaser = stmLaser;
 binSpkCountCTX.tagLaser = tagLaser; 
 binSpkCountCTX.meta = meta; 
 binSpkCountCTX.p = p; 
-binSpkCountCTX.spkTimesCell = spkTimesCell; % just to save the cell
+binSpkCountCTX.spkTimesCell = spkTimesCellCTX; % just to save the cell
 
 saveName = strcat('binSpkCountCTX',p.Results.fileInfo);
 save(fullfile(p.Results.filePath,saveName),'-struct','binSpkCountCTX') % save the fields of the structure separately 
@@ -215,7 +215,7 @@ binSpkCountSTR.stmLaser = stmLaser;
 binSpkCountSTR.tagLaser = tagLaser; 
 binSpkCountSTR.meta = meta; 
 binSpkCountSTR.p = p; 
-binSpkCountSTR.spkTimesCell = spkTimesCell; % just to save the cell
+binSpkCountSTR.spkTimesCell = spkTimesCellSTR; % just to save the cell
 
 saveName = strcat('binSpkCountSTR',p.Results.fileInfo);
 save(fullfile(p.Results.filePath,saveName),'-struct','binSpkCountSTR') % save the fields of the structure separately 

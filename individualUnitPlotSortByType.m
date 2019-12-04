@@ -8,7 +8,7 @@ typeCell = cell(1,length(types));
 
 % get the trial-averaged neural population trajectories of each fold rank-ordered by a movement variable
 for f = 1:length(types)
-    typeCell{1,f} = dataS(type(:,1)==types(f)); % take the trials of the current fold sorted by beh
+    typeCell{1,f} = dataS(type(type(:,1)==types(f),2)); % take the trials of the current fold sorted by beh
 end
 clearvars f 
 unitIdFmt = 'Unit#%d'; 
