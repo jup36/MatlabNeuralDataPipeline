@@ -39,12 +39,12 @@
 %
 % -log( p )
 %   = sum(firing_rate(t)) * dt - sum(spike(t) * log(firing_rate(t)*dt) + else
-%   = sum(firing_rate(t)) * dt - sum(spike(t) * log(firing_rate(t)) + else2
+%   = sum(firing_rate(t)) * dt - sum(spike(t) * log(firing_rate(t)) + else2  
 %   = sum(exp(X * w)) * dt - spike' * (X * w) + else2
 %
 % To maximize p, we should minimize negative log-likelihood.
 %
-% Gradient for w = X' * (exp(X * w)*dt - spike)
+% Gradient for w = X' * (exp(X * w)*dt - spike)  
 % Hessian for w = X' * diag(exp(X * w)*dt) * X
 
 
@@ -71,15 +71,15 @@ spike_time = find(spike_binned) * dtSp;
 n_spike = length(spike_time);
 spike_rate = mean(spike_binned) / dtSp;
 
-k_true = flip(ggsim.k);
-h_true = ggsim.ih;
-w_c_true = ggsim.dc;
+k_true = flip(ggsim.k); % visual stim activation function (?)
+h_true = ggsim.ih; % spike template/waveform (?)
+w_c_true = ggsim.dc; % some offset (?)
 
 I_k_true = conv(Stim, k_true, 'full');
-I_k_true = kron(I_k_true(1:end-nkt+1), ones(10, 1));
-I_h_true = conv(spike_binned, h_true, 'full');
-I_h_true = [0; I_h_true(1:end-161)];
-I_total_true = I_k_true + I_h_true + w_c_true;
+I_k_true = kron(I_k_true(1:end-nkt+1), ones(10, 1)); % stim trace
+I_h_true = conv(spike_binned, h_true, 'full'); 
+I_h_true = [0; I_h_true(1:end-161)]; % spike trace
+I_total_true = I_k_true + I_h_true + w_c_true; % stim + spike trace with some offset
 
 
 %% parameter
@@ -91,7 +91,7 @@ n_kt = 300;
 
 %% get average stimulus (looking backwards)
 spike_coarse = sum(reshape(spike_binned, 10, []));
-sta = func.align_event(Stim, spike_coarse, [-nkt+1, 0]);
+sta = func.align_event(Stim, spike_coarse, [-nkt+1, 0]); % spike-triggered average 
 sta = flipud(sta);
 
 

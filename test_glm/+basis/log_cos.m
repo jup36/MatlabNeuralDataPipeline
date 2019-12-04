@@ -16,7 +16,7 @@ bias_min = 0.1;
 if nargin < 4 || bias < bias_min
     bias = bias_min;
 end
-bias = bias * diff(range) / 100;
+bias = bias * diff(range) / 100; % a temporal bias, e.g. 240ms
 
 if nargin < 5
     normalize = true;
@@ -52,3 +52,12 @@ peak_mat = repmat(peak, n_x, 1);
 cos_func = @(x, peak) (cos(max(-pi, min(pi, (log_func(x) - peak) * pi / (2 * gap_log)))) + 1) / 2;
 
 bump = cos_func(x_mat, peak_mat);
+
+% figure; imagesc((log_func(x) - peak)) 
+% figure; imagesc((log_func(x) - peak)*pi) 
+% figure; imagesc((log_func(x) - peak)*pi/(2*gap_log)) 
+% figure; imagesc(min(pi, (log_func(x) - peak) * pi / (2 * gap_log)))
+% figure; imagesc(max(-pi, min(pi, (log_func(x) - peak) * pi / (2 * gap_log))))
+% figure; imagesc((cos(max(-pi, min(pi, (log_func(x) - peak) * pi / (2 *gap_log))))))
+% figure; imagesc((cos(max(-pi, min(pi, (log_func(x) - peak) * pi / (2 * gap_log)))) + 1))
+
