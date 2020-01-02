@@ -1,15 +1,14 @@
 function [data_array, meta] = readSpikeBin(bin_file, siteToRead)
 if exist(bin_file, 'file') == 0; data_array = []; return; end
 
-
-% BUFFER_SIZE = 32 * 1024^3; % 2^35
-% if ispc
-%     [~, sys] = memory;
-%     current_memory = sys.PhysicalMemory.Available;
-%     buffer_size = min([current_memory * 0.5, BUFFER_SIZE]);
-% else
-%     buffer_size = BUFFER_SIZE; 
-% end
+BUFFER_SIZE = 32 * 1024^3; % 2^35
+if ispc
+    [~, sys] = memory;
+    current_memory = sys.PhysicalMemory.Available;
+    buffer_size = min([current_memory * 0.5, BUFFER_SIZE]);
+else
+    buffer_size = BUFFER_SIZE; 
+end
 
 % load meta data
 meta = readMeta(bin_file);
@@ -44,13 +43,6 @@ data_array = zeros(1, sample_number, 'uint16');
 tic;
 fid = fopen(bin_file, 'rb');
 fseek(fid, 0, 'bof');
-
-for i = 0:meta.fileTimeSecs  
-    
-end
-
-
-
 
 for i_read = 1:n_read
     fprintf('%d/%d ... ', i_read, n_read);

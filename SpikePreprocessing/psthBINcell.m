@@ -73,7 +73,7 @@ for u = 1:size(neural,2)   % increment units
     end 
     clearvars tr
     
-    % get trial-by-trial baseline binned spike counts
+    % get trial-by-trial baseline binned spike counts 
     tmpBaseBinGCountMat = zeros(length(baseEvt),round(sum(psthWin)/2));   % temporary binned spike count matrix (Gaussian convolved) for the baseline period
     for tr = 1:length(baseEvt)
         if baseEvt(tr) < length(delta)
