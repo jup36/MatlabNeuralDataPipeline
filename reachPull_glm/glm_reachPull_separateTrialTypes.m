@@ -41,6 +41,8 @@ CALC_PRM = false;
 %% 2. Behavioral data 
 % detect events and continuous joystick pull trajectory  
 sessionDur = round(str2double(meta.fileTimeSecs)*1000); % in ms 
+session_range = [1 sessionDur]; 
+clip = @(t) t(t >= session_range(1) & t <= session_range(2)) - session_range(1);
 time_bin = (0:DT:sessionDur)';
 n_bin = length(time_bin) - 1;
 
@@ -111,13 +113,16 @@ X_work = work_func(jsWuJ); % work uJ
 %Direction-tuning: 79, 80, 35, 77, 85
 i_cell = 79; % for loop
 
-spike_time = spkTimesCell{1,i_cell};
+spike_time = clip(spkTimesCell{1,i_cell});
 n_spike = length(spike_time);
-spike_bin = histcounts(spike_time, time_bin)';
-spike_rate = n_spike / (sessionDur/1000); % spikes/Sec
+[spike_bin,~,spike_binT] = histcounts(spike_time, time_bin);
+spike_bin_dT = diff([0; spike_binT]); 
+spike_bin(spike_binT(spike_bin_dT<=2))=0; 
+spike_bin = min(spike_bin,1); 
+spike_rate = sum(spike_bin) / (sessionDur/1000); % spikes/Sec
 
 % spike bump
-[h_base, h_time] = basis.log_cos(N_H, [DT, RANGE_H], DT, 10);
+[h_base, h_time] = basis.log_cos(N_H, [DT, RANGE_H], DT, 10, true);
 %[h_base, h_time] = basis.log_cos(n_h_bump, [1, n_h_time], 1, 10);
 %[h_base, h_time] = basis.log_cos(N_H, [DT, RANGE_H], DT, BIAS_H, false); %true);
 
