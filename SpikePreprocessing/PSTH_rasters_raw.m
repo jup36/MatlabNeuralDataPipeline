@@ -32,7 +32,7 @@ elseif contains(p.Results.probeType,'ni','IgnoreCase',true)
     meta = getmetaNidq;  
 end
 
-[S_clu,viTime_spk,viSite_spk,viSite_clu] = getjrcmatVar; % get the structure variable containing cluster info
+[S_clu,viTime_spk,viSite_spk,viSite2_clu] = getjrcmatVar; % get the structure variable containing cluster info
 dvCosConvert   = cos(p.Results.probeAngle/180*pi);  % if probe was angled, probe coordinates need to be corrected 
 
 if length(p.Results.probeDepth)~=length(p.Results.numbSiteProbe)
@@ -66,7 +66,8 @@ for u = 1:S_clu.nClu % increment valid clusters (units)
     end
     
     spkTimes(u).clusId   = u; % cluster ID
-    spkTimes(u).maxSite  = mode(double(viSite_spk(spkIdx))); % assign the current cluster to a site of the probe (what's the difference between viSite_spk and viSite_clu?)
+    spkTimes(u).maxSite  = mode(double(viSite_spk(spkIdx))); % assign the current cluster to a site of the probe
+    spkTimes(u).maxSite2 = mode(double(viSite2_spk(spkIdx))); 
     spkTimes(u).geometry(1) = geometry(spkTimes(u).maxSite,1);        % horizontal geometry
     spkTimes(u).geometry(2) = p.Results.probeDepth(whichProbe(spkTimes(u).maxSite))-geometry(spkTimes(u).maxSite,2); % vertical geometry
     spkTimes(u).geometry(2) = spkTimes(u).geometry(2).*dvCosConvert;  % corrected dv (original dv multiplied by cosine(probe angle))
