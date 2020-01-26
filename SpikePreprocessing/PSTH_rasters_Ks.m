@@ -1,4 +1,4 @@
-function PSTH_rasters( filePath, fileInfo, probeDepth, varargin )
+function PSTH_rasters_Ks( filePath, fileInfo, probeDepth, varargin )
 %PSTH_rasters takes behavioral timestamps stored in BehVariables.mat and
 % generates psths aligned to each event and saves the outcome psths in the
 % filePath. To run PSTH_rasters 'behaviorTimestamps.m' must be run first
@@ -24,15 +24,41 @@ else
 end
 ts = b.('ts'); 
 
-geometry = getimec3opt3geom; % get the geometry of the imec3opt3 probe
+% get meta 
+disp('Select the meta file!!')
+[metaFileSel,metaPathSel] = uigetfile('*.meta',p.Results.filePath); 
+meta = ReadMeta(metaFileSel, metaPathSel); % read out the meta file
+% get geometry using meta
+SGLXMetaToCoords()
+geomFile = dir(fullfile(p.Results.filePath,'*_kilosortChanMap.mat'));  % look for '*_kilosortChanMap.mat' file 
+load(fullfile(geomFile.folder,geomFile.name),'xcoords','ycoords'); 
+geometry = [xcoords, ycoords]; % probe x, y coordinates 
+%geometry = getimec3opt3geom; % get the geometry of the imec3opt3 probe
 
-if contains(p.Results.probeType,'im','IgnoreCase',true)
-    meta = getmetaImec; % get meta file using the helper function getmeta
-elseif contains(p.Results.probeType,'ni','IgnoreCase',true)
-    meta = getmetaNidq;  
-end
+%% kilosort-phy
+phyPath = uigetdir(p.Results.filePath); 
 
-[S_clu,viTime_spk,viSite_spk,viSite_clu] = getjrcmatVar; % get the structure variable containing cluster info
+spike_times = double(readNPY(fullfile(phyPath, 'spike_times.npy'))); % timestamp of all spikes, (n_spike, 1)
+spike_template = double(readNPY(fullfile(phyPath, 'spike_templates.npy'))); % automated cluster of all spikes, (n_spike, 1)
+spike_clusters = double(readNPY(fullfile(phyPath, 'spike_clusters.npy')));  % final cluster of all spikes, (n_spike, 1)
+template = readNPY(fullfile(phyPath, 'templates.npy')); % template waveform of all clusters, (n_original_cluster, n_timepoint, all_valid_channel, i.e., 64)
+channel_map = readNPY(fullfile(phyPath, 'channel_map.npy')); % maps valid sites to actual sites
+
+% find the main channel of each template which has the greatest abs amplitude
+[~, mainSiteTemplate] = max(max(abs(template), [], 2), [], 3);
+actualSiteTemplate = channel_map(mainSiteTemplate)+1; 
+
+% load cluster data (final cluster IDs after the manual curation)
+cn_name = fullfile(phyPath, 'cluster_groups.csv');
+fid = fopen(cn_name, 'r');
+cn = textscan(fid, '%f%s%[^\n\r]', 'Delimiter', '\t', 'TextType', 'string', 'Headerlines', 1, 'EndOfLine', '\r\n');
+fclose(fid);
+
+% pick only good units
+inPhy = strcmp(cn{2}, 'good'); 
+unitNumber = cn{1}(inPhy); % final good unit number list
+nP = length(unitNumber);
+
 dvCosConvert   = cos(p.Results.probeAngle/180*pi);  % if probe was angled, probe coordinates need to be corrected 
 
 if length(p.Results.probeDepth)~=length(p.Results.numbSiteProbe)
@@ -54,28 +80,25 @@ end
 clearvars s 
 
 %% Process spike times data and generate PSTH and Rasters
+maxST = max(spike_times)/(str2double(meta.imSampRate)/1000); 
 spkTimes = struct; % the structure to contain spike times
-for u = 1:S_clu.nClu % increment valid clusters (units)
-    
-    spkIdx = S_clu.cviSpk_clu{u}; % spikeIDs of the current cluster 
-    
+for u = 1:length(unitNumber) % increment valid clusters (units)
+    spkIdx = unitNumber(u);  %S_clu.cviSpk_clu{u}; % spikeIDs of the current cluster 
+    templateIdx = mode(spike_template(spike_clusters==spkIdx))+1; % template Id
     if strcmp(meta.typeThis, 'imec')
-        spkTimes(u).spkTimes = double(viTime_spk(spkIdx))/(str2double(meta.imSampRate)/1000); % divided by the sampling rate: 30kHz (str2num(meta.imSampRate)/1000)
+        spkTimes(u).spkTimes = spike_times(spike_clusters==spkIdx)/(str2double(meta.imSampRate)/1000); % divided by the sampling rate: 30kHz (str2num(meta.imSampRate)/1000)
     elseif strcmp(meta.typeThis, 'nidq')
-        spkTimes(u).spkTimes = double(viTime_spk(spkIdx))/(str2double(meta.niSampRate)/1000); % divided by the sampling rate: 25kHz (str2num(meta.niSampRate)/1000)
+        spkTimes(u).spkTimes = spike_times(spike_clusters==spkIdx)/(str2double(meta.niSampRate)/1000); % divided by the sampling rate: 25kHz (str2num(meta.niSampRate)/1000)
     end
     
-    spkTimes(u).clusId   = u; % cluster ID
-    spkTimes(u).maxSite  = mode(double(viSite_spk(spkIdx))); % assign the current cluster to a site of the probe (what's the difference between viSite_spk and viSite_clu?)
-    spkTimes(u).geometry(1) = geometry(spkTimes(u).maxSite,1);        % horizontal geometry
+    spkTimes(u).origClusId  = spkIdx; % original cluster ID back in kilosort/phy
+    spkTimes(u).maxSite     = actualSiteTemplate(templateIdx);  % assign the current cluster to a site of the probe
+    spkTimes(u).geometry(1) = geometry(spkTimes(u).maxSite,1); % horizontal geometry
     spkTimes(u).geometry(2) = p.Results.probeDepth(whichProbe(spkTimes(u).maxSite))-geometry(spkTimes(u).maxSite,2); % vertical geometry
-    spkTimes(u).geometry(2) = spkTimes(u).geometry(2).*dvCosConvert;  % corrected dv (original dv multiplied by cosine(probe angle))
-    
-    if p.Results.strCtx && strcmp(meta.typeThis, 'imec') % in case recording from both str and ctx using imec probe
-        spkTimes(u).isStr = spkTimes(u).geometry(2) >= p.Results.strCtxBorder;  % logical for striatum 
-    end
-    
-    spkTimes(u).meanWF = S_clu.tmrWav_raw_clu(:,S_clu.viSite_clu(u),u); % mean raw waveforms for each cluster
+    spkTimes(u).geometry(2) = spkTimes(u).geometry(2).*dvCosConvert; % corrected dv (original dv multiplied by cosine(probe angle))
+    spkTimes(u).isStr = spkTimes(u).geometry(2)>2000;  % logical for striatum 
+    spkTimes(u).template = template(templateIdx,:,mainSiteTemplate(templateIdx)); % the spike template for each cluster
+    spkTimes(u).templateId = templateIdx; 
 end
 clearvars u 
 
@@ -113,7 +136,7 @@ binSpkCountCTX.p = p;
 binSpkCountCTX.ts = ts;
 binSpkCountCTX.spkTimesCellCTX = spkTimesCellCTX; % just to save the cell
 
-saveNameCTX = strcat('binSpkCountCTX',p.Results.fileInfo);
+saveNameCTX = strcat('binSpkCountCTXKS',p.Results.fileInfo);
 save(saveNameCTX, '-struct', 'binSpkCountCTX') % save the fields of the structure separately 
 clearvars binSpkCountCTX reach reachNoStim reward rewardNoStim stmLaser tagLaser stmReach
 
@@ -138,7 +161,7 @@ binSpkCountSTR.p = p;
 binSpkCountSTR.ts = ts;
 binSpkCountSTR.spkTimesCellSTR = spkTimesCellSTR; % just to save the cell
 
-saveNameSTR = strcat('binSpkCountSTR',p.Results.fileInfo);
+saveNameSTR = strcat('binSpkCountSTRKS',p.Results.fileInfo);
 save(saveNameSTR, '-struct', 'binSpkCountSTR') % save the fields of the structure separately 
 clearvars binSpkCountSTR reach reachNoStim reward rewardNoStim stmLaser tagLaser stmReach
 
@@ -163,7 +186,7 @@ binSpkCountStrCtx.p = p;
 binSpkCountStrCtx.ts = ts; 
 binSpkCountStrCtx.spkTimesCellStrCtx = spkTimesCellStrCtx; 
 
-saveNameStrCtx = strcat('binSpkCountStrCtx',p.Results.fileInfo); 
+saveNameStrCtx = strcat('binSpkCountStrCtxKS',p.Results.fileInfo); 
 save(saveNameStrCtx, '-struct', 'binSpkCountStrCtx') % save the fields of teh structure separately
 
 clearvars binSpkCountSTR reach reachNoStim reward rewardNoStim stmLaser tagLaser stmReach
