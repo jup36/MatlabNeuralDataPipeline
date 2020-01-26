@@ -1,4 +1,4 @@
-function cgStimEffectAnalysisJsTrj(filePath)
+function stimEffectAnalysisJsTrj(filePath)
 
 %filePath = '/Volumes/RAID2/parkj/NeuralData/js2.0/WR37/022619/Matfiles';
 cd(filePath)
@@ -82,7 +82,7 @@ hold off;
 valTrCnt = 0; 
 for t = 1:length(S)
   
-    if isstruct(S(t).movKins) && t>firstRwdTrial
+    if isstruct(S(t).movKins) && t>firstRwdTrial %%&& strcmpi(S(t).trialType,'sp')
         valTrCnt = valTrCnt + 1; 
         tempTrj = S(t).movKins.sgJsTrajmm; 
         % mark reach On before each time point
@@ -119,9 +119,11 @@ g(1,2)=gramm('x',X,'y',jsReachOn,'color',stimTrIdx);
 g(1,1).stat_summary();
 g(1,1).set_title('E(jsPos)');
 g(1,1).axe_property('ylim',[-15 1]); 
+g(1,1).axe_property('xlim',[0 5000]); 
 
 g(1,2).stat_summary();
 g(1,2).set_title('P(reachOn|Time)');
+g(1,2).axe_property('xlim',[0 5000]); 
 
 figure('Position',[100 100 800 550]);
 g.draw();
