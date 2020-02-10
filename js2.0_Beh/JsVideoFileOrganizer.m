@@ -21,7 +21,7 @@ load(fullfile(pathBehVar(1).folder,pathBehVar(1).name), 'evtIdx1k', 'p')
 trStartIdx = evtIdx1k.trStartIdx; 
 %load(fullfile(filePath,'evtIndices.mat'), 'trStartIdx', 'trEndIdx')
 
-behFilePath = dir(fullfile(filePath,'201*')); % dir where the trial-by-trial behavioral csv files are saved
+behFilePath = dir(fullfile(filePath,'20*-*')); % dir where the trial-by-trial behavioral csv files are saved
 tbytCsvList = dir(fullfile(behFilePath(1).folder,behFilePath(1).name,'trial_*'));    % trial-by-trial files
 allTrialCsv = dir(fullfile(behFilePath(1).folder,behFilePath(1).name,'trials.csv')); % all trial file
 if length(allTrialCsv)==1

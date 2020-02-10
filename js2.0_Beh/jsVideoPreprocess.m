@@ -4,7 +4,7 @@ function jsVideoPreprocess(filePath, nTr, varargin)
 cd(filePath)
 
 pVP = parse_input_jsVideo(filePath, nTr, varargin);
-% pVP = parse_input_jsVideo(filePath, 19, {'slowPlay',10, 'frTimeRange', [-1000 1000]});
+% pVP = parse_input_jsVideo(filePath, 77, {'slowPlay',5, 'frTimeRange', [-8000 1000]});
 
 % load the structure with video file info and Js kinematics (jsTime1k_KV)
 if exist('jsTime1k_KV','var') ~= 1
@@ -32,7 +32,7 @@ for i = 1:length(nTr)
         fvid = VideoReader(S(nTr(i)).fVideo);
         svid = VideoReader(S(nTr(i)).sVideo);
     end
-        
+    
     % video file save name
     vFileDateExp = '(20\d+)_(\d+)_(\d+)_(\d+)_(\d+)_(\d+)'; % the expression of the date in the video file names
     vFileDate = regexp(fvid.name,vFileDateExp,'match');
@@ -56,7 +56,12 @@ for i = 1:length(nTr)
     if strcmp(S(nTr(i)).trialType,'sp') % for a successful trial, align time to pullStart
         frameTime = S(nTr(i)).vFrameTime-(S(nTr(i)).trJsReady+S(nTr(i)).movKins.pullStart); % frameTime aligned to pullStart
         pullTime = 0:S(nTr(i)).movKins.pullStop - S(nTr(i)).movKins.pullStart; % pull time bins aligned to pullStart
-        pullTimeFrames = ismember(frameTime,pullTime); % logical indicating pullTime frames      
+        pullTimeFrames = ismember(frameTime,pullTime); % logical indicating pullTime frames
+        if ~isnan(S(nTr(i)).stimLaserOn)
+            stimTime = (S(nTr(i)).stimLaserOn:S(nTr(i)).stimLaserOff)-(S(nTr(i)).trJsReady+S(nTr(i)).movKins.pullStart); % frameTime aligned to pullStart
+            stimTimeFrames = ismember(frameTime,stimTime);
+        end
+        
         % identify the frames to include
         frameTimeLogic = ones(1,length(frameTime)); % by default, include all frames
         if ~isempty(pVP.Results.frTimeRange)
@@ -71,7 +76,12 @@ for i = 1:length(nTr)
     elseif strcmp(S(nTr(i)).trialType,'ps') % for a push trial, align time to pushStart
         frameTime = S(nTr(i)).vFrameTime-(S(nTr(i)).trJsReady+S(nTr(i)).movKins.pushStart); % frameTime aligned to pushStart
         pushTime = 0:S(nTr(i)).movKins.pushStop - S(nTr(i)).movKins.pushStart; % push time bins aligned to pullStart
-        pushTimeFrames = ismember(frameTime,pushTime); % logical indicating pullTime frames   
+        pushTimeFrames = ismember(frameTime,pushTime); % logical indicating pullTime frames
+        if ~isnan(S(nTr(i)).stimLaserOn)
+            stimTime = (S(nTr(i)).stimLaserOn:S(nTr(i)).stimLaserOff)-(S(nTr(i)).trJsReady+S(nTr(i)).movKins.pushStart); % frameTime aligned to pullStart
+            stimTimeFrames = ismember(frameTime,stimTime);
+        end
+        
         % identify the frames to include
         frameTimeLogic = ones(1,length(frameTime)); % by default, include all frames
         if ~isempty(pVP.Results.frTimeRange)
@@ -86,7 +96,12 @@ for i = 1:length(nTr)
     elseif strcmp(S(nTr(i)).trialType,'pmpp')
         frameTime = S(nTr(i)).vFrameTime-(S(nTr(i)).trJsReady+S(nTr(i)).movKins.pull.startI); % frameTime aligned to pullStart
         pullTime = 0:S(nTr(i)).movKins.pull.stopI - S(nTr(i)).movKins.pull.startI; % pull time bins aligned to pullStart
-        pullTimeFrames = ismember(frameTime,pullTime); % logical indicating pullTime frames     
+        pullTimeFrames = ismember(frameTime,pullTime); % logical indicating pullTime frames
+        if ~isnan(S(nTr(i)).stimLaserOn)
+            stimTime = (S(nTr(i)).stimLaserOn:S(nTr(i)).stimLaserOff)-(S(nTr(i)).trJsReady+S(nTr(i)).movKins.pull.startI); % frameTime aligned to pullStart
+            stimTimeFrames = ismember(frameTime,stimTime);
+        end
+        
         [~,pullStartI] = find(abs(frameTime)==min(abs(frameTime))); % mark the frames closest to pullStart
         frameTimeC = num2cell(frameTime); % frameTime cell
         frameTimeC = cellfun(@num2str,frameTimeC,'UniformOutput',false);
@@ -112,18 +127,19 @@ for i = 1:length(nTr)
     % determine at which frame to start recording
     if unique([S(nTr(i)).vFronFileCalled,S(nTr(i)).vSideFileCalled])==2 % if the video file got called previously, align the frame to the beginning of the relative frames among all frames of the video file
         fvid.CurrentTime = (S(nTr(i)).origVideoFramesCnt-length(frameTimeC))+1;
-        svid.CurrentTime = fvid.CurrentTime; 
+        svid.CurrentTime = fvid.CurrentTime;
     else % in most cases just start recording from the beginning
         fvid.CurrentTime = 1;
-        svid.CurrentTime = 1; 
+        svid.CurrentTime = 1;
     end
     
     txtPos = round([S(nTr(i)).fVideoInfo.width*19/20 S(nTr(i)).fVideoInfo.height*9/10]); % text position on frames
-    circlePos = round([S(nTr(i)).fVideoInfo.width*19/20 S(nTr(i)).fVideoInfo.height*1/15]); % circle position on frames to indicate frames of action 
+    circlePos = round([S(nTr(i)).fVideoInfo.width*19/20 S(nTr(i)).fVideoInfo.height*1/15]); % circle position on frames to indicate frames of action
+    circlePos2 = round([S(nTr(i)).fVideoInfo.width*3/20 S(nTr(i)).fVideoInfo.height*1/15]);
     slowFactor = sprintf('%.2f',1/pVP.Results.slowPlay); % to display the playback speed up to two decimal points
     fr = 0;
     while hasFrame(fvid) && hasFrame(svid) && fr <= length(frameTimeC)
-    %for fr = find(frameTimeLogic==1)
+        %for fr = find(frameTimeLogic==1)
         fr = fr+1;
         
         img1 = readFrame(fvid);
@@ -133,7 +149,7 @@ for i = 1:length(nTr)
         
         if frameTimeLogic(fr) % if the current frame's to be included
             imgt = horzcat(img1, img2);
-            %imgt = horzcat(img1.frames.cdata, img2.frames.cdata); 
+            %imgt = horzcat(img1.frames.cdata, img2.frames.cdata);
             
             if isempty(strfind(frameTimeC{fr},'ms'))
                 text_color = 'Red';
@@ -143,25 +159,31 @@ for i = 1:length(nTr)
             
             imshow(imgt);
             text(1,txtPos(2),strcat(frameTimeC{fr},'_x',slowFactor),'FontSize',18,'Color',text_color,'Interpreter', 'none','LineStyle','none'); % insert text indicating time/playback speed info
-            hold on; 
+            hold on;
             % add a circle to indicate action frames
             if strcmp(S(nTr(i)).trialType,'sp')
-                if pullTimeFrames(fr) 
-                    vc = scatter(20,circlePos(2),300,[0 1 1],'filled'); 
-                    alpha(vc,.5)
+                if pullTimeFrames(fr)
+                    vc = scatter(20,circlePos(2),300,[0 1 1],'filled');
+                    %alpha(vc,.5)
                 end
             elseif strcmp(S(nTr(i)).trialType,'ps')
                 if pushTimeFrames(fr)
-                    vc = scatter(20,circlePos(2),300,[1 0 1],'filled'); 
-                    alpha(vc,.5)
+                    vc = scatter(20,circlePos(2),300,[1 0 1],'filled');
+                    %alpha(vc,.5)
                 end
             elseif strcmp(S(nTr(i)).trialType,'pmpp')
                 if pullTimeFrames(fr)
-                    vc = scatter(20,circlePos(2),300,[0 1 1],'filled'); 
-                    alpha(vc,.5)
+                    vc = scatter(20,circlePos(2),300,[0 1 1],'filled');
+                    %alpha(vc,.5)
                 end
             end
-            hold off; 
+            
+            if ~isnan(S(nTr(i)).stimLaserOn)
+                if stimTimeFrames(fr)
+                   text(1,20,'Laser','FontSize',18,'Color',[0 1 1],'Interpreter', 'none','LineStyle','none'); % insert text indicating time/playback speed info
+                end
+            end
+            hold off;
             
             thisFrame = getframe(gca);
             % play video
@@ -183,14 +205,14 @@ end
         % parse input, and extract name-value pairs
         default_frameRate = 250; % the default frame rate of videos
         default_slowPlay = 1; % fold to be slowed down for playback
-        default_frTimeRange = []; % the frame time range to be included in the movie, if [] - include all. To select frames, e.g. [-1000 500], the frames within the 1500 ms range relative to the event will be selected.   
+        default_frTimeRange = []; % the frame time range to be included in the movie, if [] - include all. To select frames, e.g. [-1000 500], the frames within the 1500 ms range relative to the event will be selected.
         
         p = inputParser; % create parser object
         addRequired(p,'filePath');
         addRequired(p,'nTr')
         addParameter(p,'frameRate',default_frameRate)
         addParameter(p,'slowPlay',default_slowPlay)
-        addParameter(p,'frTimeRange',default_frTimeRange) 
+        addParameter(p,'frTimeRange',default_frTimeRange)
         
         parse(p,filePath,nTr,vargs{:})
     end
