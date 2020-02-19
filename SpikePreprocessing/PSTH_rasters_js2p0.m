@@ -6,7 +6,7 @@ function PSTH_rasters_js2p0( filePath, fileInfo, probeDepth, varargin )
 % Modified on 6/18/18 to save the combined (all imec channels)
 % 'binSpkCountStrCtx*.mat'
 % Modified in Jan/19 to change the baseline period for tagLaser PSTHs from
-% reachStart to tagLaser. 
+% reachStart to tagLaser.
 
 p = parse_input_psth_js2p0(filePath, fileInfo, probeDepth, varargin); % parse input
 %filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/imec'; 
