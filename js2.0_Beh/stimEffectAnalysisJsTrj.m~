@@ -174,53 +174,48 @@ rStartRelStim.pStmhTq = rStartRelStim.pStmhTq(rStartRelStim.pStmhTq<10000);% & r
 rStartRelStim.pStmlTq = rStartRelStim.pStmlTq(rStartRelStim.pStmlTq<10000);% & rStartRelStim.pStmlTq>0); % pStim low torque
 
 %% histogram the pullStart latencies 
-edges = -2000:200:10000; 
+edges = -4000:200:10000; 
 % low torque stim
 figure; hold on; 
 [rStartRelStim.stmlTqHist, rStartRelStim.stmlTqHistE] = histcounts(rStartRelStim.stmlTq, edges); % histcounts
 rStartRelStim.stmlTqHistNorm = rStartRelStim.stmlTqHist./sum(rStartRelStim.stmlTqHist); % normalized histcounts 
 rStartRelStim.stmlTqHcNormCumSum = cumsum(rStartRelStim.stmlTqHistNorm); % cumulative sum
-bar(edges(1:end-1),rStartRelStim.stmlTqHistNorm,1,'FaceAlpha',.5,'EdgeColor','none'); 
+bar(edges(1:end-1),rStartRelStim.stmlTqHistNorm,'FaceAlpha',.5,'EdgeColor','none'); 
 
 % low torque pStim
 [rStartRelStim.pStmlTqHist, rStartRelStim.pStmlTqHistE] = histcounts(rStartRelStim.pStmlTq, edges);
 rStartRelStim.pStmlTqHistNorm = rStartRelStim.pStmlTqHist./sum(rStartRelStim.pStmlTqHist); 
 rStartRelStim.pStmlTqHcNormCumSum = cumsum(rStartRelStim.pStmlTqHistNorm); % cumulative sum
-bar(edges(1:end-1),rStartRelStim.pStmlTqHistNorm,1,'FaceAlpha',.5,'EdgeColor','none'); 
+bar(edges(1:end-1),rStartRelStim.pStmlTqHistNorm,'FaceAlpha',.5,'EdgeColor','none'); 
 hold off; 
 ylim([0 .4])
 yticks(0:.1:1);
-set(gca,'TickDir','out')
 
 % plot cumulative pullStart on low torque
 figure; hold on; 
 plot(edges(1:end-1), rStartRelStim.pStmlTqHcNormCumSum)
 plot(edges(1:end-1), rStartRelStim.stmlTqHcNormCumSum)
-set(gca,'TickDir','out')
 
 % high torque stim
 figure; hold on; 
 [rStartRelStim.stmhTqHist, rStartRelStim.stmhTqHistE] = histcounts(rStartRelStim.stmhTq, edges);
 rStartRelStim.stmhTqHistNorm = rStartRelStim.stmhTqHist./sum(rStartRelStim.stmhTqHist); 
 rStartRelStim.stmhTqHcNormCumSum = cumsum(rStartRelStim.stmhTqHistNorm); % cumulative sum
-bar(edges(1:end-1),rStartRelStim.stmhTqHistNorm,1,'FaceAlpha',.5,'EdgeColor','none'); 
-set(gca,'TickDir','out')
+bar(edges(1:end-1),rStartRelStim.stmhTqHistNorm,'FaceAlpha',.5,'EdgeColor','none'); 
 
 % high torque pStim
 [rStartRelStim.pStmhTqHist, rStartRelStim.pStmhTqHistE] = histcounts(rStartRelStim.pStmhTq, edges);
 rStartRelStim.pStmhTqHistNorm = rStartRelStim.pStmhTqHist./sum(rStartRelStim.pStmhTqHist); 
 rStartRelStim.pStmhTqHcNormCumSum = cumsum(rStartRelStim.pStmhTqHistNorm); % cumulative sum
-bar(edges(1:end-1),rStartRelStim.pStmhTqHistNorm,1,'FaceAlpha',.5,'EdgeColor','none'); 
+bar(edges(1:end-1),rStartRelStim.pStmhTqHistNorm,'FaceAlpha',.5,'EdgeColor','none'); 
 hold off; 
 ylim([0 max(rStartRelStim.pStmhTqHistNorm)+.02])
 yticks(0:.1:1);
-set(gca,'TickDir','out')
 
 % plot cumulative pullStart on high torque
 figure; hold on; 
 plot(edges(1:end-1), rStartRelStim.pStmhTqHcNormCumSum)
 plot(edges(1:end-1), rStartRelStim.stmhTqHcNormCumSum)
-set(gca,'TickDir','out')
 
 end
 
