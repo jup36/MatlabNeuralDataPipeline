@@ -174,7 +174,7 @@ rStartRelStim.pStmhTq = rStartRelStim.pStmhTq(rStartRelStim.pStmhTq<10000);% & r
 rStartRelStim.pStmlTq = rStartRelStim.pStmlTq(rStartRelStim.pStmlTq<10000);% & rStartRelStim.pStmlTq>0); % pStim low torque
 
 %% histogram the pullStart latencies 
-edges = -2000:200:10000; 
+edges = -4000:200:10000; 
 % low torque stim
 figure; hold on; 
 [rStartRelStim.stmlTqHist, rStartRelStim.stmlTqHistE] = histcounts(rStartRelStim.stmlTq, edges); % histcounts

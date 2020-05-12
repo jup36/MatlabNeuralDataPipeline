@@ -1,4 +1,4 @@
-function [bTj, bTjStimLaser, bTjPStimLaser, lTj] = stimReachKinematicsInDetailForCollect( filePath, pseudoLaserLogic )
+function [bTj, bTjStimLaser, bTjPStimLaser, lTj] = stimReachKinematicsInDetailForCollectStmLaserCorrect( filePath, pseudoLaserLogic )
 %This function is to compare the behavioral kinematic traces of rewarded
 % reaches with VS without the laser perturbation. One critical concern on
 % comparing unrewarded reaches was whether the animal was really reaching or 
@@ -20,6 +20,7 @@ xPosmm = positionData(1,:).*mmConvX;
 yPosmm = positionData(2,:).*mmConvY;
 
 %% get all the rewarded trials and check the coincidence of laser stim   
+ts.stmLaser = [ts.stmLaser(1), ts.stmLaser(ts.stmLaser(2:end)-ts.stmLaser(1:end-1)>4000)];
 rewardArrC  = arrayfun(@(x) x-2000:x, ts.reward, 'UniformOutput',false); % pre-reward period
 rewardStimI = cellfun(@(y) ismember(ts.stmLaser,y), rewardArrC, 'UniformOutput', false); % index for stim delivery during the pre-reward period 
 rewardStimIdx = cellfun(@(y) find(y==true), rewardStimI, 'UniformOutput', false ); 
