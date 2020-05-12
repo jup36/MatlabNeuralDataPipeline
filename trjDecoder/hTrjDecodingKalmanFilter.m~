@@ -1,0 +1,163 @@
+
+filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles';
+cd(filePath)
+
+fileName = 'preprocessKFdecodeHTrjCtxStr_WR40_081919.mat';
+load(fullfile(filePath,fileName),'s')
+
+resample = 100;
+valTrI = cell2mat(cellfun(@(a) ~isempty(a), s.dat.spkCtx, 'un', 0));
+trNumb = sum(valTrI); % # of trials per position/torque pairs
+trNumbTot = sum(trNumb); % total number of trial
+trainTrN = min(sum(valTrI))-1;
+ctxCnumb = max(unique(cell2mat(cellfun(@(a) size(a,1), s.dat.spkCtx, 'un', 0)))); % # of cortex cells
+strCnumb = max(unique(cell2mat(cellfun(@(a) size(a,1), s.dat.spkStr, 'un', 0)))); % # of striatal cells
+minCnumb = min(ctxCnumb, strCnumb); % # of cells to be included
+
+% leave-a-trial-out decoding using Kalman
+for i = 1:resample % repeat resampling trials
+    randCtxI = randperm(ctxCnumb);
+    randStrI = randperm(strCnumb);
+    ctxI = randCtxI(1:minCnumb); % ctx cells for this iteration
+    strI = randStrI(1:minCnumb); % str cells for this iteration
+    
+    for r = 1:size(s.dat.spkCtx,1) % row: trials
+        for c = 1:size(s.dat.spkCtx,2) % column: position/torque pairs
+            trainI = true(size(valTrI,1),size(valTrI,2));
+            if valTrI(r,c)
+                trainI(r,c) = false; % to leave one trial out as a test trial
+                testI = ~trainI; % index for the one test trial left out
+                valTrainI = trainI & valTrI; % valid train trial index
+                
+                % get current train trials by resampling (to include the same # of trials for each trial type)
+                currTrainTrs = zeros(trainTrN,size(trainI,2));
+                currTrainState = []; % current training data states (hand position: row 1-3, velocity: row 4-6)
+                currTrainCtx = [];
+                currTrainStr = [];
+                
+                for cc = 1:size(valTrainI,2) % sample trials from each trial type
+                    tempValTr = find(valTrainI(:,cc));
+                    tempValTrRand = tempValTr(randperm(length(tempValTr)));
+                    currTrainTrs(:,cc) = tempValTrRand(1:trainTrN); % take the set # of randomized trials from each trial type (column)
+                    currTrainState = [currTrainState, s.dat.state(currTrainTrs(:,cc),cc)]; % concatanate randomly selected trials from each type to construct the train data matrix
+                    currTrainCtx = [currTrainCtx, cellfun(@(a) a(ctxI,:), s.dat.spkCtx(currTrainTrs(:,cc),cc), 'un', 0)]; % ctx spike mat with cells resampled to match # of cells
+                    currTrainStr = [currTrainStr, cellfun(@(a) a(strI,:), s.dat.spkStr(currTrainTrs(:,cc),cc), 'un', 0)]; % str spike mat with cells resampled to match # of cells
+                end
+                clearvars cc
+                [NTrain,NTrType] = size(currTrainState);
+                
+                %% %%%%%%%%%%% Training phase %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                interStateM = 0;    % inter-state matrix
+                intraStateM = 0;    % intra-state matrix
+                obsStateCtxM = 0;   % observed Ctx state matrix
+                obsStateStrM = 0;   % observed Str state matrix
+                obsIntraStateM = 0; % observed intra-state matrix
+                count = 0;
+                countPool = 0;
+                for t = 1:size(currTrainState,1) % # of trial
+                    for tt = 1:size(currTrainState,2) % # of trial types
+                        % for parameter A, state model describes how state evolves over time
+                        stateZ1 = currTrainState{t,tt}(:,2:end); % Zt
+                        stateZ2 = currTrainState{t,tt}(:,1:end-1); % Zt-1
+                        tmp1 = stateZ1*stateZ2'; % Zt*Zt-1' (6-by-6 matrix)
+                        interStateM = interStateM+tmp1; % sum Zt*Zt-1'
+                        tmp2 = stateZ2*stateZ2'; % Zt-1*Zt-1' (6-by-6 matrix)
+                        intraStateM = intraStateM+tmp2; % sum Zt-1*Zt-1'
+                        % for parameter C, observation model describes how observation relates to the state
+                        stateZ = currTrainState{t,tt}; % state (position, velocity)
+                        obsCtx = currTrainCtx{t,tt}; % ctx spike data
+                        obsStr = currTrainStr{t,tt}; % str spike data
+                        tmp3 = obsCtx*stateZ'; % Xt*Zt' (Ctx cell-by-state mat)
+                        obsStateCtxM = obsStateCtxM+tmp3; % sum Ctx observation-state matrix
+                        tmp4 = obsStr*stateZ'; % Xt*Zt' (Str cell-by-state mat)
+                        obsStateStrM = obsStateStrM+tmp4; % sum Str observation-state matrix
+                        tmp5 = stateZ*stateZ'; % Zt*Zt'
+                        obsIntraStateM = obsIntraStateM+tmp5; % sum Zt*Zt'
+                        % for parameter Pi and V
+                        count=count+1;
+                        poolZStart(:,count) = currTrainState{t,tt}(:,1);
+                    end
+                end
+                clearvars t tt
+                A=(interStateM/count)/(intraStateM/count); % Slope for the state model, which defines how state evolves over time
+                C_ctx=(obsStateCtxM/count)/(obsIntraStateM/count); % Slope for the observation model for ctx spikes, which defines how observation relates to the state
+                C_str=(obsStateStrM/count)/(obsIntraStateM/count); % Slope for the observation model for str spikes
+                Pi=mean(poolZStart,2); % Mean for the initial state (sample mean)
+                V=cov(poolZStart');    % Covariance for the initial state (sample covariance)
+                clearvars poolZStart
+                
+                % Fit Q and R (variance)
+                sumQM = 0;
+                sumRM_ctx = 0;
+                sumRM_str = 0; 
+                count = 0;
+                for t = 1:size(currTrainState,1) % # of trial
+                    for tt = 1:size(currTrainState,2) % # of trial types
+                        % for parameter Q, covariance of the state model
+                        stateZ1 = currTrainState{t,tt}(:,2:end); % Zt
+                        stateZ2 = currTrainState{t,tt}(:,1:end-1); % Zt-1
+                        tmp6 = stateZ1-A*stateZ2; % Zt-A*Zt-1 
+                        tmp6 = tmp6*tmp6'; % (Zt-A*Zt-1)(Zt-A*Zt-1)' 
+                        count = count + size(stateZ1,2);
+                        sumQM = sumQM + tmp6; % Sum (Zt-A*Zt-1)(Zt-A*Zt-1)'
+                        % for parameter R of Ctx spikes, covariance of the observation model 
+                        stateZ = currTrainState{t,tt}; % Zt
+                        obsCtx = currTrainCtx{t,tt}; % ctx spike data
+                        tmp7 = obsCtx-C_ctx*stateZ; % Xt_ctx-C_ctx*Zt 
+                        tmp7 = tmp7*tmp7'; % (Xt_ctx-C_ctx*Zt)(Xt_ctx-C_ctx*Zt) 
+                        sumRM_ctx = sumRM_ctx+tmp7; % Sum (Xt_ctx-C_ctx*Zt)(Xt_ctx-C_ctx*Zt)                          
+                        % for parameter R of Str spikes, covariance of the observation model 
+                        obsStr = currTrainStr{t,tt}; % str spike data
+                        tmp8 = obsStr-C_str*stateZ; % Xt_str-C_str*Zt 
+                        tmp8 = tmp8*tmp8'; % (Xt_str-C_str*Zt)(Xt_str-C_str*Zt) 
+                        sumRM_str = sumRM_str+tmp8; % Sum (Xt_str-C_str*Zt)(Xt_str-C_str*Zt) 
+                    end
+                end
+                clearvars t tt
+                Q = sumQM/count; % count 1/(t-1), count should correspond to 2 to T
+                R_ctx = sumRM_ctx/(count+NTrain*NTrType); % count 1/t, count should correspond to 1 to T
+                R_str = sumRM_str/(count+NTrain*NTrType); % count 1/t, count should correspond to 1 to T
+                
+                %% %%%%%%%%%%%%%% Test phase %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                curTrLength = size(s.dat.state{testI},2); % position, velocity in 20ms bins 
+                % Initialization
+                mu_ctx=Pi;   % sample mean
+                sigma_ctx=V; % sample covariance
+                mu_str=Pi;   % sample mean
+                sigma_str=V; % sample covariance
+                clearvars curEstStateMean*; 
+                clearvars curEstStateCov*;
+                for b = 1:curTrLength % # of timebins 
+                    % One-step prediction by ctx and str data separately
+                    mu_ctx = A*mu_ctx; % A is the coefficient matrix for the state model that maps the previous states to current states
+                    sigma_ctx = A*sigma_ctx*A'+Q; % Q is the covariance of the state model
+                    mu_str = A*mu_str; 
+                    sigma_str = A*sigma_str*A'+Q;
+                    % compute the Kalman gain (needs to separately computed for ctx and str) 
+                    K_ctx = sigma_ctx*C_ctx'/(C_ctx*sigma_ctx*C_ctx'+R_ctx); % *inv(C_ctx*sigma*C_ctx'+R_ctx); % Kalman gain for ctx observation model
+                    K_str = sigma_str*C_str'/(C_str*sigma_str*C_str'+R_str); % *inv(C_str*sigma*C_str'+R_str); % Kalman gain for str observation model
+                    % update the state by ctx observation
+                    curObsX_ctx = s.dat.spkCtx{testI}(ctxI,b); % take the current ctx spikes bin-by-bin
+                    mu_ctx = mu_ctx + K_ctx*(curObsX_ctx-C_ctx*mu_ctx); 
+                    sigma_ctx = sigma_ctx - K_ctx*C_ctx*sigma_ctx;                    
+                    curEstStateMean_ctx(:,b)=mu_ctx;
+                    curEstStateCov_ctx(:,:,b)=sigma_ctx;
+                    
+                    % update the state by str observation 
+                    curObsX_str = s.dat.spkStr{testI}(strI,b); % take the current str spikes bin-by-bin
+                    mu_str = mu_str + K_str*(curObsX_str-C_str*mu_str); 
+                    sigma_str = sigma_str - K_str*C_str*sigma_str; 
+                    curEstStateMean_str(:,b)=mu_str;
+                    curEstStateCov_str(:,:,b)=sigma_str; 
+                end             
+                s.dat.estStateCtxMean(r,c). = curEstStateMean_ctx; 
+                testRez(r,c).estStateCtxCov{i} = curEstStateCov_ctx;
+                
+                testRez(r,c).estStateStrMean{i} = curEstStateMean_str; 
+                testRez(r,c).estStateStrCov{i} = curEstStateCov_str;
+            else
+
+            end
+        end
+    end
+ end

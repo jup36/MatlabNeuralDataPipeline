@@ -1,9 +1,5 @@
-fileDirectory = '/Users/parkj/Google Drive/Neural_signal_processing_BY/PS9_Kalman_filter';
+fileDirectory = '/Users/parkj/Documents/MATLAB/MatlabNeuralDataPipeline/Neural_signal_processing_BY/PS9_Kalman_filter';
 cd(fileDirectory)
-
-addpath('/Users/parkj/Desktop/OldPC/Matlab');
-addpath('/Users/parkj/Desktop/OldPC/Matlab/Functions');
-
 load('ps9_data.mat')
 
 [NTrain, NDirect]=size(train_trial); % # of trials (91), # of reach directions (8)
@@ -95,9 +91,9 @@ for trialIX=1:NTrain % # of Trial
         stateZ1=train(trialIX,directIX).state(:,2:end);
         stateZ2=train(trialIX,directIX).state(:,1:end-1);
         tmp5=stateZ1-A*stateZ2; % Zt-A*Zt-1
-        tmp5=tmp5*tmp5';        % (Zt-AZt-1)(Zt-AZt-1)'
+        tmp5=tmp5*tmp5';        % (Zt-A*Zt-1)(Zt-A*Zt-1)'
         count=count+size(stateZ1,2);
-        sumQMtr=sumQMtr+tmp5;   % Sum (Zt-AZt-1)(Zt-AZt-1)'
+        sumQMtr=sumQMtr+tmp5;   % Sum (Zt-A*Zt-1)(Zt-A*Zt-1)'
         % for parameter R, covariance of the observation model
         stateZ=train(trialIX,directIX).state;       % Zt
         obserX=train(trialIX,directIX).spikeCount;  % Xt (Neuron-by-timebins)
