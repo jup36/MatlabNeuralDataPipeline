@@ -1,4 +1,4 @@
-function PSTH_rasters( filePath, fileInfo, probeDepth, varargin )
+function PSTH_rasters_rawData( filePath, fileInfo, probeDepth, varargin )
 %PSTH_rasters takes behavioral timestamps stored in BehVariables.mat and
 % generates psths aligned to each event and saves the outcome psths in the
 % filePath. To run PSTH_rasters 'behaviorTimestamps.m' must be run first

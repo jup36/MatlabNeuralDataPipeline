@@ -13,7 +13,7 @@ S = rmfield(S,{'baseJsTrajmm','baseSmJsVel','basePeriodicAbsVelSum'}); % rmfield
 load(fullfile(filePath,'BehVariablesJs.mat'), 'evtIdx1k', 'p')
 load(fullfile(filePath,'evtIndices.mat'), 'trStartIdx', 'trEndIdx')
 
-behFilePath = dir(fullfile(filePath,'201*')); % dir where the trial-by-trial behavioral csv files are saved
+behFilePath = dir(fullfile(filePath,'20*')); % dir where the trial-by-trial behavioral csv files are saved
 tbytCsvList = dir(fullfile(behFilePath.folder,behFilePath.name,'trial_*'));    % trial-by-trial files
 allTrialCsv = dir(fullfile(behFilePath.folder,behFilePath.name,'trials.csv')); % all trial file
 if length(allTrialCsv)==1

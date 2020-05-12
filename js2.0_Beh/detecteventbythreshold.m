@@ -5,7 +5,7 @@ function [corrRiseTS, corrFallTS, pulseTrainIdx] = detecteventbythreshold(timese
 % detectTimeout: detection timeout (ms)
 
 p = parse_input_detectevent( timeseries, sampFreq, detectTimeout, varargin ); % parse input
-%p = parse_input_detectevent( timeseries, sampFreq, detectTimeout, {'stdFactor', 1, 'plotRez',false, 'chunkPulses', true, 'chunkInterval', 2000, 'correctLongPulse', true} ); % use this line instead when running line-by-line
+%p = parse_input_detectevent( timeseries, 25000, 3000, {'stdFactor', 10, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse', true} ); % use this line instead when running line-by-line
 %p = parse_input_detectevent( timeseries, sampFreq, detectTimeout, {'detectLater',trStartIdx(1),'correctLongPulse',true} ); % use this line instead when running line-by-line
 
 meanTS = mean(abs(timeseries)); % mean timeseries
@@ -84,7 +84,7 @@ end
 %% nested helper function
     function p = parse_input_detectevent( timeseries, sampFreq, detectTimeout, vargs )
         % parse input, and extract name-value pairs
-        default_stdFactor = 1;          % std factor
+        default_stdFactor = 2;          % std factor
         default_plotRez = false;        % boolean for plotting
         default_chunkPulses = true;     % boolean for pulse chunking to get trial-by-trial pulses
         default_chunkInterval = 1000;   % interval by which chunking pulses (in ms)

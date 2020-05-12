@@ -4,6 +4,11 @@ function [ pullStart, pullStop, pullMaxVel, pullMaxVelI, forceMN, maxForce, maxF
 %stillPts = 10; % 10ms
 
 fstThresCross = find( jsTrajmm <= pullThresholdmm, 1, 'first'); % detect the pull that crossed the pull threshold
+if isempty(fstThresCross) % in case there's a small offset, allow to detect a reasonable minimum point (pullThresholdmm+.5)
+    fstThresCross = find( jsTrajmm <= pullThresholdmm+.5, 1, 'first');
+end
+
+
 % define pullStart - find the last still point before the 1st threshold crossing
 lastStillPt = find(periodicAbsVelSum(1:fstThresCross)<50, 1, 'last'); % this corresponds to the last point at which Js moved less than 0.05mm for the retrospective 10ms (50*(1/1000), as the velocity is in the unit of mm/s)
 if ~isempty(lastStillPt)

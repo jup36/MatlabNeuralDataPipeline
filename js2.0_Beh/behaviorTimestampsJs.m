@@ -22,13 +22,19 @@ end
 binFile = dir(fullfile(p.Results.filePath,'*.nidq.bin')); % look for nidq.bin file
 
 if length(binFile)>1 || isempty(binFile)
-    error('File could not be found or multiple nidq.bin files exist!');
+    disp('Select the directory where the nidq.bin file exists!!')
+    binFileDir = uigetdir(p.Results.filePath); 
+    if ~isempty(binFileDir) && size(binFileDir,1)==1
+        binFile = dir(fullfile(binFileDir,'*.nidq.bin')); % look for nidq.bin file
+    else
+        error('File could not be found or multiple nidq.bin files exist!');
+    end
 end
 
 binName = binFile.name;
 
 % Parse the corresponding metafile
-meta  = ReadMeta(binName, p.Results.filePath); % get the meta data (structure)
+meta  = ReadMeta(binName, binFile.folder); % get the meta data (structure)
 channels = textscan(meta.acqMnMaXaDw,'%n %n %n %n','Delimiter',',');
 nSamp = round(SampRate(meta),0); % sampling rate (default: 25kHz)
 %totalTimeSecsMeta = str2double(meta.fileTimeSecs); % total duration of file in seconds
@@ -69,7 +75,7 @@ else
     lick      = zeros(1,floor(totalTimeSecs*25000));
     
     for k = 0:totalTimeSecs-1 % read second-by-second incrementally to avoid a memory issue
-        tempDataArray = ReadBin(k*nSamp, nSamp, meta, binName, p.Results.filePath); % read bin data for each second
+        tempDataArray = ReadBin(k*nSamp, nSamp, meta, binName, binFile.folder); % read bin data for each second
         tempTrStart  = tempDataArray(trStartCh,:); % decimate the data
         tempCamTrig  = tempDataArray(camTrigCh,:); % do not decimate for higher temporal resolution
         tempReward   = tempDataArray(rewardCh,:);
@@ -122,13 +128,30 @@ else
     save('gainCorrectRawTraces', 'trStart', 'camTrig', 'reward', 'trEnd', 'encodeA', 'encodeB', 'lick', 'laser', 'plaser')
 end
 
+%% spot the trial-by-trial and all-trials behavioral csv files
+if isempty(dir(fullfile(p.Results.filePath,'20*')))
+    error('Cannot find the trial-by-trial behavior data csv files!')
+end
+
+behFilePath = dir(fullfile(p.Results.filePath,'20*')); % dir where the trial-by-trial behavioral csv files are saved
+tbytCsvList = dir(fullfile(behFilePath.folder,behFilePath.name,'trial_*'));    % trial-by-trial files
+allTrialCsv = dir(fullfile(behFilePath.folder,behFilePath.name,'trials.csv')); % all trial file
+if length(allTrialCsv)==1
+    trialsFileName = fullfile(allTrialCsv.folder,allTrialCsv.name);
+    trialsCsv = readtable(trialsFileName);
+else
+    error('More than one trials.csv file detected!')
+end
+
+[~,tbytCsvdateSort] = sort(datenum({tbytCsvList(:).date}, 'dd-mmm-yyyy hh:MM:ss'), 1, 'ascend'); % sorted fileList
+
 %% task event detection
 if ~isempty(dir(fullfile(p.Results.filePath,'evtIndices.mat'))) && p.Results.reReadBin==false % if the gainCorrectRawTraces.mat file already exists in the filePath
     load(fullfile(p.Results.filePath,'evtIndices.mat'),'trStartIdx','trEndIdx','rwdIdx','lickIdx','evtIdx25k','evtIdx1k') % if there are gaincorrectedrawtraces already saved, just load them
 else
-    [trStartIdx,~,~] = detecteventbythreshold(trStart, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'correctLongPulse', true); % trial Start
+    [trStartIdx,~,~] = detecteventbythreshold(trStart, 25000, 3000, 'stdFactor', 5, 'plotRez', false, 'chunkPulses', false, 'correctLongPulse', true); % trial Start
     fprintf('completed trial start detection!');
-    [trEndIdx,~,~]   = detecteventbythreshold(trEnd, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse', true); % trial End
+    [trEndIdx,~,~]   = detecteventbythreshold(trEnd, 25000, 3000, 'stdFactor', 5, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse', true); % trial End
     fprintf('completed trial end detection!');
     
     if length(trStartIdx)==length(trEndIdx)
@@ -143,6 +166,9 @@ else
         if ~unique(trEndIdx(1,1:length(trStartIdx)) - trStartIdx>0)
             error('Trial End and Start indices do not make sense!')
         end
+    elseif length(trStartIdx)==size(trialsCsv,1)
+        newTrEndIdx = sortTrStartTrEnd(trStartIdx, trEndIdx, trialsCsv, p.Results.trialTimeout);
+        trEndIdx = newTrEndIdx; 
     else
         error('Trial End and Start indices do not make sense!')
     end
@@ -217,7 +243,7 @@ else
     evtIdx25k.trStartIdx = trStartIdx;
     evtIdx25k.trEndIdx = trEndIdx;
     evtIdx25k.rwdIdx  = rwdIdx+nSamp*(p.Results.rewardDelay/1000); % correct for the delay
-    evtIdx25k.lickIdx = lickIdx;
+    %evtIdx25k.lickIdx = lickIdx;
     evtIdx25k.camTrigRiseIdx = camTrigRiseIdx;
     evtIdx25k.camTrigFallIdx = camTrigFallIdx;
     evtIdx25k.camPulseTrainIdx = camPulseTrainIdx;
@@ -237,30 +263,13 @@ else
     end
     
     evtIdx1k.rwdIdx  = round(rwdIdx./25)+p.Results.rewardDelay;
-    evtIdx1k.lickIdx = round(lickIdx./25);
+    evtIdx1k.lickIdx = round(lickIdx);
     evtIdx1k.camTrigRiseIdx = round(camTrigRiseIdx./25);
     evtIdx1k.camTrigFallIdx = round(camTrigFallIdx./25);
     evtIdx1k.camPulseTrainIdx = camPulseTrainIdx; % pulse Train Id
     
     save('evtIndices','trStartIdx','trEndIdx','rwdIdx','lickIdx','evtIdx25k','evtIdx1k')
 end
-
-%% spot the trial-by-trial and all-trials behavioral csv files
-if isempty(dir(fullfile(p.Results.filePath,'201*')))
-    error('Cannot find the trial-by-trial behavior data csv files!')
-end
-
-behFilePath = dir(fullfile(p.Results.filePath,'201*')); % dir where the trial-by-trial behavioral csv files are saved
-tbytCsvList = dir(fullfile(behFilePath.folder,behFilePath.name,'trial_*'));    % trial-by-trial files
-allTrialCsv = dir(fullfile(behFilePath.folder,behFilePath.name,'trials.csv')); % all trial file
-if length(allTrialCsv)==1
-    trialsFileName = fullfile(allTrialCsv.folder,allTrialCsv.name);
-    trialsCsv = readtable(trialsFileName);
-else
-    error('More than one trials.csv file detected!')
-end
-
-[~,tbytCsvdateSort] = sort(datenum({tbytCsvList(:).date}, 'dd-mmm-yyyy hh:MM:ss'), 1, 'ascend'); % sorted fileList
 
 %% parse stepper encoder data; pin A, pin B, and extract joystick kinematics
 jsDistCoeff = 2*pi*90/4000; % joystick movement distance conversion coefficient (4000: the number of total edges(rises/falls) per resolution of the encoder)

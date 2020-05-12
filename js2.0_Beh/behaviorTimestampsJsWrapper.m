@@ -18,7 +18,7 @@ for f = 1:length(filePath)
         error('Input a proper file path'); 
     end
     p = parse_input_Js(currentPath, varargin); 
-    % p = parse_input_Js(currentPath, {'trialTimeout',10000,'laserUsed',false,'plaserUsed', false, 'tagLaserUsed', false, 'reReadBin',false, 'numbNeuralProbe', 0}); 
+    % p = parse_input_Js(filePath, {'trialTimeout',20000,'laserUsed',true,'plaserUsed', true, 'tagLaserUsed', false, 'reReadBin',false, 'numbNeuralProbe', 0}); 
     behaviorTimestampsJs(p);
 end
 
