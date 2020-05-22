@@ -4,7 +4,7 @@ function jsVideoPreprocess(filePath, nTr, varargin)
 cd(filePath)
 
 pVP = parse_input_jsVideo(filePath, nTr, varargin);
-% pVP = parse_input_jsVideo(filePath, 77, {'slowPlay',5, 'frTimeRange', [-8000 1000]});
+% pVP = parse_input_jsVideo(filePath, 9, {'slowPlay',5, 'frTimeRange', []});
 
 % load the structure with video file info and Js kinematics (jsTime1k_KV)
 if exist('jsTime1k_KV','var') ~= 1

@@ -152,7 +152,7 @@ for t = 1:length(fVideoInfo) % increment trials of jsTime1k_KV
         trj3d(t).vUseFrameIdx = vUseFrameIdx{t};
          
         
-        if sum(fIdx)==1 && sum(sIdx)==1 % in case, there are both front and side video files for this trial
+        if sum(fIdx)==1 && sum(sIdx)==1 && length(fron(fIdx).fg1IntX)==length(side(sIdx).fg1IntX) % in case, there are both front and side video files for this trial
             
             fFg1XY = [fron(fIdx).fg1IntX, fron(fIdx).fg1IntY]'; % finger1 front XY
             fFg2XY = [fron(fIdx).fg2IntX, fron(fIdx).fg2IntY]'; % finger2 front XY
@@ -171,7 +171,7 @@ for t = 1:length(fVideoInfo) % increment trials of jsTime1k_KV
             sjsBXY = [side(sIdx).jsBIntX, side(sIdx).jsBIntY]'; % joystick2 side XY
             
             % stereo triangulation
-            if sum(sum(isnan(fFg1XY)==true))==0 && sum(sum(isnan(sFg1XY)==true))==0
+            if sum(sum(isnan(fFg1XY)==true))==0 && sum(sum(isnan(sFg1XY)==true))==0 
                 [trj3d(t).fg1f,trj3d(t).fg1s] = stereoTriangulation(fFg1XY, sFg1XY, calibParams);
             end
             
