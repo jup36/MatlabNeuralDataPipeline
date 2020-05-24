@@ -46,7 +46,7 @@ disp('Select the meta file!!')
 [metaFileSel,metaPathSel] = uigetfile('*.meta',p.Results.filePath); 
 meta = ReadMeta(metaFileSel, metaPathSel); % read out the meta file
 % get geometry using meta
-SGLXMetaToCoords(meta, metaFileSel) % make a chanMap file from meta, set outType=1 for ks2 format
+SGLXMetaToCoordsJP(1,meta, metaFileSel) % make a chanMap file from meta, set outType=1 for ks2 format
 geomFile = dir(fullfile(p.Results.filePath,'*_kilosortChanMap.mat'));  % look for '*_kilosortChanMap.mat' file 
 load(fullfile(geomFile.folder,geomFile.name),'xcoords','ycoords'); 
 geometry = [xcoords, ycoords]; % probe x, y coordinates 
@@ -57,21 +57,21 @@ if isempty(phyPath)
     disp('Select a folder containing spike sorting results with Phy!!')
     phyPath = uigetdir(p.Results.filePath); 
 elseif size(phyPath,1)>1
-    phyPath = phyPath(cellfun(@(a) contains(a,p.Results.probeType(1:2),'IgnoreCase',true), {phyPath(:).folder})).folder; 
+    phyPath = phyPath(cellfun(@(a) contains(a,p.Results.probeType(1:2),'IgnoreCase',true), {phyPath(:).folder})); 
 end
 
-spike_times = double(readNPY(fullfile(phyPath, 'spike_times.npy'))); % timestamp of all spikes, (n_spike, 1)
-spike_template = double(readNPY(fullfile(phyPath, 'spike_templates.npy'))); % automated cluster of all spikes, (n_spike, 1)
-spike_clusters = double(readNPY(fullfile(phyPath, 'spike_clusters.npy')));  % final cluster of all spikes, (n_spike, 1)
-template = readNPY(fullfile(phyPath, 'templates.npy')); % template waveform of all clusters, (n_original_cluster, n_timepoint, all_valid_channel, i.e., 64)
-channel_map = readNPY(fullfile(phyPath, 'channel_map.npy')); % maps valid sites to actual sites
+spike_times = double(readNPY(fullfile(phyPath.folder, 'spike_times.npy'))); % timestamp of all spikes, (n_spike, 1)
+spike_template = double(readNPY(fullfile(phyPath.folder, 'spike_templates.npy'))); % automated cluster of all spikes, (n_spike, 1)
+spike_clusters = double(readNPY(fullfile(phyPath.folder, 'spike_clusters.npy')));  % final cluster of all spikes, (n_spike, 1)
+template = readNPY(fullfile(phyPath.folder, 'templates.npy')); % template waveform of all clusters, (n_original_cluster, n_timepoint, all_valid_channel, i.e., 64)
+channel_map = readNPY(fullfile(phyPath.folder, 'channel_map.npy')); % maps valid sites to actual sites
 
 % find the main channel of each template which has the greatest abs amplitude
 [~, mainSiteTemplate] = max(max(abs(template), [], 2), [], 3);
 actualSiteTemplate = channel_map(mainSiteTemplate)+1; 
 
 % load cluster data (final cluster IDs after the manual curation)
-cn_name = fullfile(phyPath, 'cluster_groups.csv');
+cn_name = fullfile(phyPath.folder, 'cluster_groups.csv');
 fid = fopen(cn_name, 'r');
 cn = textscan(fid, '%f%s%[^\n\r]', 'Delimiter', '\t', 'TextType', 'string', 'Headerlines', 1, 'EndOfLine', '\r\n');
 fclose(fid);
