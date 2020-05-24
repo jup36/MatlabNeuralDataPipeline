@@ -19,8 +19,9 @@ disp('Select the meta file!!')
 [metaFileSel,metaPathSel] = uigetfile('*.meta',p.Results.filePath); 
 meta = ReadMeta(metaFileSel, metaPathSel); % read out the meta file
 % get geometry using meta
-SGLXMetaToCoords(meta, metaFileSel) % make a chanMap file from meta, set outType=1 for ks2 format
-load(fullfile('/Volumes/Beefcake/Junchol_Data/jayReachToGrasp/jay_64_16_4.mat')); 
+%SGLXMetaToCoords(meta, metaFileSel) % make a chanMap file from meta, set outType=1 for ks2 format
+load(fullfile('S:\Junchol_Data\jayReachToGrasp\jay_64_16_4.mat'),'xcoords','ycoords'); 
+%load(fullfile('/Volumes/Beefcake/Junchol_Data/jayReachToGrasp/jay_64_16_4.mat')); 
 geometry = [xcoords, ycoords]; % probe x, y coordinates 
 
 %% kilosort-phy
@@ -35,15 +36,27 @@ channel_map = readNPY(fullfile(filePath, 'channel_map.npy')); % maps valid sites
 actualSiteTemplate = channel_map(mainSiteTemplate)+1; 
 
 % load cluster data (final cluster IDs after the manual curation)
-cn_name = fullfile(filePath, 'cluster_groups.csv');
-fid = fopen(cn_name, 'r');
-cn = textscan(fid, '%f%s%[^\n\r]', 'Delimiter', '\t', 'TextType', 'string', 'Headerlines', 1, 'EndOfLine', '\r\n');
-fclose(fid);
+dc = dir('cluster_group*'); 
+if contains(dc.name,'.tsv')
+     movefile('cluster_group.tsv','cluster_group.csv') 
+end
 
-% pick only good units
-inPhy = strcmp(cn{2}, 'good'); 
-unitNumber = cn{1}(inPhy); % final good unit number list
-nP = length(unitNumber);
+try
+    cnTab = readtable(fullfile(dc.folder,'cluster_group.csv')); 
+    cn = table2cell(cnTab); 
+    inPhy = cell2mat(cellfun(@(a) strcmpi(a,'good'), cn(:,2), 'un',0));
+    unitNumber = cell2mat(cn(inPhy,1)); % final good unit number list
+    nP = length(unitNumber);
+catch
+    cn_name = fullfile(filePath, 'cluster_groups.csv');
+    fid = fopen(cn_name, 'r');
+    cn = textscan(fid, '%f%s%[^\n\r]', 'Delimiter', '\t', 'TextType', 'string', 'Headerlines', 1, 'EndOfLine', '\r\n');
+    fclose(fid);
+    % pick only good units
+    inPhy = strcmp(cn{2}, 'good'); 
+    unitNumber = cn{1}(inPhy); % final good unit number list
+    nP = length(unitNumber);    
+end
 
 dvCosConvert   = cos(p.Results.probeAngle/180*pi);  % if probe was angled, probe coordinates need to be corrected 
 
@@ -94,27 +107,34 @@ spkTimesCell = struct2cell(spkTimes'); % the entire spike times converted into a
 spkTimesCellCTX = spkTimesCell(:,cell2mat(spkTimesCell(3,:))<=64); % the CTX spike times cell (1st probe)
 spkTimesCellSTR = spkTimesCell(:,cell2mat(spkTimesCell(3,:))>64);  % the STR spike times cell (2nd probe)
 
-spkTimesCellStrCtx = [spkTimesCellSTR,  spkTimesCellCTX]; 
+spkTimesCellStrCtx = [spkTimesCellSTR,  spkTimesCellCTX];
 
 %% get psths
-% binned spike count CTX 
-tagLaser1s     = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.tagLaser1s', ts.cue'-1000, 1, [5e3 5e3], -1, p.Results.psthPlotFlag ); 
-laserCue2s     = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.laserCue2s', ts.cue'-1000, 1, [5e3 5e3], -1, p.Results.psthPlotFlag ); 
-laserOnly2s    = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.laserOnly2s', ts.cue'-1000, 1, [5e3 5e3], -1, p.Results.psthPlotFlag ); 
+% binned spike count CTX
+if ~isempty(ts.tagLaser1s)
+    tagLaser1s     = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.tagLaser1s', ts.cue'-1000, 1, [5e3 5e3], -1, p.Results.psthPlotFlag );
+    binSpkCountCTX.tagLaser1s = tagLaser1s;
+end
 
-binSpkCountCTX.tagLaser1s = tagLaser1s; 
-binSpkCountCTX.laserCue2s  = laserCue2s; 
-binSpkCountCTX.laserOnly2s = laserOnly2s; 
+if  ~isempty(ts.laserCue2s)
+    laserCue2s     = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.laserCue2s', ts.cue'-1000, 1, [5e3 5e3], -1, p.Results.psthPlotFlag );
+    binSpkCountCTX.laserCue2s  = laserCue2s;
+end
+
+if  ~isempty(ts.laserOnly2s)
+    laserOnly2s    = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.laserOnly2s', ts.cue'-1000, 1, [5e3 5e3], -1, p.Results.psthPlotFlag );
+    binSpkCountCTX.laserOnly2s = laserOnly2s;
+end
 
 saveName = strcat('binSpkCountCTX',p.Results.fileInfo);
 save(fullfile(p.Results.filePath,saveName),'-struct','binSpkCountCTX') % save the fields of the structure separately 
 save(fullfile(p.Results.filePath,saveName), 'ts', '-append') % append the behavioral timestamps
 
 %% Individual unit raster plot 
-%unit = 32; % 32, 37, 40, 45, 66, 69 (M314_20200427_1000um)
+unit = 17; % 32, 37, 40, 45, 66, 69 (M314_20200427_1000um)
 spikeRasterGramm( [5e3 5e3], {'tagLaser1s'}, [3e3 3e3], [tagLaser1s.SpkTimes{unit};laserOnly2s.SpkTimes{unit}]);
-%spikeRasterGramm( [5e3 5e3], {'tagLaser1s'}, [3e3 3e3], binSpkCountCTX.tagLaser1s.SpkTimes{unit});
-%spikeRasterGramm( [5e3 5e3], {'laserOnly2s'}, [3e3 3e3], binSpkCountCTX.laserOnly2s.SpkTimes{unit});
+spikeRasterGramm( [5e3 5e3], {'tagLaser1s'}, [3e3 3e3], binSpkCountCTX.tagLaser1s.SpkTimes{unit});
+spikeRasterGramm( [5e3 5e3], {'laserOnly2s'}, [3e3 3e3], binSpkCountCTX.laserOnly2s.SpkTimes{unit});
 %print( fullfile(filePath,'Figure',strcat(fileInfo,'_',sprintf('unit#%d',unit),'tagLaser1sLaserOnly2s')), '-dpdf','-painters', '-bestfit')
 %unit = unit+1;
 
@@ -213,10 +233,3 @@ else
 end
 
 end
-
-
-
-
-
-
-
