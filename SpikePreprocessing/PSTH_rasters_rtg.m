@@ -131,12 +131,12 @@ save(fullfile(p.Results.filePath,saveName),'-struct','binSpkCountCTX') % save th
 save(fullfile(p.Results.filePath,saveName), 'ts', '-append') % append the behavioral timestamps
 
 %% Individual unit raster plot 
-%unit = 32; % 32, 37, 40, 45, 66, 69 (M314_20200427_1000um)
-%spikeRasterGramm( [5e3 5e3], {'tagLaser1s'}, [3e3 3e3], [tagLaser1s.SpkTimes{unit};laserOnly2s.SpkTimes{unit}]);
+unit = 60; % 6, 10, 28, 42, 60 (M317_20200528_1000um), 2, 14, 15, 17, 29, 30, 31, 43, 45, 46, 59, 65, 66, 79, 88(int) (M316_20200521_500um) % 32, 37, 40, 45, 66, 69 (M314_20200427_1000um)
+spikeRasterGramm( [5e3 5e3], {'tagLaser1s'}, [3e3 3e3], [tagLaser1s.SpkTimes{unit};laserOnly2s.SpkTimes{unit}]);
 %spikeRasterGramm( [5e3 5e3], {'tagLaser1s'}, [3e3 3e3], binSpkCountCTX.tagLaser1s.SpkTimes{unit});
 %spikeRasterGramm( [5e3 5e3], {'laserOnly2s'}, [3e3 3e3], binSpkCountCTX.laserOnly2s.SpkTimes{unit});
-%print( fullfile(filePath,'Figure',strcat(fileInfo,'_',sprintf('unit#%d',unit),'tagLaser1sLaserOnly2s')), '-dpdf','-painters', '-bestfit')
-%unit = unit+1;
+print( fullfile(filePath,'Figure',strcat(fileInfo,'_',sprintf('unit#%d',unit),'tagLaser1sLaserOnly2s')), '-dpdf','-painters', '-bestfit')
+unit = unit+1;
 
 %unit = 139; % str unit 128 (laser activated)
 %spikeRasterGramm( [1e3 3e3], {'reach','stim','stimReach'}, binSpkCountSTRReach(unit).SpkTimes, binSpkCountSTRstmLaser(unit).SpkTimes,binSpkCountSTRstmReach(unit).SpkTimes );
