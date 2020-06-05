@@ -1,13 +1,20 @@
+function preprocessingForDecoder_KalmanFilter(filePath, saveName)
+%This function performs preprocessing for state decoding from cortical and
+% striatal spike activity using Kalman filter
+
 %% 1. Load data
 %clc; clearvars; close all;
-
-filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles';
+%filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles';
 cd(filePath)
 % neural data
-load(fullfile('/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles','binSpkCountSTRCTXWR40_081919.mat'), 'spkTimesCell', 'rStartToPull', 'p')
+spkDir = dir('binSpkCountSTRCTX*'); 
+load(fullfile(spkDir(1).folder, spkDir(1).name),'spkTimesCell', 'rStartToPull')
+%load(fullfile('/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles','binSpkCountSTRCTXWR40_081919.mat'), 'spkTimesCell', 'rStartToPull', 'p')
 S=rStartToPull; clearvars rStartToPull
 % behavioral data
-load(fullfile('/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles','jsTime1k_KinematicsTrajectories.mat'),'jkvt','meta')
+
+behDir = dir('jsTime1k_KinematicsTrajectories*'); 
+load(fullfile(behDir(1).folder,fullfile(behDir(1).name)),'jkvt'); 
 
 %% align hand trajectories to neural data
 ts = S.currEvt{1}(:,1); % time stamps (e.g. rStartToPull)
@@ -131,10 +138,8 @@ for t = 1:length(ts)
         s.dat.trialEvt{r,c} = t;
         s.dat.trialJkvt{r,c} = tsJkvtTrs{t}; 
         
-        pulldetectI = 0; 
-        % get the pullStart and pullStop point, if exists
+        % get the pullStart and pullStop point and pull index, if exists
         if isfield(jkvt(vfI).movKins,'pullStart') && isfield(jkvt(vfI).movKins,'pullStop')
-            pulldetectI = 1; 
             pullStart = jkvt(vfI).trJsReady + jkvt(vfI).movKins.pullStart;
             pullStop = jkvt(vfI).trJsReady + jkvt(vfI).movKins.pullStop;
             
@@ -145,13 +150,21 @@ for t = 1:length(ts)
             t1RtEpullI = pullStart<=t1R:tE & t1R:tE<=pullStop;
             
             s.dat.pullIdx{r,c} = sum(reshape(t1RtEpullI(1:timeBin(end-1)), binSize, []))>=1; 
-            
-            jkvt(vfI).movKins.sgJsAcl(1,jkvt(vfI).movKins.pullStart:jkvt(vfI).movKins.pullStop); 
-            
         end
-      
+        % get the laserStart and laserStop point and laser index, if exists
+        if ~isempty(jkvt(vfI).stimLaserOn) && ~isempty(jkvt(vfI).stimLaserOff)
+            s.time(t).tLaserStart = jkvt(vfI).stimLaserOn; 
+            s.time(t).tLaserStop = jkvt(vfI).stimLaserOff; 
+            
+            t1tElaserI = s.time(t).tLaserStart<=t1:tE & t1:tE<=s.time(t).tLaserStop;
+            t1RtElaserI = s.time(t).tLaserStart<=t1R:tE & t1R:tE<=s.time(t).tLaserStop;
+            
+            s.dat.laserIdx{r,c} = sum(reshape(t1RtElaserI(1:timeBin(end-1)), binSize, []))>=1; 
+            s.dat.laserOffTime{r,c} = s.time(t).tLaserStop-t1R; % when did laser went off relative to the reach start
+        end
+        
     end
     fprintf('processed event# %d\n', t)  
 end
-
-save(fullfile(filePath,'preprocessKFdecodeHTrjCtxStr_WR40_081919.mat'),'s')
+save(fullfile(filePath,strcat('preprocessKFdecodeHTrjCtxStr_',saveName)),'s')
+end
