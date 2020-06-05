@@ -14,6 +14,16 @@ ctxCnumb = max(unique(cell2mat(cellfun(@(a) size(a,1), s.dat.spkCtx, 'un', 0))))
 strCnumb = max(unique(cell2mat(cellfun(@(a) size(a,1), s.dat.spkStr, 'un', 0)))); % # of striatal cells
 minCnumb = min(ctxCnumb, strCnumb); % # of cells to be included
 
+% select kinematic variables to fit
+for r = 1:size(s.dat.state,1)
+    for c = 1:size(s.dat.state,2)
+        if ~isempty(s.dat.state{r,c})
+            s.dat.state{r,c} = s.dat.state{r,c}(7,:); % pull force applied to joystick
+        end
+    end
+end
+clearvars r c 
+
 % leave-a-trial-out decoding using Kalman Filter
 for i = 1:resample % repeat resampling trials
     randCtxI = randperm(ctxCnumb);
@@ -40,7 +50,7 @@ for i = 1:resample % repeat resampling trials
                     tempValTrRand = tempValTr(randperm(length(tempValTr)));
                     currTrainTrs(:,cc) = tempValTrRand(1:trainTrN); % take the set # of randomized trials from each trial type (column)
                     currTrainState = [currTrainState, s.dat.state(currTrainTrs(:,cc),cc)]; % concatanate randomly selected trials from each type to construct the train data matrix
-                    currTrainState = cellfun(@(a) a(1:3,:), currTrainState, 'un', 0); % choose variables to estimate
+                    %currTrainState = cellfun(@(a) a(1:3,:), currTrainState, 'un', 0); % choose variables to estimate
                     currTrainCtx = [currTrainCtx, cellfun(@(a) a(ctxI,:), s.dat.spkCtx(currTrainTrs(:,cc),cc), 'un', 0)]; % ctx spike mat with cells resampled to match # of cells
                     currTrainStr = [currTrainStr, cellfun(@(a) a(strI,:), s.dat.spkStr(currTrainTrs(:,cc),cc), 'un', 0)]; % str spike mat with cells resampled to match # of cells
                 end
@@ -164,10 +174,6 @@ for i = 1:resample % repeat resampling trials
 end
 clearvars r c i
 
-%save(fullfile(filePath,'rezKFdecodeHTrjCtxStr_WR40_081919.mat'),'s')
-%load(fullfile(filePath,'rezKFdecodeHTrjCtxStr_WR40_081919.mat'),'s')
-%cell2mat(s.dat.estStateCtxMean(1,1,:))
-
 %% take average across estimated trajectories with resampling, interpolate to match trajectory lengths
 for rr = 1:size(s.dat.estStateCtxMean,1) % trials
     for cc = 1:size(s.dat.estStateCtxMean,2) % trial-types 
@@ -205,8 +211,8 @@ for rr = 1:size(s.dat.estStateCtxMean,1) % trials
         
         % distance between the actual trajectory and the mean estimated cortex and striatum trajectory 
         if ~isempty(s.dat.state{rr,cc})
-            s.dat.dTrjCtx{rr,cc} = sqrt((s.dat.state{rr,cc}(1:3,:)-s.dat.avgEstStateCtxMean{rr,cc}).^2);
-            s.dat.dTrjStr{rr,cc} = sqrt((s.dat.state{rr,cc}(1:3,:)-s.dat.avgEstStateStrMean{rr,cc}).^2);
+            s.dat.dTrjCtx{rr,cc} = sqrt((s.dat.state{rr,cc}-s.dat.avgEstStateCtxMean{rr,cc}).^2);
+            s.dat.dTrjStr{rr,cc} = sqrt((s.dat.state{rr,cc}-s.dat.avgEstStateStrMean{rr,cc}).^2);
         else
             s.dat.dTrjCtx{rr,cc} = sqrt((s.dat.state{rr,cc}-s.dat.avgEstStateCtxMean{rr,cc}).^2);
             s.dat.dTrjStr{rr,cc} = sqrt((s.dat.state{rr,cc}-s.dat.avgEstStateStrMean{rr,cc}).^2);            
@@ -281,67 +287,36 @@ for cc = 1:size(s.dat.estStateCtxMean,2) % trial-types
 end
 clearvars cc
 
+save(fullfile(filePath,'rezKFdecodeHTrjCtxStrForce_WR40_081919.mat'),'s')
+%load(fullfile(filePath,'rezKFdecodeHTrjCtxStrPos_WR40_081919.mat'),'s')
+
 colorMap = [[100 149 237]./255; [50 205 50]./255; [50 50 50]./255]; % colorMap for cortex and striatum
 figure; hold on; 
-% X trj, low torque, position 1(left), Cortex, Striatum, Actual
+% Force trj, low torque, position 1(left), Cortex, Striatum, Actual
 boundedline(1:nTb,s.dat.LtP1.trMCtx(1,:),s.dat.LtP1.trSCtx(1,:), ...
             1:nTb,s.dat.LtP1.trMStr(1,:),s.dat.LtP1.trSStr(1,:), ...
             1:nTb,s.dat.LtP1.trMAct(1,:),s.dat.LtP1.trSAct(1,:), 'cmap', colorMap, 'transparency', 0.2);
-% X trj, low torque, position 2(right), Cortex, Striatum, Actual
+% Force trj, low torque, position 2(right), Cortex, Striatum, Actual
 boundedline(1:nTb,s.dat.LtP2.trMCtx(1,:),s.dat.LtP2.trSCtx(1,:), ...
             1:nTb,s.dat.LtP2.trMStr(1,:),s.dat.LtP2.trSStr(1,:), ...
             1:nTb,s.dat.LtP2.trMAct(1,:),s.dat.LtP2.trSAct(1,:), 'cmap', colorMap, 'transparency', 0.2);       
 
 figure; hold on; 
-% X trj, high torque, position 1(left), Cortex, Striatum, Actual
+% Force trj, high torque, position 1(left), Cortex, Striatum, Actual
 boundedline(1:nTb,s.dat.HtP1.trMCtx(1,:),s.dat.HtP1.trSCtx(1,:), ...
             1:nTb,s.dat.HtP1.trMStr(1,:),s.dat.HtP1.trSStr(1,:), ...
             1:nTb,s.dat.HtP1.trMAct(1,:),s.dat.HtP1.trSAct(1,:), 'cmap', colorMap, 'transparency', 0.2);
-% X trj, high torque, position 2(right), Cortex, Striatum, Actual
+% Force trj, high torque, position 2(right), Cortex, Striatum, Actual
 boundedline(1:nTb,s.dat.HtP2.trMCtx(1,:),s.dat.HtP2.trSCtx(1,:), ...
             1:nTb,s.dat.HtP2.trMStr(1,:),s.dat.HtP2.trSStr(1,:), ...
             1:nTb,s.dat.HtP2.trMAct(1,:),s.dat.HtP2.trSAct(1,:), 'cmap', colorMap, 'transparency', 0.2);                
       
-figure; hold on;         
-% Y trj, low torque, position 1(left), Cortex, Striatum, Actual
-boundedline(1:nTb,s.dat.LtP1.trMCtx(2,:),s.dat.LtP1.trSCtx(2,:), ...
-            1:nTb,s.dat.LtP1.trMStr(2,:),s.dat.LtP1.trSStr(2,:), ...
-            1:nTb,s.dat.LtP1.trMAct(2,:),s.dat.LtP1.trSAct(2,:), 'cmap', colorMap, 'transparency', 0.2);
-% Y trj, low torque, position 2(right), Cortex, Striatum, Actual
-boundedline(1:nTb,s.dat.LtP2.trMCtx(2,:),s.dat.LtP2.trSCtx(2,:), ...
-            1:nTb,s.dat.LtP2.trMStr(2,:),s.dat.LtP2.trSStr(2,:), ...
-            1:nTb,s.dat.LtP2.trMAct(2,:),s.dat.LtP2.trSAct(2,:), 'cmap', colorMap, 'transparency', 0.2);       
-      
-figure; hold on; 
-% Y trj, high torque, position 1(left), Cortex, Striatum, Actual
-boundedline(1:nTb,s.dat.HtP1.trMCtx(2,:),s.dat.HtP1.trSCtx(2,:), ...
-            1:nTb,s.dat.HtP1.trMStr(2,:),s.dat.HtP1.trSStr(2,:), ...
-            1:nTb,s.dat.HtP1.trMAct(2,:),s.dat.HtP1.trSAct(2,:), 'cmap', colorMap, 'transparency', 0.2);
-% Y trj, high torque, position 2(right), Cortex, Striatum, Actual
-boundedline(1:nTb,s.dat.HtP2.trMCtx(2,:),s.dat.HtP2.trSCtx(2,:), ...
-            1:nTb,s.dat.HtP2.trMStr(2,:),s.dat.HtP2.trSStr(2,:), ...
-            1:nTb,s.dat.HtP2.trMAct(2,:),s.dat.HtP2.trSAct(2,:), 'cmap', colorMap, 'transparency', 0.2);        
-       
-figure; hold on; 
-% Z trj, low torque, position 1(left), Cortex, Striatum, Actual
-boundedline(1:nTb,s.dat.LtP1.trMCtx(3,:),s.dat.LtP1.trSCtx(3,:), ...
-            1:nTb,s.dat.LtP1.trMStr(3,:),s.dat.LtP1.trSStr(3,:), ...
-            1:nTb,s.dat.LtP1.trMAct(3,:),s.dat.LtP1.trSAct(3,:), 'cmap', colorMap, 'transparency', 0.2);
-% Z trj, low torque, position 2(right), Cortex, Striatum, Actual
-boundedline(1:nTb,s.dat.LtP2.trMCtx(3,:),s.dat.LtP2.trSCtx(3,:), ...
-            1:nTb,s.dat.LtP2.trMStr(3,:),s.dat.LtP2.trSStr(3,:), ...
-            1:nTb,s.dat.LtP2.trMAct(3,:),s.dat.LtP2.trSAct(3,:), 'cmap', colorMap, 'transparency', 0.2);       
-      
-figure; hold on; 
-% Z trj, high torque, position 1(left), Cortex, Striatum, Actual
-boundedline(1:nTb,s.dat.HtP1.trMCtx(3,:),s.dat.HtP1.trSCtx(3,:), ...
-            1:nTb,s.dat.HtP1.trMStr(3,:),s.dat.HtP1.trSStr(3,:), ...
-            1:nTb,s.dat.HtP1.trMAct(3,:),s.dat.HtP1.trSAct(3,:), 'cmap', colorMap, 'transparency', 0.2);
-% Z trj, high torque, position 2(right), Cortex, Striatum, Actual
-boundedline(1:nTb,s.dat.HtP2.trMCtx(3,:),s.dat.HtP2.trSCtx(3,:), ...
-            1:nTb,s.dat.HtP2.trMStr(3,:),s.dat.HtP2.trSStr(3,:), ...
-            1:nTb,s.dat.HtP2.trMAct(3,:),s.dat.HtP2.trSAct(3,:), 'cmap', colorMap, 'transparency', 0.2);                
-               
+
+        
+        
+        
+        
+     
 %print(fullfile(filePath,'Figure','meanLtP1vsP2_CtxStrActual.pdf'),'-bestfit','-dpdf','-painters')
 %print(fullfile(filePath,'Figure','dmeanLtP1vsP2_CtxStrActual.pdf'),'-bestfit','-dpdf','-painters')
 hold on; 
@@ -362,8 +337,8 @@ figure; hold on;
 for c = 1:size(s.dat.estStateCtxMean,2)
     for r = 1:20 % just to include the first block only per trial type
         if ~isempty(s.dat.state{r,c})
-            ctxTrjX = s.dat.avgEstStateCtxMean{r,c}(1,:); % Ctx X trj (left-right, horizontal hand position)
-            strTrjX = s.dat.avgEstStateStrMean{r,c}(1,:); % Str X trj
+            ctxTrjX = s.dat.avgEstStateCtxMean{r,c}(1,:); % Ctx Force trj (left-right, horizontal hand position)
+            strTrjX = s.dat.avgEstStateStrMean{r,c}(1,:); % Str Force trj
             actTrjX = s.dat.state{r,c}(1,:); % actual trj
             
             tempX = timeX+2:timeX+length(actTrjX)+1;
@@ -395,7 +370,6 @@ for c = 1:size(s.dat.estStateCtxMean,2)
 end
 hold off;
 clearvars r c
-
 
 %% compute residuals errors (1. from the beginning, 2. after pull stop)
 for r = 1:size(s.dat.estStateCtxMean,1)
@@ -476,7 +450,7 @@ for c = 1:size(rsdCtx1Int,2)
     currToPullStopStr = reshape([rsdStr1Int{:,1}],size(rsdStr1Int{1},1),size(rsdStr1Int{1},2),[]); 
     currFrPullStopStr = reshape([rsdStr2Int{:,1}],size(rsdStr2Int{1},1),size(rsdStr2Int{1},2),[]); 
     
-    for tt = 1:6 % increament kinematic variables (x,y,z) x 2 (position, velocity)
+    for tt = 1:3 % increament kinematic variables (x,y,z) position
         [msRsdToPullStopCtx{1,c}(tt,:),~,msRsdToPullStopCtx{2,c}(tt,:)] = meanstdsem(squeeze(currToPullStopCtx(tt,:,:))');
         [msRsdFrPullStopCtx{1,c}(tt,:),~,msRsdFrPullStopCtx{2,c}(tt,:)] = meanstdsem(squeeze(currFrPullStopCtx(tt,:,:))');  
         
@@ -497,29 +471,22 @@ figure; boundedline(1:100, msRsdToPullStopCtx{1,1}(2,:), msRsdToPullStopCtx{2,1}
 figure; boundedline(1:100, msRsdToPullStopCtx{1,1}(3,:), msRsdToPullStopCtx{2,1}(3,:),...
     1:100, msRsdToPullStopStr{1,1}(3,:), msRsdToPullStopStr{2,1}(3,:), 'cmap', colorMap, 'transparency', 0.2);
 
-figure; boundedline(1:100, msRsdToPullStopCtx{1,1}(4,:), msRsdToPullStopCtx{2,1}(4,:),...
-    1:100, msRsdToPullStopStr{1,1}(4,:), msRsdToPullStopStr{2,1}(4,:), 'cmap', colorMap, 'transparency', 0.2);
-
-figure; boundedline(1:100, msRsdToPullStopCtx{1,1}(5,:), msRsdToPullStopCtx{2,1}(5,:),...
-    1:100, msRsdToPullStopStr{1,1}(5,:), msRsdToPullStopStr{2,1}(5,:), 'cmap', colorMap, 'transparency', 0.2);
-
-figure; boundedline(1:100, msRsdToPullStopCtx{1,1}(6,:), msRsdToPullStopCtx{2,1}(6,:),...
-    1:100, msRsdToPullStopStr{1,1}(6,:), msRsdToPullStopStr{2,1}(6,:), 'cmap', colorMap, 'transparency', 0.2);
-
-
-
-
-
+%% Helper function
 % Matrix interpolation function 
 function [intMat] = intm(origMat, numbDataPoints)
-% numbDataPoints = 100; % 20ms*100 = 2000ms
-if numbDataPoints>size(origMat,2)
-    x=1:size(origMat,2);
-    xq=linspace(1,size(origMat,2),numbDataPoints);
-    intMat = interp1(x,origMat',xq)';
-else
-    intMat = origMat;
-end
+% 1-d interpolation of a matrix as specified by the number of data points
+    % numbDataPoints = 100; % 20ms*100 = 2000ms
+    if numbDataPoints>size(origMat,2)
+        x=1:size(origMat,2); 
+        xq=linspace(1,size(origMat,2),numbDataPoints); 
+        intMat = interp1(x,origMat',xq)';
+        if size(intMat,1)>size(intMat,2)
+            intMat = intMat'; 
+        
+        end
+    else
+        intMat = origMat;
+    end
 end
 
 
