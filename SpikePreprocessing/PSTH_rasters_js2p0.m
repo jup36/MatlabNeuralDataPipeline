@@ -9,9 +9,7 @@ function PSTH_rasters_js2p0( filePath, fileInfo, probeDepth, varargin )
 % reachStart to tagLaser.
 
 p = parse_input_psth_js2p0(filePath, fileInfo, probeDepth, varargin); % parse input
-%filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/imec'; 
-%fileInfo = 'WR40_081919'; 
-%p = parse_input_psth_js2p0(filePath,'WR40_081919',4072,{'probeAngle',10,'numbSiteProbe',384,'psthPlotFlag',false,'reachWin',[3e3 3e3],'rewardWin',[3e3 3e3],'tagLaserWin',[5e3 5e3]}) % when running line-by-line
+%p = parse_input_psth_js2p0('/Volumes/Beefcake/Junchol_Data/JS2p0/WR44_031020', 'WR44_031020', 4300, {'probeAngle',10,'numbSiteProbe',384}) % when running line-by-line
 
 %% Load files 
 cd(p.Results.filePath)   % change directory to the data folder
@@ -71,15 +69,35 @@ channel_map = readNPY(fullfile(phyPath.folder, 'channel_map.npy')); % maps valid
 actualSiteTemplate = channel_map(mainSiteTemplate)+1; 
 
 % load cluster data (final cluster IDs after the manual curation)
-cn_name = fullfile(phyPath.folder, 'cluster_groups.csv');
-fid = fopen(cn_name, 'r');
-cn = textscan(fid, '%f%s%[^\n\r]', 'Delimiter', '\t', 'TextType', 'string', 'Headerlines', 1, 'EndOfLine', '\r\n');
-fclose(fid);
+% cn_name = fullfile(phyPath.folder, 'cluster_groups.csv');
+% fid = fopen(cn_name, 'r');
+% cn = textscan(fid, '%f%s%[^\n\r]', 'Delimiter', '\t', 'TextType', 'string', 'Headerlines', 1, 'EndOfLine', '\r\n');
+% fclose(fid);
 
-% pick only good units
-inPhy = strcmp(cn{2}, 'good'); 
-unitNumber = cn{1}(inPhy); % final good unit number list
-nP = length(unitNumber);
+disp('Select the cluster_group file!!')
+[clusterFile,clusterPath] = uigetfile({'*.tsv'; '*.csv'},p.Results.filePath); 
+
+%dc = dir('cluster_group*'); 
+if contains(clusterFile,'.tsv')
+     movefile(fullfile(clusterPath,'cluster_group.tsv'),fullfile(clusterPath,'cluster_group.csv')) 
+end
+
+try
+    cnTab = readtable(fullfile(clusterPath,'cluster_group.csv')); 
+    cn = table2cell(cnTab); 
+    inPhy = cell2mat(cellfun(@(a) strcmpi(a,'good'), cn(:,2), 'un',0));
+    unitNumber = cell2mat(cn(inPhy,1)); % final good unit number list
+    nP = length(unitNumber);
+catch
+    cn_name = fullfile(clusterPath, 'cluster_groups.csv');
+    fid = fopen(cn_name, 'r');
+    cn = textscan(fid, '%f%s%[^\n\r]', 'Delimiter', '\t', 'TextType', 'string', 'Headerlines', 1, 'EndOfLine', '\r\n');
+    fclose(fid);
+    % pick only good units
+    inPhy = strcmp(cn{2}, 'good'); 
+    unitNumber = cn{1}(inPhy); % final good unit number list
+    nP = length(unitNumber);    
+end
 
 dvCosConvert   = cos(p.Results.probeAngle/180*pi);  % if probe was angled, probe coordinates need to be corrected 
 
@@ -102,7 +120,12 @@ end
 clearvars s 
 
 %% Process spike times data and generate PSTH and Rasters
-sTcr = [jkvt(:).trEndImec]-[jkvt(:).trEnd]; % to correct the spike times due to asynchrony between the two recording systems
+if isfield(jkvt,'trEndImec')
+    sTcr = [jkvt(:).trEndImec]-[jkvt(:).trEnd]; % to correct the spike times due to asynchrony between the two recording systems
+else
+    sTcr = zeros(1,length([jkvt(:).trEnd])); % just put zeros if unavailable 
+end
+
 maxST = max(spike_times)/(str2double(meta.imSampRate)/1000); 
 spkTimes = struct; % the structure to contain spike times
 for u = 1:length(unitNumber) % increment valid clusters (units)
@@ -173,16 +196,18 @@ rStopToPull    = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, [jkvt.r
 rStopToPull.trI = find(~cellfun(@isempty, {jkvt.rStopToPull}));  
 reward         = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, evt.rwdIdx', evt.trJsReady-1000, 1, [3e3 2e3], -1, p.Results.psthPlotFlag );     % entire rewardDelivery
 reward.trI     = find([jkvt.rewarded]);  
-stmLaser       = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, evt.stimLaserRiseIdx', evt.stimLaserRiseIdx', 1, [1e3 5e3], -1, p.Results.psthPlotFlag ); % laser stim trials
-tagLaser       = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, evt.tagLaserRiseIdx', evt.tagLaserRiseIdx', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag ); % laser tag trials
-
+if p.Results.laserUsed
+    stmLaser       = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, evt.stimLaserRiseIdx', evt.stimLaserRiseIdx', 1, [1e3 5e3], -1, p.Results.psthPlotFlag ); % laser stim trials
+    tagLaser       = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, evt.tagLaserRiseIdx', evt.tagLaserRiseIdx', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag ); % laser tag trials
+    
+    binSpkCountCTX.stmLaser = stmLaser;
+    binSpkCountCTX.tagLaser = tagLaser;
+end
 binSpkCountCTX.pullStarts = pullStarts; 
 binSpkCountCTX.pullStops  = pullStops; 
 binSpkCountCTX.rStartToPull = rStartToPull; 
 binSpkCountCTX.rStopToPull = rStopToPull; 
 binSpkCountCTX.reward = reward; 
-binSpkCountCTX.stmLaser = stmLaser; 
-binSpkCountCTX.tagLaser = tagLaser; 
 binSpkCountCTX.meta = meta; 
 binSpkCountCTX.p = p; 
 binSpkCountCTX.spkTimesCell = spkTimesCellCTX; % just to save the cell
@@ -203,16 +228,20 @@ rStopToPull    = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, [jkvt.
 rStopToPull.trI = find(~cellfun(@isempty, {jkvt.rStopToPull}));  
 reward         = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, evt.rwdIdx', evt.trJsReady-1000, 1, [3e3 2e3], -1, p.Results.psthPlotFlag );     % entire rewardDelivery
 reward.trI     = find([jkvt.rewarded]);  
-stmLaser       = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, evt.stimLaserRiseIdx', evt.stimLaserRiseIdx', 1, [1e3 5e3], -1, p.Results.psthPlotFlag ); % laser stim trials
-tagLaser       = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, evt.tagLaserRiseIdx', evt.tagLaserRiseIdx', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag ); % laser tag trials
+
+if p.Results.laserUsed
+    stmLaser       = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, evt.stimLaserRiseIdx', evt.stimLaserRiseIdx', 1, [1e3 5e3], -1, p.Results.psthPlotFlag ); % laser stim trials
+    tagLaser       = psthBINcell( p.Results.fileInfo, 'DMS', spkTimesCellSTR, evt.tagLaserRiseIdx', evt.tagLaserRiseIdx', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag ); % laser tag trials
+
+    binSpkCountSTR.stmLaser = stmLaser; 
+    binSpkCountSTR.tagLaser = tagLaser; 
+end
 
 binSpkCountSTR.pullStarts = pullStarts; 
 binSpkCountSTR.pullStops  = pullStops; 
 binSpkCountSTR.rStartToPull = rStartToPull; 
 binSpkCountSTR.rStopToPull = rStopToPull; 
 binSpkCountSTR.reward = reward; 
-binSpkCountSTR.stmLaser = stmLaser; 
-binSpkCountSTR.tagLaser = tagLaser; 
 binSpkCountSTR.meta = meta; 
 binSpkCountSTR.p = p; 
 binSpkCountSTR.spkTimesCell = spkTimesCellSTR; % just to save the cell
@@ -233,16 +262,18 @@ rStopToPull    = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, [
 rStopToPull.trI = find(~cellfun(@isempty, {jkvt.rStopToPull}));  
 reward         = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, evt.rwdIdx', evt.trJsReady-1000, 1, [3e3 2e3], -1, p.Results.psthPlotFlag );     % entire rewardDelivery
 reward.trI     = find([jkvt.rewarded]);  
-stmLaser       = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, evt.stimLaserRiseIdx', evt.stimLaserRiseIdx', 1, [1e3 5e3], -1, p.Results.psthPlotFlag ); % laser stim trials
-tagLaser       = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, evt.tagLaserRiseIdx', evt.tagLaserRiseIdx', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag ); % laser tag trials
-
+if p.Results.laserUsed
+    stmLaser       = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, evt.stimLaserRiseIdx', evt.stimLaserRiseIdx', 1, [1e3 5e3], -1, p.Results.psthPlotFlag ); % laser stim trials
+    tagLaser       = psthBINcell( p.Results.fileInfo, 'DMSM1', spkTimesCellStrCtx, evt.tagLaserRiseIdx', evt.tagLaserRiseIdx', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag ); % laser tag trials
+    
+    binSpkCountSTRCTX.stmLaser = stmLaser;
+    binSpkCountSTRCTX.tagLaser = tagLaser;
+end
 binSpkCountSTRCTX.pullStarts = pullStarts; 
 binSpkCountSTRCTX.pullStops  = pullStops; 
 binSpkCountSTRCTX.rStartToPull = rStartToPull; 
 binSpkCountSTRCTX.rStopToPull = rStopToPull; 
 binSpkCountSTRCTX.reward = reward; 
-binSpkCountSTRCTX.stmLaser = stmLaser; 
-binSpkCountSTRCTX.tagLaser = tagLaser; 
 binSpkCountSTRCTX.meta = meta; 
 binSpkCountSTRCTX.p = p; 
 binSpkCountSTRCTX.spkTimesCell = spkTimesCell; % just to save the cell
@@ -279,6 +310,7 @@ clearvars saveName binSpkCountSTRCTX pullStarts pullStops trStart trEnd reward s
         default_rewardWin = [3e3 2e3]; % default time window for reward psth
         default_tagLaserWin = [5e3 5e3]; % default time window for tagLaser psth
         default_probeType = 'imec';    % default probe type imec
+        default_laserUsed = 'true';    % default laser used logic
         
         p = inputParser; % create parser object
         addRequired(p,'filePath');
@@ -291,6 +323,7 @@ clearvars saveName binSpkCountSTRCTX pullStarts pullStops trStart trEnd reward s
         addParameter(p,'rewardWin', default_rewardWin)
         addParameter(p,'tagLaserWin', default_tagLaserWin)
         addParameter(p,'probeType', default_probeType)
+        addParameter(p,'laserUsed', default_laserUsed)
         
         parse(p,filePath, fileInfo, probeDepth, vargs{:})
     end
