@@ -24,7 +24,8 @@ tsMapJkvt = arrayfun(@(a) find([jkvt(1:end-1).trEnd]'<= repmat(a,[size(jkvt,2)-1
 tsJkvtTrs = [{tsMapJkvt1}; tsMapJkvt]; 
 
 vfT = {jkvt(:).vFrameTime}'; % video frame time
-hTrj = {jkvt(:).hTrjDstBaseXyz}'; % baseline-subtracted hand trajectory
+hTrj = {jkvt(:).hTrjF}'; % baseline-subtracted hand trajectory
+%hTrj = {jkvt(:).hTrjDstBaseXyz}'; % baseline-subtracted hand trajectory
 
 spikeB = S.params.binEdges(2:end);
 unitTimeTrial = S.unitTimeTrial;
@@ -152,17 +153,18 @@ for t = 1:length(ts)
             s.dat.pullIdx{r,c} = sum(reshape(t1RtEpullI(1:timeBin(end-1)), binSize, []))>=1; 
         end
         % get the laserStart and laserStop point and laser index, if exists
-        if ~isempty(jkvt(vfI).stimLaserOn) && ~isempty(jkvt(vfI).stimLaserOff)
-            s.time(t).tLaserStart = jkvt(vfI).stimLaserOn; 
-            s.time(t).tLaserStop = jkvt(vfI).stimLaserOff; 
-            
-            t1tElaserI = s.time(t).tLaserStart<=t1:tE & t1:tE<=s.time(t).tLaserStop;
-            t1RtElaserI = s.time(t).tLaserStart<=t1R:tE & t1R:tE<=s.time(t).tLaserStop;
-            
-            s.dat.laserIdx{r,c} = sum(reshape(t1RtElaserI(1:timeBin(end-1)), binSize, []))>=1; 
-            s.dat.laserOffTime{r,c} = s.time(t).tLaserStop-t1R; % when did laser went off relative to the reach start
+        if isfield(jkvt,'stimLaserOn')
+            if ~isempty(jkvt(vfI).stimLaserOn) && ~isempty(jkvt(vfI).stimLaserOff)
+                s.time(t).tLaserStart = jkvt(vfI).stimLaserOn;
+                s.time(t).tLaserStop = jkvt(vfI).stimLaserOff;
+                
+                t1tElaserI = s.time(t).tLaserStart<=t1:tE & t1:tE<=s.time(t).tLaserStop;
+                t1RtElaserI = s.time(t).tLaserStart<=t1R:tE & t1R:tE<=s.time(t).tLaserStop;
+                
+                s.dat.laserIdx{r,c} = sum(reshape(t1RtElaserI(1:timeBin(end-1)), binSize, []))>=1;
+                s.dat.laserOffTime{r,c} = s.time(t).tLaserStop-t1R; % when did laser went off relative to the reach start
+            end
         end
-        
     end
     fprintf('processed event# %d\n', t)  
 end

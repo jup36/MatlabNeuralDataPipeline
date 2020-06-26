@@ -1,4 +1,4 @@
-function hTrjDecodingKalmanFilter_PosXYZ(filePath, saveName, plotlogic)
+function hTrjDecodingKalmanFilter_hTrjF_PosXYZ_noLaserUsed(filePath, saveName, plotlogic)
 %This decodes kinematics of mouse 3-d hand movement trajectories (X,Y,Z)
 % using cross-validated (leave-a-trial-out) Kalman filter decoding.
 
@@ -6,7 +6,7 @@ function hTrjDecodingKalmanFilter_PosXYZ(filePath, saveName, plotlogic)
 %filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles';
 cd(filePath)
 
-kfDir = dir('preprocessKFdecodeHTrjCtxStr_WR*');
+kfDir = dir('preprocessKFdecodeHTrjCtxStr_hTrjF*');
 load(fullfile(kfDir.folder,kfDir.name),'s')
 %fileName = 'preprocessKFdecodeHTrjCtxStr_WR40_081919.mat';
 %load(fullfile(filePath,fileName),'s')
@@ -18,22 +18,36 @@ end
 
 resample = 100;
 valTrI = cell2mat(cellfun(@(a) ~isempty(a), s.dat.spkCtx, 'un', 0));
-stmTrI = cell2mat(cellfun(@(a) sum(a)>=1, s.dat.laserIdx, 'un', 0)); % stim trials
-trainTrN = min(sum(valTrI & ~stmTrI))-1;
-
+if isfield(s.dat,'laserIdx')
+    stmTrI = cell2mat(cellfun(@(a) sum(a)>=1, s.dat.laserIdx, 'un', 0)); % stim trials
+    trainTrN = min(sum(valTrI & ~stmTrI))-1;
+else
+    trainTrN = min(sum(valTrI))-1;
+end
 ctxCnumb = max(unique(cell2mat(cellfun(@(a) size(a,1), s.dat.spkCtx, 'un', 0)))); % # of cortex cells
 strCnumb = max(unique(cell2mat(cellfun(@(a) size(a,1), s.dat.spkStr, 'un', 0)))); % # of striatal cells
 minCnumb = min(ctxCnumb, strCnumb); % # of cells to be included
 
-%% select kinematic variables to fit (e.g. hand position or hand velocity - fitting them both together doesn't seem to be a good idea for some reason(?))
+%% select kinematic variables to fit (e.g. hand position or hand posocity - fitting them both together doesn't seem to be a good idea for some reason(?))
 for r = 1:size(s.dat.state,1)
     for c = 1:size(s.dat.state,2)
         if ~isempty(s.dat.state{r,c})
-            s.dat.state{r,c} = s.dat.state{r,c}(1:3,:); % X, Y, Z velocity (row 1:3 for position, row 4:6 for velocity)
+            s.dat.state{r,c} = s.dat.state{r,c}(1:3,:); % X, Y, Z posocity (row 1:3 for position, row 4:6 for posocity)
         end
     end
 end
 clearvars r c
+
+% global median subtraction (not baseline subtraction of its own)
+medP1 = nanmedian(cell2mat(cellfun(@(a) a(:,1), reshape(s.dat.state(valTrI),1,1,[]),'un',0)),3);
+for c = 1:size(s.dat.state,2)
+    for r = 1:size(s.dat.state,1) 
+        if ~isempty(s.dat.state{r,c})
+            s.dat.state{r,c} = s.dat.state{r,c}-repmat(medP1,1,size(s.dat.state{r,c},2));
+        end
+    end
+end
+clearvars r c 
 
 %% leave-a-trial-out decoding using Kalman Filter (heavy-lifting part)
 for i = 1:resample %resample % repeat resampling trials
@@ -48,11 +62,16 @@ for i = 1:resample %resample % repeat resampling trials
             if valTrI(r,c)
                 trainI(r,c) = false; % to leave one trial out as a test trial
                 testI = ~trainI;     % index for the one test trial left out
-                valTrainI = trainI & valTrI & ~stmTrI; % valid train trial index (exclude stim trials)
+                
+                if isfield(s.dat,'laserIdx')
+                    valTrainI = trainI & valTrI & ~stmTrI; % valid train trial index (exclude stim trials)
+                else
+                    valTrainI = trainI & valTrI; % valid train trial index (when there's no stim trials)
+                end
                 
                 % get current train trials by resampling (to include the same # of trials for each trial type)
                 currTrainTrs = zeros(trainTrN,size(trainI,2));
-                currTrainState = []; % current training data states (hand position: row 1-3, velocity: row 4-6)
+                currTrainState = []; % current training data states (hand position: row 1-3, posocity: row 4-6)
                 currTrainCtx = [];
                 currTrainStr = [];
                 
@@ -86,7 +105,7 @@ for i = 1:resample %resample % repeat resampling trials
                         tmp2 = stateZ2*stateZ2'; % Zt-1*Zt-1' (6-by-6 matrix)
                         intraStateM = intraStateM+tmp2; % sum Zt-1*Zt-1'
                         % for parameter C, observation model describes how observation relates to the state
-                        stateZ = currTrainState{t,tt}; % state (position, velocity)
+                        stateZ = currTrainState{t,tt}; % state (position, posocity)
                         obsCtx = currTrainCtx{t,tt}; % ctx spike data
                         obsStr = currTrainStr{t,tt}; % str spike data
                         tmp3 = obsCtx*stateZ'; % Xt*Zt' (Ctx cell-by-state mat)
@@ -141,7 +160,7 @@ for i = 1:resample %resample % repeat resampling trials
                 R_str = sumRM_str/(count+NTrain*NTrType); % count 1/t, count should correspond to 1 to T
                 
                 %% %%%%%%%%%%%%%% Test phase %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                curTrLength = size(s.dat.state{testI},2); % position, velocity in 20ms bins
+                curTrLength = size(s.dat.state{testI},2); % position, posocity in 20ms bins
                 % Initialization
                 mu_ctx=Pi;   % sample mean
                 sigma_ctx=V; % sample covariance
@@ -262,113 +281,62 @@ nTb = unique(valSizeC(:,2)); % the # of time bins
 
 for cc = 1:size(s.dat.estStateCtxMean,2) % trial-types
     %% cortex-estimated interpolated trajectories
-    % cortex estimated trajectory with interpolation NO STIM/LASER trials whole
-    tmpKvTimeTrialCtxInt = cell2mat(reshape(stateCtxInt(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    % cortex estimated trajectory with interpolation all valid trials
+    tmpKvTimeTrialCtxInt = cell2mat(reshape(stateCtxInt(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMCtxInt{1,cc} = nanmean(tmpKvTimeTrialCtxInt,3);
     s.dat.trSCtxInt{1,cc} = nanstd(tmpKvTimeTrialCtxInt,0,3)./sqrt(size(tmpKvTimeTrialCtxInt,3));
-    % cortex estimated trajectory with interpolation NO STIM/LASER trials pre-pull
-    tmpKvTimeTrialCtxPrePull = cell2mat(reshape(prePullCtx(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    % cortex estimated trajectory with interpolation all valid trials
+    tmpKvTimeTrialCtxPrePull = cell2mat(reshape(prePullCtx(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMCtxPrePull{1,cc} = nanmean(tmpKvTimeTrialCtxPrePull,3);
     s.dat.trSCtxPrePull{1,cc} = nanstd(tmpKvTimeTrialCtxPrePull,0,3)./sqrt(size(tmpKvTimeTrialCtxPrePull,3));
-    % cortex estimated trajectory with interpolation NO STIM/LASER trials pull
-    tmpKvTimeTrialCtxPull = cell2mat(reshape(pullCtx(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    % cortex estimated trajectory with interpolation all valid trials
+    tmpKvTimeTrialCtxPull = cell2mat(reshape(pullCtx(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMCtxPull{1,cc} = nanmean(tmpKvTimeTrialCtxPull,3);
     s.dat.trSCtxPull{1,cc} = nanstd(tmpKvTimeTrialCtxPull,0,3)./sqrt(size(tmpKvTimeTrialCtxPull,3));
     
-    % cortex estimated trajectory with interpolation STIM/LASER trials
-    tmpKvTimeTrialCtxIntLaser = cell2mat(reshape(stateCtxInt(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMCtxIntLaser{1,cc} = nanmean(tmpKvTimeTrialCtxIntLaser,3);
-    s.dat.trSCtxIntLaser{1,cc} = nanstd(tmpKvTimeTrialCtxIntLaser,0,3)./sqrt(size(tmpKvTimeTrialCtxIntLaser,3));
-    % cortex estimated trajectory with interpolation STIM/LASER trials pre-pull
-    tmpKvTimeTrialCtxPrePullLaser = cell2mat(reshape(prePullCtx(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMCtxPrePullLaser{1,cc} = nanmean(tmpKvTimeTrialCtxPrePullLaser,3);
-    s.dat.trSCtxPrePullLaser{1,cc} = nanstd(tmpKvTimeTrialCtxPrePullLaser,0,3)./sqrt(size(tmpKvTimeTrialCtxPrePullLaser,3));
-    % cortex estimated trajectory with interpolation STIM/LASER trials pull
-    tmpKvTimeTrialCtxPullLaser = cell2mat(reshape(pullCtx(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMCtxPullLaser{1,cc} = nanmean(tmpKvTimeTrialCtxPullLaser,3);
-    s.dat.trSCtxPullLaser{1,cc} = nanstd(tmpKvTimeTrialCtxPullLaser,0,3)./sqrt(size(tmpKvTimeTrialCtxPullLaser,3));
-    
     %% striatum-estimated interpolated trajectories
-    % striatum estimated trajectory with interpolation NO STIM/LASER trials whole
-    tmpKvTimeTrialStrInt = cell2mat(reshape(stateStrInt(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    % striatum estimated trajectory with interpolation all valid trials
+    tmpKvTimeTrialStrInt = cell2mat(reshape(stateStrInt(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMStrInt{1,cc} = nanmean(tmpKvTimeTrialStrInt,3);
     s.dat.trSStrInt{1,cc} = nanstd(tmpKvTimeTrialStrInt,0,3)./sqrt(size(tmpKvTimeTrialStrInt,3));
-    % striatum estimated trajectory with interpolation NO STIM/LASER trials pre-pull
-    tmpKvTimeTrialStrPrePull = cell2mat(reshape(prePullStr(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    % striatum estimated trajectory with interpolation all valid pre-pull trials
+    tmpKvTimeTrialStrPrePull = cell2mat(reshape(prePullStr(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMStrPrePull{1,cc} = nanmean(tmpKvTimeTrialStrPrePull,3);
     s.dat.trSStrPrePull{1,cc} = nanstd(tmpKvTimeTrialStrPrePull,0,3)./sqrt(size(tmpKvTimeTrialStrPrePull,3));
-    % striatum estimated trajectory with interpolation NO STIM/LASER trials pull
-    tmpKvTimeTrialStrPull = cell2mat(reshape(pullStr(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    % striatum estimated trajectory with interpolation all valid during-pull trials
+    tmpKvTimeTrialStrPull = cell2mat(reshape(pullStr(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMStrPull{1,cc} = nanmean(tmpKvTimeTrialStrPull,3);
     s.dat.trSStrPull{1,cc} = nanstd(tmpKvTimeTrialStrPull,0,3)./sqrt(size(tmpKvTimeTrialStrPull,3));
     
-    % striatum estimated trajectory with interpolation STIM/LASER trials
-    tmpKvTimeTrialStrIntLaser = cell2mat(reshape(stateStrInt(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMStrIntLaser{1,cc} = nanmean(tmpKvTimeTrialStrIntLaser,3);
-    s.dat.trSStrIntLaser{1,cc} = nanstd(tmpKvTimeTrialStrIntLaser,0,3)./sqrt(size(tmpKvTimeTrialStrIntLaser,3));
-    % striatum estimated trajectory with interpolation STIM/LASER trials pre-pull
-    tmpKvTimeTrialStrPrePullLaser = cell2mat(reshape(prePullStr(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMStrPrePullLaser{1,cc} = nanmean(tmpKvTimeTrialStrPrePullLaser,3);
-    s.dat.trSStrPrePullLaser{1,cc} = nanstd(tmpKvTimeTrialStrPrePullLaser,0,3)./sqrt(size(tmpKvTimeTrialStrPrePullLaser,3));
-    % striatum estimated trajectory with interpolation STIM/LASER trials pull
-    tmpKvTimeTrialStrPullLaser = cell2mat(reshape(pullStr(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMStrPullLaser{1,cc} = nanmean(tmpKvTimeTrialStrPullLaser,3);
-    s.dat.trSStrPullLaser{1,cc} = nanstd(tmpKvTimeTrialStrPullLaser,0,3)./sqrt(size(tmpKvTimeTrialStrPullLaser,3));
-    
     %% actual interpolated trajectories
-    % actual hand trajectory with interpolation NO STIM/LASER trials
-    tmpKvTimeTrialActInt = cell2mat(reshape(stateInt(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    % actual hand trajectory with interpolation all valid trials
+    tmpKvTimeTrialActInt = cell2mat(reshape(stateInt(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMActInt{1,cc} = nanmean(tmpKvTimeTrialActInt,3);
     s.dat.trSActInt{1,cc} = nanstd(tmpKvTimeTrialActInt,0,3)./sqrt(size(tmpKvTimeTrialActInt,3));
-    % actual hand trajectory with interpolation NO STIM/LASER trials pre-pull
-    tmpKvTimeTrialActPrePull = cell2mat(reshape(prePullAct(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    % actual hand trajectory with interpolation all valid pre-pull trials
+    tmpKvTimeTrialActPrePull = cell2mat(reshape(prePullAct(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMActPrePull{1,cc} = nanmean(tmpKvTimeTrialActPrePull,3);
     s.dat.trSActPrePull{1,cc} = nanstd(tmpKvTimeTrialActPrePull,0,3)./sqrt(size(tmpKvTimeTrialActPrePull,3));
-    % actual hand trajectory with interpolation NO STIM/LASER trials pull
-    tmpKvTimeTrialActPull = cell2mat(reshape(pullAct(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    % actual hand trajectory with interpolation all valid during-pull trials
+    tmpKvTimeTrialActPull = cell2mat(reshape(pullAct(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMActPull{1,cc} = nanmean(tmpKvTimeTrialActPull,3);
     s.dat.trSActPull{1,cc} = nanstd(tmpKvTimeTrialActPull,0,3)./sqrt(size(tmpKvTimeTrialActPull,3));
     
-    % actual hand trajectory with interpolation STIM/LASER trials
-    tmpKvTimeTrialActIntLaser = cell2mat(reshape(stateInt(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMActIntLaser{1,cc} = nanmean(tmpKvTimeTrialActIntLaser,3);
-    s.dat.trSActIntLaser{1,cc} = nanstd(tmpKvTimeTrialActIntLaser,0,3)./sqrt(size(tmpKvTimeTrialActIntLaser,3));
-    % actual hand trajectory with interpolation STIM/LASER trials pre-pull
-    tmpKvTimeTrialActPrePullLaser = cell2mat(reshape(prePullAct(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMActPrePullLaser{1,cc} = nanmean(tmpKvTimeTrialActPrePullLaser,3);
-    s.dat.trSActPrePullLaser{1,cc} = nanstd(tmpKvTimeTrialActPrePullLaser,0,3)./sqrt(size(tmpKvTimeTrialActPrePullLaser,3));
-    % actual hand trajectory with interpolation STIM/LASER trials pull
-    tmpKvTimeTrialActPullLaser = cell2mat(reshape(pullAct(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMActPullLaser{1,cc} = nanmean(tmpKvTimeTrialActPullLaser,3);
-    s.dat.trSActPullLaser{1,cc} = nanstd(tmpKvTimeTrialActPullLaser,0,3)./sqrt(size(tmpKvTimeTrialActPullLaser,3));
-    
     %% uninterpolated trajectories cortex striatum actual
-    % cortex estimated trajectory without interpolation NO STIM/LASER trials
-    tmpKvTimeTrialCtx = cell2mat(reshape(stateCtx(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    % cortex estimated trajectory without interpolation all valid trials
+    tmpKvTimeTrialCtx = cell2mat(reshape(stateCtx(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMCtx{1,cc} = nanmean(tmpKvTimeTrialCtx,3);
     s.dat.trSCtx{1,cc} = nanstd(tmpKvTimeTrialCtx,0,3)./sqrt(size(tmpKvTimeTrialCtx,3));
-    % cortex estimated trajectory without interpolation STIM/LASER trials
-    tmpKvTimeTrialCtxLaser = cell2mat(reshape(stateCtx(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMCtxLaser{1,cc} = nanmean(tmpKvTimeTrialCtxLaser,3);
-    s.dat.trSCtxLaser{1,cc} = nanstd(tmpKvTimeTrialCtxLaser,0,3)./sqrt(size(tmpKvTimeTrialCtxLaser,3));
     
-    % striatum estimated trajectory without interpolation NO STIM/LASER trials
-    tmpKvTimeTrialStr = cell2mat(reshape(stateStr(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    % striatum estimated trajectory without interpolation all valid trials
+    tmpKvTimeTrialStr = cell2mat(reshape(stateStr(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMStr{1,cc} = nanmean(tmpKvTimeTrialStr,3);
     s.dat.trSStr{1,cc} = nanstd(tmpKvTimeTrialStr,0,3)./sqrt(size(tmpKvTimeTrialStr,3));
-    % striatum estimated trajectory without interpolation STIM/LASER trials
-    tmpKvTimeTrialStrLaser = cell2mat(reshape(stateStr(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMStrLaser{1,cc} = nanmean(tmpKvTimeTrialStrLaser,3);
-    s.dat.trSStrLaser{1,cc} = nanstd(tmpKvTimeTrialStrLaser,0,3)./sqrt(size(tmpKvTimeTrialStrLaser,3));
     
-    % actual hand trajectory without interpolation NO STIM/LASER trials
-    tmpKvTimeTrialAct = cell2mat(reshape(state(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    % actual hand trajectory without interpolation all valid trials
+    tmpKvTimeTrialAct = cell2mat(reshape(state(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMAct{1,cc} = nanmean(tmpKvTimeTrialAct,3);
     s.dat.trSAct{1,cc} = nanstd(tmpKvTimeTrialAct,0,3)./sqrt(size(tmpKvTimeTrialAct,3));
-    % actual hand trajectory without interpolation STIM/LASER trials
-    tmpKvTimeTrialActLaser = cell2mat(reshape(state(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMActLaser{1,cc} = nanmean(tmpKvTimeTrialActLaser,3);
-    s.dat.trSActLaser{1,cc} = nanstd(tmpKvTimeTrialActLaser,0,3)./sqrt(size(tmpKvTimeTrialActLaser,3));
 end
 clearvars cc
 save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPos_',saveName)),'s') % last saved after training without stim trials 5/27 Wed 9pm
@@ -384,14 +352,6 @@ if plotlogic == 1
         1:nTb,s.dat.trMActInt{1,1}(1,:),s.dat.trSActInt{1,1}(1,:), 'cmap', colorMap, 'transparency', 0.2);
     ylim([-6 8])
     print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('xPos_interp_whole_ltP1',saveName)),'-dpdf','-painters','-bestfit')
-    close;
-    % X trj, low torque, position 1(left), Cortex, Striatum, Actual whole trajectory LASER
-    figure;
-    boundedline(1:nTb,s.dat.trMCtxIntLaser{1,1}(1,:),s.dat.trSCtxIntLaser{1,1}(1,:), ...
-        1:nTb,s.dat.trMStrIntLaser{1,1}(1,:),s.dat.trSStrIntLaser{1,1}(1,:), ...
-        1:nTb,s.dat.trMActIntLaser{1,1}(1,:),s.dat.trSActIntLaser{1,1}(1,:), 'cmap', colorMap, 'transparency', 0.2);
-    ylim([-6 8])
-    print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('xPos_interp_Laser_ltP1',saveName)),'-dpdf','-painters','-bestfit')
     close;
     % X trj, low torque, position 1(left), Cortex, Striatum, Actual PRE-PULL trajectory
     figure;
@@ -418,14 +378,6 @@ if plotlogic == 1
     ylim([-6 8])
     print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('xPos_interp_whole_ltP2',saveName)),'-dpdf','-painters','-bestfit')
     close;
-    % X trj, low torque, position 1(left), Cortex, Striatum, Actual whole trajectory LASER
-    figure;
-    boundedline(1:nTb,s.dat.trMCtxIntLaser{1,3}(1,:),s.dat.trSCtxIntLaser{1,3}(1,:), ...
-        1:nTb,s.dat.trMStrIntLaser{1,3}(1,:),s.dat.trSStrIntLaser{1,3}(1,:), ...
-        1:nTb,s.dat.trMActIntLaser{1,3}(1,:),s.dat.trSActIntLaser{1,3}(1,:), 'cmap', colorMap, 'transparency', 0.2);
-    ylim([-6 8])
-    print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('xPos_interp_Laser_ltP2',saveName)),'-dpdf','-painters','-bestfit')
-    close;
     % X trj, low torque, position 1(left), Cortex, Striatum, Actual PRE-PULL trajectory
     figure;
     boundedline(1:50,s.dat.trMCtxPrePull{1,3}(1,:),s.dat.trSCtxPrePull{1,3}(1,:), ...
@@ -448,15 +400,6 @@ if plotlogic == 1
         1:nTb,s.dat.trMActInt{1,2}(1,:),s.dat.trSActInt{1,2}(1,:), 'cmap', colorMap, 'transparency', 0.2);
     ylim([-6 8])
     print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('xPos_interp_whole_htP1',saveName)),'-dpdf','-painters','-bestfit')
-    close;
-    
-    % X trj, high torque, position 1(left), Cortex, Striatum, Actual LASER
-    figure;
-    boundedline(1:nTb,s.dat.trMCtxIntLaser{1,2}(1,:),s.dat.trSCtxIntLaser{1,2}(1,:), ...
-        1:nTb,s.dat.trMStrIntLaser{1,2}(1,:),s.dat.trSStrIntLaser{1,2}(1,:), ...
-        1:nTb,s.dat.trMActIntLaser{1,2}(1,:),s.dat.trSActIntLaser{1,2}(1,:), 'cmap', colorMap, 'transparency', 0.2);
-    ylim([-6 8])
-    print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('xPos_interp_Laser_HtP1',saveName)),'-dpdf','-painters','-bestfit')
     close;
     
     % X trj, low torque, position 1(left), Cortex, Striatum, Actual PRE-PULL trajectory
@@ -483,16 +426,7 @@ if plotlogic == 1
     ylim([-6 8])
     print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('xPos_interp_whole_htP2',saveName)),'-dpdf','-painters','-bestfit')
     close;
-    
-    % X trj, high torque, position 2(right), Cortex, Striatum, Actual LASER
-    figure;
-    boundedline(1:nTb,s.dat.trMCtxIntLaser{1,4}(1,:),s.dat.trSCtxIntLaser{1,4}(1,:), ...
-        1:nTb,s.dat.trMStrIntLaser{1,4}(1,:),s.dat.trSStrIntLaser{1,4}(1,:), ...
-        1:nTb,s.dat.trMActIntLaser{1,4}(1,:),s.dat.trSActIntLaser{1,4}(1,:), 'cmap', colorMap, 'transparency', 0.2);
-    ylim([-6 8])
-    print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('xPos_interp_Laser_HtP2',saveName)),'-dpdf','-painters','-bestfit')
-    close;
-    
+
     % X trj, low torque, position 1(left), Cortex, Striatum, Actual PRE-PULL trajectory
     figure;
     boundedline(1:50,s.dat.trMCtxPrePull{1,4}(1,:),s.dat.trSCtxPrePull{1,4}(1,:), ...
@@ -516,15 +450,6 @@ if plotlogic == 1
         1:nTb,s.dat.trMActInt{1,1}(2,:),s.dat.trSActInt{1,1}(2,:), 'cmap', colorMap, 'transparency', 0.2);
     ylim([-12 8])
     print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('yPos_interp_whole_ltP1',saveName)),'-dpdf','-painters','-bestfit')
-    close;
-    
-    % Y trj, low torque, position 1(left), Cortex, Striatum, Actual whole trajectory LASER
-    figure;
-    boundedline(1:nTb,s.dat.trMCtxIntLaser{1,1}(2,:),s.dat.trSCtxIntLaser{1,1}(2,:), ...
-        1:nTb,s.dat.trMStrIntLaser{1,1}(2,:),s.dat.trSStrIntLaser{1,1}(2,:), ...
-        1:nTb,s.dat.trMActIntLaser{1,1}(2,:),s.dat.trSActIntLaser{1,1}(2,:), 'cmap', colorMap, 'transparency', 0.2);
-    ylim([-12 8])
-    print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('yPos_interp_Laser_ltP1',saveName)),'-dpdf','-painters','-bestfit')
     close;
     
     % Y trj, low torque, position 1(left), Cortex, Striatum, Actual PRE-PULL trajectory
@@ -552,15 +477,6 @@ if plotlogic == 1
     print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('yPos_interp_whole_ltP2',saveName)),'-dpdf','-painters','-bestfit')
     close;
     
-    % Y trj, low torque, position 2(right), Cortex, Striatum, Actual whole trajectory LASER
-    figure;
-    boundedline(1:nTb,s.dat.trMCtxIntLaser{1,3}(2,:),s.dat.trSCtxIntLaser{1,3}(2,:), ...
-        1:nTb,s.dat.trMStrIntLaser{1,3}(2,:),s.dat.trSStrIntLaser{1,3}(2,:), ...
-        1:nTb,s.dat.trMActIntLaser{1,3}(2,:),s.dat.trSActIntLaser{1,3}(2,:), 'cmap', colorMap, 'transparency', 0.2);
-    ylim([-12 8])
-    print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('yPos_interp_Laser_ltP2',saveName)),'-dpdf','-painters','-bestfit')
-    close;
-    
     % Y trj, low torque, position 1(left), Cortex, Striatum, Actual PRE-PULL trajectory
     figure;
     boundedline(1:50,s.dat.trMCtxPrePull{1,3}(2,:),s.dat.trSCtxPrePull{1,3}(2,:), ...
@@ -586,15 +502,6 @@ if plotlogic == 1
     print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('yPos_interp_whole_htP1',saveName)),'-dpdf','-painters','-bestfit')
     close;
     
-    % Y trj, high torque, position 1(left), Cortex, Striatum, Actual whole trajectory LASER
-    figure;
-    boundedline(1:nTb,s.dat.trMCtxIntLaser{1,2}(2,:),s.dat.trSCtxIntLaser{1,2}(2,:), ...
-        1:nTb,s.dat.trMStrIntLaser{1,2}(2,:),s.dat.trSStrIntLaser{1,2}(2,:), ...
-        1:nTb,s.dat.trMActIntLaser{1,2}(2,:),s.dat.trSActIntLaser{1,2}(2,:), 'cmap', colorMap, 'transparency', 0.2);
-    ylim([-12 8])
-    print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('yPos_interp_Laser_htP1',saveName)),'-dpdf','-painters','-bestfit')
-    close;
-    
     % Y trj, low torque, position 1(left), Cortex, Striatum, Actual PRE-PULL trajectory
     figure;
     boundedline(1:50,s.dat.trMCtxPrePull{1,2}(2,:),s.dat.trSCtxPrePull{1,2}(2,:), ...
@@ -618,15 +525,6 @@ if plotlogic == 1
         1:nTb,s.dat.trMActInt{1,4}(2,:),s.dat.trSActInt{1,4}(2,:), 'cmap', colorMap, 'transparency', 0.2);
     ylim([-12 8])
     print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('yPos_interp_whole_htP2',saveName)),'-dpdf','-painters','-bestfit')
-    close;
-    
-    % Y trj, high torque, position 2(right), Cortex, Striatum, Actual whole trajectory LASER
-    figure;
-    boundedline(1:nTb,s.dat.trMCtxIntLaser{1,4}(2,:),s.dat.trSCtxIntLaser{1,4}(2,:), ...
-        1:nTb,s.dat.trMStrIntLaser{1,4}(2,:),s.dat.trSStrIntLaser{1,4}(2,:), ...
-        1:nTb,s.dat.trMActIntLaser{1,4}(2,:),s.dat.trSActIntLaser{1,4}(2,:), 'cmap', colorMap, 'transparency', 0.2);
-    ylim([-12 8])
-    print(fullfile(filePath,'Figure','KalmanFilter_decoding',strcat('yPos_interp_Laser_htP2',saveName)),'-dpdf','-painters','-bestfit')
     close;
     
     % Y trj, low torque, position 1(left), Cortex, Striatum, Actual PRE-PULL trajectory
@@ -749,7 +647,7 @@ if plotlogic == 1
     timeX = 0;
     figure; hold on;
     for c = 1:size(s.dat.estStateCtxMean,2)
-        for r = 1:20 % just to include the first block only per trial type
+        for r = 1:10 % just to include the first block only per trial type
             if ~isempty(s.dat.state{r,c})
                 ctxTrjX = s.dat.stateCtx{r,c}(2,:); % Ctx X trj (left-right, horizontal hand position)
                 strTrjX = s.dat.stateStr{r,c}(2,:); % Str X trj
@@ -841,7 +739,91 @@ stateStrCC_sm = smooth2a(stateStrCC,4,0);
 [corrRez.rStrRi,corrRez.pStrRi] = corr([stateCCrilt; stateCCriht],[stateStrCCrilt; stateStrCCriht],'Rows','complete');
 [corrRez.rStrRi_sm,corrRez.pStrRi_sm] = corr(smooth2a([stateCCrilt; stateCCriht],4,0),smooth2a([stateStrCCrilt; stateStrCCriht],4,0),'Rows','complete');
 
-save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPos_',saveName)),'corrRez','-append')
+% %% compute correlation
+% % correlation for all time points
+% stateCC = cell2mat(reshape(s.dat.state,[],1)')'; % concatenated state
+% stateCtxCC = cell2mat(reshape(s.dat.stateCtx,[],1)')'; % concatenated cortex estimated state
+% stateStrCC = cell2mat(reshape(s.dat.stateStr,[],1)')'; % concatenated striatum estimated state
+% 
+% stateCC_sm = smooth2a(stateCC,4,0);
+% stateCtxCC_sm = smooth2a(stateCtxCC,4,0);
+% stateStrCC_sm = smooth2a(stateStrCC,4,0);
+% 
+% [corrRez.rCtx,corrRez.pCtx] = corr(stateCC, stateCtxCC, 'Rows','complete');
+% [corrRez.rStr,corrRez.pStr] = corr(stateCC, stateStrCC, 'Rows','complete');
+% 
+% [corrRez.rCtx_sm,corrRez.pCtx_sm] = corr(stateCC_sm, stateCtxCC_sm, 'Rows','complete');
+% [corrRez.rStr_sm,corrRez.pStr_sm] = corr(stateCC_sm, stateStrCC_sm, 'Rows','complete');
+
+%% correlation for reach and pull phases separately
+pull1C = cellfun(@(a) find(a,1,'first'), s.dat.pullIdx, 'un',0); % pull start points for each trajectory
+pull2C = cellfun(@(a) find(a,1,'last'), s.dat.pullIdx, 'un',0); % pull end points for each trajectory
+
+% get reach and pull phase trajectories
+for c = 1:size(s.dat.state,2) 
+    for r = 1:size(s.dat.state,1)
+        if ~isempty(s.dat.state{r,c}) && ~isempty(s.dat.stateCtx{r,c}) && ~isempty(s.dat.stateStr{r,c}) && ~isempty(pull1C{r,c})
+           p1 = pull1C{r,c}; 
+           p2 = pull2C{r,c}; 
+           % reach phase trajectory
+           s.dat.stateR{r,c} = s.dat.state{r,c}(:,1:pull1C{r,c});
+           s.dat.stateCtxR{r,c} = s.dat.stateCtx{r,c}(:,1:pull1C{r,c});
+           s.dat.stateStrR{r,c} = s.dat.stateStr{r,c}(:,1:pull1C{r,c});
+           
+           % reach endPoint offset
+           s.dat.rEndOffCtx{r,c} = min(abs(s.dat.state{r,c}(:,p1)-s.dat.stateCtx{r,c}(:,p1-2:p1)),[],2);
+           s.dat.rEndOffStr{r,c} = min(abs(s.dat.state{r,c}(:,p1)-s.dat.stateStr{r,c}(:,p1-2:p1)),[],2);
+           
+           % pull phase trajectory 
+           s.dat.stateP{r,c} = s.dat.state{r,c}(:,pull1C{r,c}:end);
+           s.dat.stateCtxP{r,c} = s.dat.stateCtx{r,c}(:,pull1C{r,c}:end);
+           s.dat.stateStrP{r,c} = s.dat.stateStr{r,c}(:,pull1C{r,c}:end);
+        
+           % pull endPoint offset 
+           s.dat.pEndOffCtx{r,c} = min(abs(s.dat.state{r,c}(:,p2)-s.dat.stateCtx{r,c}(:,p2-2:p2+1)),[],2);
+           s.dat.pEndOffStr{r,c} = min(abs(s.dat.state{r,c}(:,p2)-s.dat.stateStr{r,c}(:,p2-2:p2+1)),[],2);     
+        end
+    end
+end
+clearvars r c 
+
+[trjOffset.mREndOffCtx,~,trjOffset.sREndOffCtx] = meanstdsem(cell2mat(reshape(s.dat.rEndOffCtx,[],1)')'); 
+[trjOffset.mREndOffStr,~,trjOffset.sREndOffStr] = meanstdsem(cell2mat(reshape(s.dat.rEndOffStr,[],1)')'); % concatenated state
+
+[trjOffset.mPEndOffCtx,~,trjOffset.sPEndOffCtx] = meanstdsem(cell2mat(reshape(s.dat.pEndOffCtx,[],1)')'); 
+[trjOffset.mPEndOffStr,~,trjOffset.sPEndOffStr] = meanstdsem(cell2mat(reshape(s.dat.pEndOffStr,[],1)')'); % concatenated state
+
+% reach phase correlation
+stateCcR = cell2mat(reshape(s.dat.stateR,[],1)')'; % concatenated state
+stateCtxCcR = cell2mat(reshape(s.dat.stateCtxR,[],1)')'; % concatenated cortex estimated state
+stateStrCcR = cell2mat(reshape(s.dat.stateStrR,[],1)')'; % concatenated striatum estimated state
+
+stateCcR_sm = smooth2a(stateCcR,4,0);
+stateCtxCcR_sm = smooth2a(stateCtxCcR,4,0);
+stateStrCcR_sm = smooth2a(stateStrCcR,4,0);
+
+[corrRez.rCtxRch,corrRez.pCtxRch] = corr(stateCcR, stateCtxCcR, 'Rows','complete');
+[corrRez.rStrRch,corrRez.pStrRch] = corr(stateCcR, stateStrCcR, 'Rows','complete');
+
+[corrRez.rCtxRch_sm,corrRez.pCtxRch_sm] = corr(stateCcR_sm, stateCtxCcR_sm, 'Rows','complete');
+[corrRez.rStrRch_sm,corrRez.pStrRch_sm] = corr(stateCcR_sm, stateStrCcR_sm, 'Rows','complete');
+
+% pull phase correlation
+stateCcP = cell2mat(reshape(s.dat.stateP,[],1)')'; % concatenated state
+stateCtxCcP = cell2mat(reshape(s.dat.stateCtxP,[],1)')'; % concatenated cortex estimated state
+stateStrCcP = cell2mat(reshape(s.dat.stateStrP,[],1)')'; % concatenated striatum estimated state
+
+stateCcP_sm = smooth2a(stateCcP,4,0);
+stateCtxCcP_sm = smooth2a(stateCtxCcP,4,0);
+stateStrCcP_sm = smooth2a(stateStrCcP,4,0);
+
+[corrRez.rCtxPul,corrRez.pCtxPul] = corr(stateCcP, stateCtxCcP, 'Rows','complete');
+[corrRez.rStrPul,corrRez.pStrPul] = corr(stateCcP, stateStrCcP, 'Rows','complete');
+
+[corrRez.rCtxPul_sm,corrRez.pCtxPul_sm] = corr(stateCcP_sm, stateCtxCcP_sm, 'Rows','complete');
+[corrRez.rStrPul_sm,corrRez.pStrPul_sm] = corr(stateCcP_sm, stateStrCcP_sm, 'Rows','complete');
+
+save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPos_',saveName)),'corrRez','trjOffset','s','-append')
 
 %trjMovie([stateCtxCC_sm(:,2), stateStrCC_sm(:,2), stateCC_sm(:,2)]', figSaveDir, 'kfDecode_Ypos_CtxStrAct')
 
