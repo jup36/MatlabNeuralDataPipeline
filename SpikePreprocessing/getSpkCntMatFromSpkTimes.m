@@ -1,3 +1,4 @@
+
 function [ spkCntMat ] = getSpkCntMatFromSpkTimes( trBytrSpkTimes, psthParams  )
 %This function gets the trial-by-trial spikeCountMat from the trial-by-trial spikeTimes cell 
 spkCntMat = cell(size(trBytrSpkTimes,1),1);

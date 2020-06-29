@@ -3,7 +3,8 @@ function reachAngle = computeReachAngle( hTrjC, jsXYpos )
     for j = 1:length(distToJs)
         [~,tmpMinI] = min(distToJs{j});
         u=hTrjC{j}(:,tmpMinI)-hTrjC{j}(:,1); % reach vector
-        v=[hTrjC{j}(1,tmpMinI);hTrjC{j}(2,1)]-hTrjC{j}(:,1); % reference vector
+        %v=[hTrjC{j}(1,tmpMinI);hTrjC{j}(2,1)]-hTrjC{j}(:,1); % reference vector
+        v=[hTrjC{j}(1,1);hTrjC{j}(2,tmpMinI)]-hTrjC{j}(:,1); % reference vector
         reachAngle(j) = angleTwoVectors(u,v); % get the angle between reach and reference vectors 
     end
 end
