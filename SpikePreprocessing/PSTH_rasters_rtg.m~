@@ -117,8 +117,8 @@ spkTimesCellCTX = spkTimesCell(:,cell2mat(spkTimesCell(3,:))<=64); % the CTX spi
 %% get psths
 % binned spike count CTX
 cueRangeC = arrayfun(@(a) a-2000:a+2000, ts.cue, 'un', 0); 
-cueNoLaserI = cell2mat(cellfun(@(a) sum(ismember(ts.laserCue2s,a))==0, cueRangeC, 'un', 0)); 
-ts.cueNoLaser = ts.cue(cueNoLaserI); 
+ = cell2mat(cellfun(@(a) sum(ismember(ts.laserCue2s,a))>=1, cueRangeC, 'un', 0)); 
+
 
 if ~isempty(ts.tagLaser1s)
     tagLaser1s     = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.tagLaser1s', ts.cue'-1000, 1, [5e3 5e3], -1, p.Results.psthPlotFlag );
@@ -133,11 +133,6 @@ end
 if  ~isempty(ts.laserOnly2s)
     laserOnly2s    = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.laserOnly2s', ts.cue'-1000, 1, [5e3 5e3], -1, p.Results.psthPlotFlag );
     binSpkCountCTX.laserOnly2s = laserOnly2s;
-end
-
-if  ~isempty(ts.cueNoLaser)
-    cueNoLaser    = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.cueNoLaser', ts.cue'-1000, 1, [5e3 5e3], -1, p.Results.psthPlotFlag );
-    binSpkCountCTX.cueNoLaser = cueNoLaser;
 end
 
 saveName = strcat('binSpkCountCTX',p.Results.fileInfo);
