@@ -22,19 +22,25 @@ end
 binFile = dir(fullfile(p.Results.filePath,'*.nidq.bin')); % look for nidq.bin file
 
 if length(binFile)>1 || isempty(binFile)
-    error('File could not be found or multiple nidq.bin files exist!');
+    disp('Select the directory where the nidq.bin file exists!!')
+    binFileDir = uigetdir(p.Results.filePath); 
+    if ~isempty(binFileDir) && size(binFileDir,1)==1
+        binFile = dir(fullfile(binFileDir,'*.nidq.bin')); % look for nidq.bin file
+    else
+        error('File could not be found or multiple nidq.bin files exist!');
+    end
 end
 
 binName = binFile.name;
 
 % Parse the corresponding metafile
-meta  = ReadMeta(binName, p.Results.filePath); % get the meta data (structure)
+meta  = ReadMeta(binName, binFile.folder); % get the meta data (structure)
 channels = textscan(meta.acqMnMaXaDw,'%n %n %n %n','Delimiter',',');
-nSamp = SampRate(meta);          % sampling rate (default: 25kHz)
-totalTimeSecs = str2double(meta.fileTimeSecs); % total duration of file in seconds
+nSamp = round(SampRate(meta),0); % sampling rate (default: 25kHz)
+%totalTimeSecsMeta = str2double(meta.fileTimeSecs); % total duration of file in seconds
 
 if ~isempty(dir(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat'))) && p.Results.reReadBin==false % if the gainCorrectRawTraces.mat file already exists in the filePath
-    load(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat'), 'lick', 'trStart', 'reward', 'trEnd', 'camTrig', 'encodeA', 'encodeB', 'laser' ) % if there are gaincorrectedrawtraces already saved, just load them
+    load(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat'), 'lick', 'trStart', 'reward', 'trEnd', 'camTrig', 'encodeA', 'encodeB', 'laser', 'plaser' ) % if there are gaincorrectedrawtraces already saved, just load them
 else
     % Specify the relevant behavioral channel numbers
     trStartCh  = channels{1}+p.Results.trStartCh; % ch# for trial start
@@ -44,7 +50,18 @@ else
     encodeACh  = channels{1}+p.Results.encodeACh; % ch# for stepper direction
     encodeBCh = channels{1}+p.Results.encodeBCh; % ch# for stepper steps
     laserCh   = channels{1}+p.Results.laserCh;   % ch# for laser triggers
-    lickCh = channels{1}+p.Results.lickCh;   % ch# for lick detect
+    plaserCh  = channels{1}+p.Results.plaserCh;  % ch# for pseudolaser triggers
+    lickCh = channels{1}+p.Results.lickCh;      % ch# for lick detect
+    
+    % file size check
+    data_info = dir(fullfile(binFile.folder, binFile.name));
+    data_size = data_info.bytes;
+    sample_number = data_size / (2 * str2double(meta.nSavedChans));
+    totalTimeSecs = floor(sample_number/str2double(meta.niSampRate)); 
+    if ~isequal(str2double(meta.fileSizeBytes),data_size)
+        warning('Working on a modified bin file!')
+        meta.fileSizeBytes = num2str(data_size); 
+    end
     
     % preallocate the behavioral data arrays
     trStart   = zeros(1,floor(totalTimeSecs*25000));
@@ -54,10 +71,11 @@ else
     encodeA   = zeros(1,floor(totalTimeSecs*25000));
     encodeB   = zeros(1,floor(totalTimeSecs*25000));
     laser     = zeros(1,floor(totalTimeSecs*25000));
+    plaser    = zeros(1,floor(totalTimeSecs*25000));
     lick      = zeros(1,floor(totalTimeSecs*25000));
     
-    for i = 0:totalTimeSecs-1 % read second-by-second incrementally to avoid a memory issue
-        tempDataArray = ReadBin(i*nSamp, nSamp, meta, binName, p.Results.filePath); % read bin data for each second
+    for k = 0:totalTimeSecs-1 % read second-by-second incrementally to avoid a memory issue
+        tempDataArray = ReadBin(k*nSamp, nSamp, meta, binName, binFile.folder); % read bin data for each second
         tempTrStart  = tempDataArray(trStartCh,:); % decimate the data
         tempCamTrig  = tempDataArray(camTrigCh,:); % do not decimate for higher temporal resolution
         tempReward   = tempDataArray(rewardCh,:);
@@ -66,18 +84,23 @@ else
         tempEncodeB  = tempDataArray(encodeBCh,:); % do not decimate for higher temporal resolution
         tempLick     = tempDataArray(lickCh,:);
         tempLaser    = tempDataArray(laserCh,:);
+        tempPLaser   = tempDataArray(plaserCh,:);
+        %tempSync = tempDataArray(3,:); 
         
-        trStart(1,i*25000+1:(i+1)*25000) = tempTrStart; % accumulated the decimated data second-by-second
-        camTrig(1,i*25000+1:(i+1)*25000) = tempCamTrig;
-        reward(1,i*25000+1:(i+1)*25000) = tempReward;
-        trEnd(1,i*25000+1:(i+1)*25000)  = tempTrEnd;
-        encodeA(1,i*25000+1:(i+1)*25000) = tempEncodeA;
-        encodeB(1,i*25000+1:(i+1)*25000)  = tempEncodeB;
-        lick(1,i*25000+1:(i+1)*25000) = tempLick;
-        laser(1,i*25000+1:(i+1)*25000) = tempLaser;
-        fprintf('processed %d\n', i+1)
+        trStart(1,k*25000+1:(k+1)*25000) = tempTrStart; % accumulated the decimated data second-by-second
+        camTrig(1,k*25000+1:(k+1)*25000) = tempCamTrig;
+        reward(1,k*25000+1:(k+1)*25000) = tempReward;
+        trEnd(1,k*25000+1:(k+1)*25000)  = tempTrEnd;
+        encodeA(1,k*25000+1:(k+1)*25000) = tempEncodeA;
+        encodeB(1,k*25000+1:(k+1)*25000)  = tempEncodeB;
+        lick(1,k*25000+1:(k+1)*25000) = tempLick;
+        laser(1,k*25000+1:(k+1)*25000) = tempLaser;
+        plaser(1,k*25000+1:(k+1)*25000) = tempPLaser;
+        %sync(1,k*25000+1:(k+1)*25000) = tempSync; 
+        
+        fprintf('processed %d\n', k+1)
     end
-    clearvars i
+    clearvars k
     
     % Gain correction for channnels of interest
     if strcmp(meta.typeThis, 'imec') % in case recording via imec
@@ -89,6 +112,7 @@ else
         encodeB = GainCorrectIM(encodeB, 1, meta); % gain-corrected voltage trace for encodeB
         lick = GainCorrectIM(lick, 1, meta); % gain-corrected voltage trace for lick
         laser = GainCorrectIM(laser, 1, meta);
+        plaser = GainCorrectIM(plaser, 1, meta);
     else    % in case of recording via NI board
         trStart = GainCorrectNI(trStart, 1, meta); % gain-corrected voltage trace for trStart
         camTrig = GainCorrectNI(camTrig, 1, meta); % gain-corrected voltage trace for camTrig
@@ -98,18 +122,36 @@ else
         encodeB = GainCorrectNI(encodeB, 1, meta); % gain-corrected voltage trace for encodeB
         lick = GainCorrectNI(lick, 1, meta); % gain-corrected voltage trace for lick
         laser = GainCorrectNI(laser, 1, meta);
+        plaser = GainCorrectNI(plaser, 1, meta);
     end
     clearvars temp*
-    save('gainCorrectRawTraces', 'trStart', 'camTrig', 'reward', 'trEnd', 'encodeA', 'encodeB', 'lick', 'laser')
+    save('gainCorrectRawTraces', 'trStart', 'camTrig', 'reward', 'trEnd', 'encodeA', 'encodeB', 'lick', 'laser', 'plaser')
 end
+
+%% spot the trial-by-trial and all-trials behavioral csv files
+if isempty(dir(fullfile(p.Results.filePath,'20*')))
+    error('Cannot find the trial-by-trial behavior data csv files!')
+end
+
+behFilePath = dir(fullfile(p.Results.filePath,'20*')); % dir where the trial-by-trial behavioral csv files are saved
+tbytCsvList = dir(fullfile(behFilePath.folder,behFilePath.name,'trial_*'));    % trial-by-trial files
+allTrialCsv = dir(fullfile(behFilePath.folder,behFilePath.name,'trials.csv')); % all trial file
+if length(allTrialCsv)==1
+    trialsFileName = fullfile(allTrialCsv.folder,allTrialCsv.name);
+    trialsCsv = readtable(trialsFileName);
+else
+    error('More than one trials.csv file detected!')
+end
+
+[~,tbytCsvdateSort] = sort(datenum({tbytCsvList(:).date}, 'dd-mmm-yyyy hh:MM:ss'), 1, 'ascend'); % sorted fileList
 
 %% task event detection
 if ~isempty(dir(fullfile(p.Results.filePath,'evtIndices.mat'))) && p.Results.reReadBin==false % if the gainCorrectRawTraces.mat file already exists in the filePath
     load(fullfile(p.Results.filePath,'evtIndices.mat'),'trStartIdx','trEndIdx','rwdIdx','lickIdx','evtIdx25k','evtIdx1k') % if there are gaincorrectedrawtraces already saved, just load them
 else
-    [trStartIdx,~,~] = detecteventbythreshold(trStart, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'correctLongPulse', true); % trial Start
+    [trStartIdx,~,~] = detecteventbythreshold(trStart, 25000, 3000, 'stdFactor', 5, 'plotRez', false, 'chunkPulses', false, 'correctLongPulse', true); % trial Start
     fprintf('completed trial start detection!');
-    [trEndIdx,~,~]   = detecteventbythreshold(trEnd, 25000, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse', true); % trial End
+    [trEndIdx,~,~]   = detecteventbythreshold(trEnd, 25000, 3000, 'stdFactor', 5, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse', true); % trial End
     fprintf('completed trial end detection!');
     
     if length(trStartIdx)==length(trEndIdx)
@@ -124,10 +166,42 @@ else
         if ~unique(trEndIdx(1,1:length(trStartIdx)) - trStartIdx>0)
             error('Trial End and Start indices do not make sense!')
         end
+    elseif length(trStartIdx)==size(trialsCsv,1)
+        newTrEndIdx = sortTrStartTrEnd(trStartIdx, trEndIdx, trialsCsv, p.Results.trialTimeout);
+        trEndIdx = newTrEndIdx; 
     else
         error('Trial End and Start indices do not make sense!')
     end
     
+    %% see if there's an imec data associated with the current file
+    if contains(p.Results.filePath,'ni','IgnoreCase',true)
+        subFilePath = strsplit(p.Results.filePath,'\');
+        imecSearchStartPath = fullfile(subFilePath{1,1:end-1});
+    else
+        imecSearchStartPath = p.Results.filePath;
+    end
+    subPath = strsplit(genpath(imecSearchStartPath),';');
+    imecFiles = [];
+    for f = 1:length(subPath)-1
+        imecFiles = [imecFiles; dir(fullfile(subPath{f},'*.imec.ap.bin'))];
+    end
+    clearvars f
+    
+    if length(imecFiles)==1
+        % data file name
+        disp(['======== ', imecFiles(1).name, ' ========']);
+        % read the imec bin file and detect trStart and trEnd events
+        [event_imec, meta_imec] = readEventBin(fullfile(imecFiles(1).folder,imecFiles(1).name)); %save.readEventBin(imec_file{i_bin});
+        imecEvtFile = fullfile(imecFiles(1).folder,'imecEvtData.mat');
+        [trStartImec, trEndImec] = saveImecEvent(imecEvtFile, event_imec, meta_imec);
+        clear event_imec
+        
+    elseif length(imecFiles)>1
+        error('Multiple imec.ap.bin files were detected!')
+    end
+    
+    %% keep detecting events from the nidq file
+    % detect reward deliveries
     rwdIdx     = detecteventbythreshold(reward, 25000, 50, 'stdFactor',1, 'plotRez',false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse',true);  % reward
     fprintf('completed reward detection!');
     
@@ -137,6 +211,7 @@ else
     %plot(lick); hold on; plot(intDeciLick); hold off
     fprintf('completed lick detection!');
     
+    % detect camTriggers
     [camTrigRiseIdx, camTrigFallIdx, camPulseTrainIdx] = detecteventbythreshold(camTrig, 25000, 2, 'stdFactor', 1, 'plotRez',false, 'chunkPulses', true, 'chunkInterval', 2000, 'correctLongPulse', true); % camera trigger
     %camTrigRiseIdx1ms = round(camTrigRiseIdx./round(nSamp/1000)); % adjust the time resolution to be 1ms
     %camTrigFallIdx1ms = round(camTrigFallIdx./round(nSamp/1000)); % adjust the time resolution to be 1ms
@@ -158,42 +233,43 @@ else
         end
     end
     
+    if p.Results.plaserUsed
+        [evtIdx25k.plaserRiseIdx, evtIdx25k.plaserFallIdx] = detecteventbythreshold(plaser, 25000, 50, 'stdFactor',1, 'plotRez',false, 'chunkPulses', false);
+        evtIdx1k.plaserRiseIdx = round(evtIdx25k.plaserRiseIdx./25);
+        evtIdx1k.plaserFallIdx = round(evtIdx25k.plaserFallIdx./25);
+    end
+    
     % store evt indices
     evtIdx25k.trStartIdx = trStartIdx;
     evtIdx25k.trEndIdx = trEndIdx;
     evtIdx25k.rwdIdx  = rwdIdx+nSamp*(p.Results.rewardDelay/1000); % correct for the delay
-    evtIdx25k.lickIdx = lickIdx;
+    %evtIdx25k.lickIdx = lickIdx;
     evtIdx25k.camTrigRiseIdx = camTrigRiseIdx;
     evtIdx25k.camTrigFallIdx = camTrigFallIdx;
     evtIdx25k.camPulseTrainIdx = camPulseTrainIdx;
     
     evtIdx1k.trStartIdx = round(trStartIdx./25);
     evtIdx1k.trEndIdx = round(trEndIdx./25);
+    
+    if ~isempty(imecFiles)
+        if length(imecFiles)==1
+            if isequal(length(trStartIdx),length(trStartImec)) && isequal(length(trEndIdx),length(trEndImec))
+                evtIdx1k.trStartImec = trStartImec;
+                evtIdx1k.trEndImec = trEndImec;
+            else
+                warning('The # of trStart or trEnd files detected from nidq and imec differs!')
+            end
+        end
+    end
+    
     evtIdx1k.rwdIdx  = round(rwdIdx./25)+p.Results.rewardDelay;
-    evtIdx1k.lickIdx = round(lickIdx./25);
+    evtIdx1k.lickIdx = round(lickIdx);
     evtIdx1k.camTrigRiseIdx = round(camTrigRiseIdx./25);
     evtIdx1k.camTrigFallIdx = round(camTrigFallIdx./25);
     evtIdx1k.camPulseTrainIdx = camPulseTrainIdx; % pulse Train Id
     
     save('evtIndices','trStartIdx','trEndIdx','rwdIdx','lickIdx','evtIdx25k','evtIdx1k')
 end
-
-%% spot the trial-by-trial and all-trials behavioral csv files
-if isempty(dir(fullfile(p.Results.filePath,'201*')))
-    error('Cannot find the trial-by-trial behavior data csv files!')
-end
-
-behFilePath = dir(fullfile(p.Results.filePath,'201*')); % dir where the trial-by-trial behavioral csv files are saved
-tbytCsvList = dir(fullfile(behFilePath.folder,behFilePath.name,'trial_*'));    % trial-by-trial files
-allTrialCsv = dir(fullfile(behFilePath.folder,behFilePath.name,'trials.csv')); % all trial file
-if length(allTrialCsv)==1
-    trialsFileName = fullfile(allTrialCsv.folder,allTrialCsv.name);
-    trialsCsv = readtable(trialsFileName);
-else
-    error('More than one trials.csv file detected!')
-end
-
-[~,tbytCsvdateSort] = sort(datenum({tbytCsvList(:).date}, 'dd-mmm-yyyy hh:MM:ss'), 1, 'ascend'); % sorted fileList
 
 %% parse stepper encoder data; pin A, pin B, and extract joystick kinematics
 jsDistCoeff = 2*pi*90/4000; % joystick movement distance conversion coefficient (4000: the number of total edges(rises/falls) per resolution of the encoder)
@@ -263,6 +339,7 @@ for t = 1:length(trStartIdx) % increment trials
                         jsTime25k(t).stimLaserOn  = NaN;
                         jsTime25k(t).stimLaserOff = NaN;
                     end
+                    
                 elseif t > 1
                     tempStim = find(evtIdx25k.stimLaserRiseIdx<jsTime25k(t).trEnd & evtIdx25k.stimLaserRiseIdx>jsTime25k(t-1).trEnd,1);
                     if ~isempty(tempStim)
@@ -271,6 +348,29 @@ for t = 1:length(trStartIdx) % increment trials
                     else
                         jsTime25k(t).stimLaserOn  = NaN;
                         jsTime25k(t).stimLaserOff = NaN;
+                    end
+                end
+            end
+            
+            if p.Results.plaserUsed
+                if t == 1
+                    tempPlaser = find(evtIdx25k.plaserRiseIdx<jsTime25k(t).trEnd);
+                    if ~isempty(tempPlaser)
+                        jsTime25k(t).pLaserOn  = evtIdx25k.plaserRiseIdx(tempPlaser);
+                        jsTime25k(t).pLaserOff = evtIdx25k.plaserFallIdx(tempPlaser);
+                    else
+                        jsTime25k(t).pLaserOn  = NaN;
+                        jsTime25k(t).pLaserOff = NaN;
+                    end
+                    
+                elseif t > 1
+                    tempPlaser = find(evtIdx25k.plaserRiseIdx<jsTime25k(t).trEnd & evtIdx25k.plaserRiseIdx>jsTime25k(t-1).trEnd,1);
+                    if ~isempty(tempPlaser)
+                        jsTime25k(t).pLaserOn  = evtIdx25k.plaserRiseIdx(tempPlaser);
+                        jsTime25k(t).pLaserOff = evtIdx25k.plaserFallIdx(tempPlaser);
+                    else
+                        jsTime25k(t).pLaserOn  = NaN;
+                        jsTime25k(t).pLaserOff = NaN;
                     end
                 end
             end
@@ -336,6 +436,29 @@ for t = 1:length(trStartIdx) % increment trials
                 end
             end
             
+            if p.Results.plaserUsed
+                if t == 1
+                    tempPlaser = find(evtIdx25k.plaserRiseIdx<jsTime25k(t).trEnd);
+                    if ~isempty(tempPlaser)
+                        jsTime25k(t).pLaserOn  = evtIdx25k.plaserRiseIdx(tempPlaser);
+                        jsTime25k(t).pLaserOff = evtIdx25k.plaserFallIdx(tempPlaser);
+                    else
+                        jsTime25k(t).pLaserOn  = NaN;
+                        jsTime25k(t).pLaserOff = NaN;
+                    end
+                    
+                elseif t > 1
+                    tempPlaser = find(evtIdx25k.plaserRiseIdx<jsTime25k(t).trEnd & evtIdx25k.plaserRiseIdx>jsTime25k(t-1).trEnd,1);
+                    if ~isempty(tempPlaser)
+                        jsTime25k(t).pLaserOn  = evtIdx25k.plaserRiseIdx(tempPlaser);
+                        jsTime25k(t).pLaserOff = evtIdx25k.plaserFallIdx(tempPlaser);
+                    else
+                        jsTime25k(t).pLaserOn  = NaN;
+                        jsTime25k(t).pLaserOff = NaN;
+                    end
+                end
+            end
+            
             % classify the trial ('sp': successfull pull, 'ps': push, 'pm': premature pull, 'to': timeout, 'nn': not identified)
             if jsTime25k(t).rewarded % if rewarded
                 if ~isempty(find(tempSmdctrJsTraj<jsTime25k(t).pull_threshold,1)) % check the negative threshold crossing
@@ -387,6 +510,22 @@ if p.Results.laserUsed
     n2cStimLaserOn = num2cell(round([jsTime25k(:).stimLaserOn]./25)); [jsTime1k.stimLaserOn] = n2cStimLaserOn{:};
     n2cStimLaserOff = num2cell(round([jsTime25k(:).stimLaserOff]./25)); [jsTime1k.stimLaserOff] = n2cStimLaserOff{:};
 end
+if p.Results.plaserUsed
+    n2cPLaserOn = num2cell(round([jsTime25k(:).pLaserOn]./25)); [jsTime1k.pLaserOn] = n2cPLaserOn{:};
+    n2cPLaserOff = num2cell(round([jsTime25k(:).pLaserOff]./25)); [jsTime1k.pLaserOff] = n2cPLaserOff{:};
+end
+
+if exist('imecFiles','var')==1
+    if ~isempty(imecFiles)
+        if length(imecFiles)==1
+            if isequal(length(trStartIdx),length(trStartImec)) && isequal(length(trEndIdx),length(trEndImec))
+                n2cTrStartImec = num2cell(trStartImec); [jsTime1k.trStartImec] = n2cTrStartImec{:};
+                n2cTrEndImec = num2cell(trEndImec); [jsTime1k.trEndImec] = n2cTrEndImec{:};
+            end
+        end
+    end
+end
+
 [jsTime1k.trialType] = jsTime25k(:).trialType;
 
 % generate a plot to inspect a certain trial
@@ -396,4 +535,26 @@ end
 cd(p.Results.filePath)
 save('BehVariablesJs', 'jsTime1k', 'jsTime25k', 'evtIdx25k', 'evtIdx1k', 'p', 'trialsCsv', 'trialInfo', 'tbytCsvList') % append the position/velocity data variables
 
+end
+
+function [trStartImec, trEndImec] = saveImecEvent(data_file, event_data, meta)
+clearvars trStart trEnd
+
+% 0: trial start (note that matlab is 1-based)
+% 7: trial end
+
+trStartEvt = double(bitget(event_data, 1, 'uint16')); %[0; diff(double(bitget(event_data, 1, 'uint16')))];
+[trStartIdx,~,~] = detecteventbythreshold(trStartEvt', meta.imSampRate, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'correctLongPulse', true); % trial Start
+trStartImec = trStartIdx./meta.imSampRate*1000; % time in msec
+
+trEndEvt = double(bitget(event_data, 8, 'uint16'));   %[0; diff(double(bitget(event_data, 1, 'uint16')))];
+[trEndIdx,~,~] = detecteventbythreshold(trEndEvt', meta.imSampRate, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse', true); % trial Start
+trEndImec = trEndIdx./meta.imSampRate*1000; % time in msec
+
+disp(['Saving IMEC data to ', data_file]);
+if exist(data_file, 'file')==2
+    save(data_file, 'trStartImec', 'trEndImec', '-append');
+else
+    save(data_file, 'trStartImec', 'trEndImec');
+end
 end

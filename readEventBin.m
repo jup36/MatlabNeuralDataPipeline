@@ -7,7 +7,7 @@ current_memory = sys.PhysicalMemory.Available;
 buffer_size = min([current_memory * 0.5, BUFFER_SIZE]);
 
 % load meta data
-meta = save.readMeta(bin_file);
+meta = readMeta(bin_file);
 
 % file size check
 data_info = dir(bin_file);

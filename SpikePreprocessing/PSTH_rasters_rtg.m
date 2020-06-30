@@ -20,7 +20,12 @@ disp('Select the meta file!!')
 meta = ReadMeta(metaFileSel, metaPathSel); % read out the meta file
 % get geometry using meta
 %SGLXMetaToCoords(meta, metaFileSel) % make a chanMap file from meta, set outType=1 for ks2 format
-load(fullfile('S:\Junchol_Data\jayReachToGrasp\jay_64_16_4.mat'),'xcoords','ycoords'); 
+if ispc
+    load(fullfile('S:\Junchol_Data\jayReachToGrasp\jay_64_16_4.mat'),'xcoords','ycoords'); 
+elseif ismac
+    load(fullfile('/Volumes/Beefcake/Junchol_Data/jayReachToGrasp/jay_64_16_4.mat'),'xcoords','ycoords'); 
+end
+
 %load(fullfile('/Volumes/Beefcake/Junchol_Data/jayReachToGrasp/jay_64_16_4.mat')); 
 geometry = [xcoords, ycoords]; % probe x, y coordinates 
 
@@ -105,12 +110,16 @@ end
 spkTimesCell = struct2cell(spkTimes'); % the entire spike times converted into a cell 
 
 spkTimesCellCTX = spkTimesCell(:,cell2mat(spkTimesCell(3,:))<=64); % the CTX spike times cell (1st probe)
-spkTimesCellSTR = spkTimesCell(:,cell2mat(spkTimesCell(3,:))>64);  % the STR spike times cell (2nd probe)
+%spkTimesCellSTR = spkTimesCell(:,cell2mat(spkTimesCell(3,:))>64);  % the STR spike times cell (2nd probe)
 
-spkTimesCellStrCtx = [spkTimesCellSTR,  spkTimesCellCTX];
+%spkTimesCellStrCtx = [spkTimesCellSTR,  spkTimesCellCTX];
 
 %% get psths
 % binned spike count CTX
+cueRangeC = arrayfun(@(a) a-2000:a+2000, ts.cue, 'un', 0); 
+cueNoLaserI = cell2mat(cellfun(@(a) sum(ismember(ts.laserCue2s,a))==0, cueRangeC, 'un', 0)); 
+ts.cueNoLaser = ts.cue(cueNoLaserI); 
+
 if ~isempty(ts.tagLaser1s)
     tagLaser1s     = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.tagLaser1s', ts.cue'-1000, 1, [5e3 5e3], -1, p.Results.psthPlotFlag );
     binSpkCountCTX.tagLaser1s = tagLaser1s;
@@ -126,17 +135,24 @@ if  ~isempty(ts.laserOnly2s)
     binSpkCountCTX.laserOnly2s = laserOnly2s;
 end
 
+if  ~isempty(ts.cueNoLaser)
+    cueNoLaser    = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.cueNoLaser', ts.cue'-1000, 1, [5e3 5e3], -1, p.Results.psthPlotFlag );
+    binSpkCountCTX.cueNoLaser = cueNoLaser;
+end
+
 saveName = strcat('binSpkCountCTX',p.Results.fileInfo);
 save(fullfile(p.Results.filePath,saveName),'-struct','binSpkCountCTX') % save the fields of the structure separately 
 save(fullfile(p.Results.filePath,saveName), 'ts', '-append') % append the behavioral timestamps
 
 %% Individual unit raster plot 
-unit = 60; % 6, 10, 28, 42, 60 (M317_20200528_1000um), 2, 14, 15, 17, 29, 30, 31, 43, 45, 46, 59, 65, 66, 79, 88(int) (M316_20200521_500um) % 32, 37, 40, 45, 66, 69 (M314_20200427_1000um)
+unit = 6; % 32, 37, 40, 45, 66, 69 (M314_20200427_1000um)
 spikeRasterGramm( [5e3 5e3], {'tagLaser1s'}, [3e3 3e3], [tagLaser1s.SpkTimes{unit};laserOnly2s.SpkTimes{unit}]);
+spikeRasterGramm( [5e3 5e3], {'tagLaser1s'}, [3e3 3e3], tagLaser1s.SpkTimes{unit});
+spikeRasterGramm( [5e3 5e3], {'laserOnly2s'}, [3e3 3e3], laserOnly2s.SpkTimes{unit});
 %spikeRasterGramm( [5e3 5e3], {'tagLaser1s'}, [3e3 3e3], binSpkCountCTX.tagLaser1s.SpkTimes{unit});
 %spikeRasterGramm( [5e3 5e3], {'laserOnly2s'}, [3e3 3e3], binSpkCountCTX.laserOnly2s.SpkTimes{unit});
-print( fullfile(filePath,'Figure',strcat(fileInfo,'_',sprintf('unit#%d',unit),'tagLaser1sLaserOnly2s')), '-dpdf','-painters', '-bestfit')
-unit = unit+1;
+%print( fullfile(filePath,'Figure',strcat(fileInfo,'_',sprintf('unit#%d',unit),'tagLaser1sLaserOnly2s')), '-dpdf','-painters', '-bestfit')
+%unit = unit+1;
 
 %unit = 139; % str unit 128 (laser activated)
 %spikeRasterGramm( [1e3 3e3], {'reach','stim','stimReach'}, binSpkCountSTRReach(unit).SpkTimes, binSpkCountSTRstmLaser(unit).SpkTimes,binSpkCountSTRstmReach(unit).SpkTimes );
