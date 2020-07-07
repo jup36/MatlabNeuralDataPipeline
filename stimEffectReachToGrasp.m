@@ -22,22 +22,31 @@ tagStimOn = find(p.Results.tagWinEdges==p.Results.tagOnTime);   % tagStim-On (st
 
 gaussianKernel = TNC_CreateGaussian(2*25,2,2*50,1); % get a gaussian kernel for convolution (mean,std,width)
 
-for u = 1:length(S.tagLaser1s.SpkCountMatZ) % increment units
+for u = 1:length(S.cueNoLaser.SpkCountMatZ) % increment units
     
     stimE.meanCueNoLaser(u,1) = nanmean(S.cueNoLaser.SpkCountMatZ{u}(1,cueOn:cueOn+p.Results.reachDur));    % mean FR during reach period
     stimE.maxCueNoLaser(u,1)  = nanmax(S.cueNoLaser.SpkCountMatZ{u}(1,cueOn:cueOn+p.Results.reachDur));     % max  FR during reach period
     
-    stimE.meanLaserCue2s(u,1) = nanmean(S.laserCue2s.SpkCountMatZ{u}(1,cueOn:cueOn+p.Results.reachDur)); % mean FR during stimlaser period
-    stimE.maxLaserCue2s(u,1)  = nanmax(S.laserCue2s.SpkCountMatZ{u}(1,cueOn:cueOn+p.Results.reachDur));  % max  FR during stimlaser period
+    if isfield(S,'laserCue2s')
+        stimE.meanLaserCue2s(u,1) = nanmean(S.laserCue2s.SpkCountMatZ{u}(1,cueOn:cueOn+p.Results.reachDur)); % mean FR during stimlaser period
+        stimE.maxLaserCue2s(u,1)  = nanmax(S.laserCue2s.SpkCountMatZ{u}(1,cueOn:cueOn+p.Results.reachDur));  % max  FR during stimlaser period
+    end
     
-    tagStmSpkCntMat = cell2mat(getSpkCntMatFromSpkTimes( [S.tagLaser1s.SpkTimes{u}; S.laserOnly2s.SpkTimes{u}], S.tagLaser1s.params)); % get the current unit's spikeCountMat (trial-by-1msBin)
-    stimE.sumTagStmOn(u,1)    = sum(sum(tagStmSpkCntMat(:,tagStimOn:tagStimOn+p.Results.tagDur))); % total spike counts during tag stim on 
+    if isfield(S,'laserOnly2s') && isfield(S,'tagLaser1s')
+        tagStmSpkCntMat = cell2mat(getSpkCntMatFromSpkTimes( [S.tagLaser1s.SpkTimes{u}; S.laserOnly2s.SpkTimes{u}], S.tagLaser1s.params)); % get the current unit's spikeCountMat (trial-by-1msBin)
+    elseif ~isfield(S,'laserOnly2s') && isfield(S,'tagLaser1s')
+        tagStmSpkCntMat = cell2mat(getSpkCntMatFromSpkTimes( S.tagLaser1s.SpkTimes{u}, S.tagLaser1s.params)); % get the current unit's spikeCountMat (trial-by-1msBin)
+    elseif isfield(S,'laserOnly2s') && ~isfield(S,'tagLaser1s')
+        tagStmSpkCntMat = cell2mat(getSpkCntMatFromSpkTimes( S.laserOnly2s.SpkTimes{u}, S.laserOnly2s.params)); % get the current unit's spikeCountMat (trial-by-1msBin)
+    end
+    
+    stimE.sumTagStmOn(u,1)    = sum(sum(tagStmSpkCntMat(:,tagStimOn+50:tagStimOn+p.Results.tagDur))); % total spike counts during tag stim on 
     stimE.sumPreTagStmOn(u,1) = sum(sum(tagStmSpkCntMat(:,tagStimOn-p.Results.tagDur:tagStimOn))); % total spike counts before tag stim on
     
-    stimE.tagStmOn{u,1} = sum(tagStmSpkCntMat(:,tagStimOn:tagStimOn+p.Results.tagDur),2);
+    stimE.tagStmOn{u,1} = sum(tagStmSpkCntMat(:,tagStimOn+50:tagStimOn+p.Results.tagDur),2);
     stimE.preTagStmOn{u,1} = sum(tagStmSpkCntMat(:,tagStimOn-p.Results.tagDur:tagStimOn),2);
     
-    stimE.meanTagStmOn(u,1)    = sum(sum(tagStmSpkCntMat(:,tagStimOn:tagStimOn+p.Results.tagDur)))/(size(tagStmSpkCntMat,1))/(p.Results.tagDur/1000); % mean spike counts during tag stim on
+    stimE.meanTagStmOn(u,1)    = sum(sum(tagStmSpkCntMat(:,tagStimOn+50:tagStimOn+p.Results.tagDur)))/(size(tagStmSpkCntMat,1))/(p.Results.tagDur/1000); % mean spike counts during tag stim on
     stimE.meanPreTagStmOn(u,1) = sum(sum(tagStmSpkCntMat(:,tagStimOn-p.Results.tagDur:tagStimOn)))/(size(tagStmSpkCntMat,1))/(p.Results.tagDur/1000); % mean spike counts before tag stim on
     
     % paired t-test for the tag effect
@@ -76,49 +85,45 @@ clearvars u
 
 %% Plot X-Y relationship with gramm
 group = zeros(sum(stimE.FRidx),1); % there's only one group currently, but modify this to include multiple groups
-
-clear g
-
-% X-Y plot cueNoLaser vs. cueLaser (triggered by a slight reach)
-g(1,1)= gramm('x', stimE.meanCueNoLaser(stimE.FRidx), 'y', stimE.meanLaserCue2s(stimE.FRidx), 'color', group);
-g(1,1).set_color_options('lightness_range',[70 40],'chroma_range',[60 70],'legend','separate');
-g(1,1).geom_point();
-g(1,1).stat_cornerhist('edges',-10:0.5:10,'aspect',0.6);
-g(1,1).geom_abline();
-g(1,1).set_names('x','cueNoLaser','y','cueLaser');
-g(1,1).set_title('CueNoLaserVsCueLaser z-score');
-
-% X-Y plot Tag Laser ON vs. OFF 
-g(1,2)= gramm('x',stimE.sumPreTagStmOn(stimE.FRidx), 'y', stimE.sumTagStmOn(stimE.FRidx), 'color', group);
-g(1,2).geom_point();
-%g(1,3).stat_cornerhist('edges',-50:5:50,'aspect',0.6);
-g(1,2).geom_abline();
-g(1,2).set_names('x','Stim-Off','y','Stim-On');
-g(1,2).set_title('preTagVsTag spike counts');
-
-fig1 = figure('Position',[100 100 1650 550]);
-g.draw();
-
-if isfolder(fullfile(filePath,'Figure')) % if there's Figure folder already
-   print(fig1, fullfile(filePath,'Figure',strcat(p.Results.fileName,'_stimE_Summary')), '-dpdf','-bestfit'); % print figure as pdf
-else
-    mkdir(fullfile(filePath,'Figure')) % otherwise, make a folder
-    print(fig1, fullfile(filePath,'Figure',strcat(p.Results.fileName,'_stimE_Summary')), '-dpdf','-bestfit');
+if  isfield(S,'laserCue2s')
+    clear g
+    
+    % X-Y plot cueNoLaser vs. cueLaser (triggered by a slight reach)
+    g(1,1)= gramm('x', stimE.meanCueNoLaser(stimE.FRidx), 'y', stimE.meanLaserCue2s(stimE.FRidx), 'color', group);
+    g(1,1).set_color_options('lightness_range',[70 40],'chroma_range',[60 70],'legend','separate');
+    g(1,1).geom_point();
+    g(1,1).stat_cornerhist('edges',-10:0.5:10,'aspect',0.6);
+    g(1,1).geom_abline();
+    g(1,1).set_names('x','cueNoLaser','y','cueLaser');
+    g(1,1).set_title('CueNoLaserVsCueLaser z-score');
+    
+    % X-Y plot Tag Laser ON vs. OFF
+    g(1,2)= gramm('x',stimE.sumPreTagStmOn(stimE.FRidx), 'y', stimE.sumTagStmOn(stimE.FRidx), 'color', group);
+    g(1,2).geom_point();
+    %g(1,3).stat_cornerhist('edges',-50:5:50,'aspect',0.6);
+    g(1,2).geom_abline();
+    g(1,2).set_names('x','Stim-Off','y','Stim-On');
+    g(1,2).set_title('preTagVsTag spike counts');
+    
+    fig1 = figure('Position',[100 100 1650 550]);
+    g.draw();
+    
+    if isfolder(fullfile(filePath,'Figure')) % if there's Figure folder already
+        print(fig1, fullfile(filePath,'Figure',strcat(p.Results.fileName,'_stimE_Summary')), '-dpdf','-bestfit'); % print figure as pdf
+    else
+        mkdir(fullfile(filePath,'Figure')) % otherwise, make a folder
+        print(fig1, fullfile(filePath,'Figure',strcat(p.Results.fileName,'_stimE_Summary')), '-dpdf','-bestfit');
+    end
+    
+    % plot meanLaser-meanReach
+    laserVSreach=stimE.meanLaserCue2s-stimE.meanCueNoLaser;
+    laserVSreach(:,2)=1:length(laserVSreach);
+    laserVSreach=sortrows(laserVSreach,1);
+    stimE.laserVSreach = laserVSreach;
 end
-
 sites  = cell2mat(S.tagLaser1s.Site); % site IDs
-geoms  = cell2mat(S.tagLaser1s.geometry); % electrode x-y positions 
-depths = geoms(:,2); % depth from the pial surface 
-
-% plot meanLaser-meanReach
-laserVSreach=stimE.meanLaserCue2s-stimE.meanCueNoLaser;
-laserVSreach(:,2)=1:length(laserVSreach);
-laserVSreach=sortrows(laserVSreach,1);
-stimE.laserVSreach = laserVSreach;
-
-% fig2 = imecOpt3GeomColorMapZ( sites(laserVSreach(stimE.FRidx,2)), laserVSreach(stimE.FRidx,1), 'rb', true, p.Results.colorAxis, p.Results.probeDepth ); % imecOpt3GeomColorMapZ( imecSites, Z, colorScheme, drawAllSites, colorAxis, varargin )
-% title('meanLaser-meanReach') 
-% print(fig2, fullfile(filePath,'Figure',strcat(p.Results.fileName,'_stimE_siteColorMap')), '-dpdf','-bestfit'); % print figure as pdf
+geoms  = cell2mat(S.tagLaser1s.geometry); % electrode x-y positions
+depths = geoms(:,2); % depth from the pial surface
 
 % plot sumTagStmOn-sumPreTagStmOn 
 tagVSpreTag = stimE.sumTagStmOn - stimE.sumPreTagStmOn; 
@@ -126,9 +131,6 @@ tagVSpreTag(:,2)=1:length(tagVSpreTag);
 tagVSpreTag =sortrows(tagVSpreTag,1);
 stimE.tagVSpreTag = tagVSpreTag;
 
-% fig3 = imecOpt3GeomColorMapZ( sites(tagVSpreTag(stimE.FRidx,2)), tagVSpreTag(stimE.FRidx,1), 'rb', true, p.Results.tagColorAxis, p.Results.probeDepth ); % imecOpt3GeomColorMapZ( imecSites, Z, colorScheme, drawAllSites, colorAxis, varargin )
-% title('sumTagStmOn-sumPreTagStmOn')
-% print(fig3, fullfile(filePath,'Figure',strcat(p.Results.fileName,'_tagE_siteColorMap')), '-dpdf','-bestfit'); % print figure as pdf
 
 % plot tag effect
 scatterColorSpace = linspace(min(abs(stimE.tagEHalfPeakT)),max(abs(stimE.tagEHalfPeakT)),20); % to color code each scatter by the tagEHalfPeakT
@@ -215,4 +217,3 @@ save(saveName,'stimE')
     end
 
 end
-
