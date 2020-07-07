@@ -1,4 +1,4 @@
-function hTrjDecodingKalmanFilter_hTrjF_reach_PosXYZ(filePath, saveName, plotlogic)
+function hTrjDecodingKalmanFilter_hTrjF_reach_PosXYZ_noLaserUsed(filePath, saveName, plotlogic)
 %This decodes kinematics of mouse 3-d hand movement trajectories (X,Y,Z)
 % using cross-validated (leave-a-trial-out) Kalman filter decoding.
 
@@ -298,64 +298,38 @@ nTb = unique(valSizeC(:,2)); % the # of time bins
 for cc = 1:size(s.dat.estStateCtxMean,2) % trial-types
     %% cortex-estimated interpolated trajectories
     % cortex estimated trajectory with interpolation NO STIM/LASER trials whole
-    tmpKvTimeTrialCtxInt = cell2mat(reshape(stateCtxInt(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    tmpKvTimeTrialCtxInt = cell2mat(reshape(stateCtxInt(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMCtxInt{1,cc} = nanmean(tmpKvTimeTrialCtxInt,3);
     s.dat.trSCtxInt{1,cc} = nanstd(tmpKvTimeTrialCtxInt,0,3)./sqrt(size(tmpKvTimeTrialCtxInt,3));
     
-    % cortex estimated trajectory with interpolation STIM/LASER trials
-    tmpKvTimeTrialCtxIntLaser = cell2mat(reshape(stateCtxInt(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMCtxIntLaser{1,cc} = nanmean(tmpKvTimeTrialCtxIntLaser,3);
-    s.dat.trSCtxIntLaser{1,cc} = nanstd(tmpKvTimeTrialCtxIntLaser,0,3)./sqrt(size(tmpKvTimeTrialCtxIntLaser,3));
-    
     %% striatum-estimated interpolated trajectories
     % striatum estimated trajectory with interpolation NO STIM/LASER trials whole
-    tmpKvTimeTrialStrInt = cell2mat(reshape(stateStrInt(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    tmpKvTimeTrialStrInt = cell2mat(reshape(stateStrInt(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMStrInt{1,cc} = nanmean(tmpKvTimeTrialStrInt,3);
     s.dat.trSStrInt{1,cc} = nanstd(tmpKvTimeTrialStrInt,0,3)./sqrt(size(tmpKvTimeTrialStrInt,3));
     
-    % striatum estimated trajectory with interpolation STIM/LASER trials
-    tmpKvTimeTrialStrIntLaser = cell2mat(reshape(stateStrInt(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMStrIntLaser{1,cc} = nanmean(tmpKvTimeTrialStrIntLaser,3);
-    s.dat.trSStrIntLaser{1,cc} = nanstd(tmpKvTimeTrialStrIntLaser,0,3)./sqrt(size(tmpKvTimeTrialStrIntLaser,3));
-    
     %% actual interpolated trajectories
     % actual hand trajectory with interpolation NO STIM/LASER trials
-    tmpKvTimeTrialActInt = cell2mat(reshape(stateInt(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    tmpKvTimeTrialActInt = cell2mat(reshape(stateInt(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMActInt{1,cc} = nanmean(tmpKvTimeTrialActInt,3);
     s.dat.trSActInt{1,cc} = nanstd(tmpKvTimeTrialActInt,0,3)./sqrt(size(tmpKvTimeTrialActInt,3));
     
-    % actual hand trajectory with interpolation STIM/LASER trials
-    tmpKvTimeTrialActIntLaser = cell2mat(reshape(stateInt(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMActIntLaser{1,cc} = nanmean(tmpKvTimeTrialActIntLaser,3);
-    s.dat.trSActIntLaser{1,cc} = nanstd(tmpKvTimeTrialActIntLaser,0,3)./sqrt(size(tmpKvTimeTrialActIntLaser,3));
-    
     %% uninterpolated trajectories cortex striatum actual
     % cortex estimated trajectory without interpolation NO STIM/LASER trials
-    tmpKvTimeTrialCtx = cell2mat(reshape(stateCtx(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    tmpKvTimeTrialCtx = cell2mat(reshape(stateCtx(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMCtx{1,cc} = nanmean(tmpKvTimeTrialCtx,3);
     s.dat.trSCtx{1,cc} = nanstd(tmpKvTimeTrialCtx,0,3)./sqrt(size(tmpKvTimeTrialCtx,3));
-    % cortex estimated trajectory without interpolation STIM/LASER trials
-    tmpKvTimeTrialCtxLaser = cell2mat(reshape(stateCtx(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMCtxLaser{1,cc} = nanmean(tmpKvTimeTrialCtxLaser,3);
-    s.dat.trSCtxLaser{1,cc} = nanstd(tmpKvTimeTrialCtxLaser,0,3)./sqrt(size(tmpKvTimeTrialCtxLaser,3));
-    
+
     % striatum estimated trajectory without interpolation NO STIM/LASER trials
-    tmpKvTimeTrialStr = cell2mat(reshape(stateStr(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    tmpKvTimeTrialStr = cell2mat(reshape(stateStr(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMStr{1,cc} = nanmean(tmpKvTimeTrialStr,3);
     s.dat.trSStr{1,cc} = nanstd(tmpKvTimeTrialStr,0,3)./sqrt(size(tmpKvTimeTrialStr,3));
-    % striatum estimated trajectory without interpolation STIM/LASER trials
-    tmpKvTimeTrialStrLaser = cell2mat(reshape(stateStr(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMStrLaser{1,cc} = nanmean(tmpKvTimeTrialStrLaser,3);
-    s.dat.trSStrLaser{1,cc} = nanstd(tmpKvTimeTrialStrLaser,0,3)./sqrt(size(tmpKvTimeTrialStrLaser,3));
     
     % actual hand trajectory without interpolation NO STIM/LASER trials
-    tmpKvTimeTrialAct = cell2mat(reshape(state(valCellI(:,cc)&~stmTrI(:,cc),cc),1,1,[]));
+    tmpKvTimeTrialAct = cell2mat(reshape(state(valCellI(:,cc),cc),1,1,[]));
     s.dat.trMAct{1,cc} = nanmean(tmpKvTimeTrialAct,3);
     s.dat.trSAct{1,cc} = nanstd(tmpKvTimeTrialAct,0,3)./sqrt(size(tmpKvTimeTrialAct,3));
-    % actual hand trajectory without interpolation STIM/LASER trials
-    tmpKvTimeTrialActLaser = cell2mat(reshape(state(valCellI(:,cc)&stmTrI(:,cc),cc),1,1,[]));
-    s.dat.trMActLaser{1,cc} = nanmean(tmpKvTimeTrialActLaser,3);
-    s.dat.trSActLaser{1,cc} = nanstd(tmpKvTimeTrialActLaser,0,3)./sqrt(size(tmpKvTimeTrialActLaser,3));
+  
 end
 clearvars cc
 save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPos_reach_',saveName)),'s') % last saved after training without stim trials 5/27 Wed 9pm
