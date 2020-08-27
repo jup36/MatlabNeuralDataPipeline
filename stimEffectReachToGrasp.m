@@ -121,8 +121,8 @@ if  isfield(S,'laserCue2s')
     laserVSreach=sortrows(laserVSreach,1);
     stimE.laserVSreach = laserVSreach;
 end
-sites  = cell2mat(S.tagLaser1s.Site); % site IDs
-geoms  = cell2mat(S.tagLaser1s.geometry); % electrode x-y positions
+sites  = cell2mat(S.laserOnly2s.Site); % site IDs
+geoms  = cell2mat(S.laserOnly2s.geometry); % electrode x-y positions
 depths = geoms(:,2); % depth from the pial surface
 
 % plot sumTagStmOn-sumPreTagStmOn 

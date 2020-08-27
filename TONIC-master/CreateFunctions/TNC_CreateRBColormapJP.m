@@ -34,7 +34,7 @@ switch lower(type)
         
     case 'wblack'
         incr = 1./numValues;
-        increaser = (0:incr:1-incr)';
+        increaser = (1-incr:-incr:0)'; %(0:incr:1-incr)';
         tmp  = [ increaser, increaser, increaser ];
         mapName = tmp;
         

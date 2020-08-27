@@ -79,6 +79,13 @@ reachP1shiftPts = [1 find([reachP1(1) reachP1(1:end-1)]-[S(:).reachP1]~=0)];
 rchP1TrqPairs = sort(unique(pullTqs'*reachP1s)); 
 rchP1TrqC = [[30 144 255]./255; [238 91	69]./255; [0 0 1]; [1 0 0]]; 
 
+% get success rate
+trId = ([S(:).pull_torque].*[S(:).reachP1])'; 
+scsr = zeros(length(rchP1TrqPairs),1);
+for t = 1:length(scsr) 
+    scsr(t,1) = (sum((trId(actIdx==1)==rchP1TrqPairs(t,1))&spIdx(actIdx==1)'))./sum(trId(actIdx==1)==rchP1TrqPairs(t,1)); 
+end
+
 %% reaction time
 %movKinsPlot(jsTime1k(2).movKins)
 [S(:).rt]=deal(NaN);
@@ -149,7 +156,7 @@ ylabel('RT(ms)')
 xlabel('Time(s)')
 axis tight
 ylim([0 8000])
-xlim([0 900])
+xlim([0 850])
 print('rt','-dpdf','-bestfit') % save the RT plot
 
 ylabel('RT(ms)')
@@ -212,6 +219,7 @@ hold off;
 ylabel('RD(ms)')
 xlabel('Time(s)')
 axis tight
+xlim([0 850])
 ylim([0 max(rdCollect(:,3))+10])
 print('sp_ReachDur','-dpdf','-bestfit') % save the RT (log scale) plot
 

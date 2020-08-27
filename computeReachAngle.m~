@@ -1,6 +1,7 @@
 function reachAngle = computeReachAngle( hTrjC, jsXYpos )
-%Angle is calculated relative to the straight line projected from the
-% initial hand position.  
+  %Angle is calculated relative to the straight line projected from the
+    % initial hand position 
+
     distToJs = cellfun(@(a) sum((a-repmat(jsXYpos,1,size(a,2))).^2,1), hTrjC, 'un', 0);  % compute the distance from the jsXY
     for j = 1:length(distToJs)
         [~,tmpMinI] = min(distToJs{j});
