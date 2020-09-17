@@ -49,15 +49,19 @@ n_peak = length(peak);
 x_mat = repmat(x, 1, n_peak);
 peak_mat = repmat(peak, n_x, 1);
 
-cos_func = @(x, peak) (cos(max(-pi, min(pi, (log_func(x) - peak) * pi / (2 * gap_log)))) + 1) / 2;
+cos_func = @(x, peak) (cos(max(-pi, min(pi, (log_func(x) - peak) * pi / (2 * gap_log)))) + 1) / 2; % / (2 * gap_log): this is a clever way to sharpen the cosine functions
+%cos_func1 = @(x, peak) (cos(max(-pi, min(pi, (log_func(x) - peak) * pi)))+1) / 2; % Try without this term ('/(2 * gap_log)')
 
 bump = cos_func(x_mat, peak_mat);
+%bump1 = cos_func1(x_mat,peak_mat); 
 
-% figure; imagesc((log_func(x) - peak)) 
-% figure; imagesc((log_func(x) - peak)*pi) 
-% figure; imagesc((log_func(x) - peak)*pi/(2*gap_log)) 
-% figure; imagesc(min(pi, (log_func(x) - peak) * pi / (2 * gap_log)))
-% figure; imagesc(max(-pi, min(pi, (log_func(x) - peak) * pi / (2 * gap_log))))
-% figure; imagesc((cos(max(-pi, min(pi, (log_func(x) - peak) * pi / (2 *gap_log))))))
-% figure; imagesc((cos(max(-pi, min(pi, (log_func(x) - peak) * pi / (2 * gap_log)))) + 1))
-
+% fPath ='/Users/parkj/Documents/MATLAB/MatlabNeuralDataPipeline/reachPull_glm/understand_log_consine';
+% % figure; plot(x); axis tight
+% figure; imagesc(log_func(x_mat)); title('log_func(X_mat)','Interpreter','none'); colorbar; print(fullfile(fPath,'x_mat'),'-dpdf','-painters')
+% figure; imagesc(peak_mat); title('log(peak_mat)','Interpreter','none'); colorbar; print(fullfile(fPath,'peak_mat'),'-dpdf','-painters')
+% figure; imagesc((log_func(x) - peak)); title('Subtraction of peak from X','Interpreter','none'); colorbar; print(fullfile(fPath,'subtraction_X_Peak_mat'),'-dpdf','-painters')
+% figure; imagesc((log_func(x) - peak)*pi); title('Subraction_multiplied_by_pi','Interpreter','none'); colorbar; print(fullfile(fPath,'subraction_multiplied_by_pi'),'-dpdf','-painters')
+% figure; imagesc((log_func(x) - peak)*pi/(2*gap_log)); title('Subraction_multiplied_by_pi_expand','Interpreter','none'); colorbar; print(fullfile(fPath,'subraction_multiplied_by_pi_expand'),'-dpdf','-painters')
+% figure; imagesc(min(pi, (log_func(x) - peak) * pi / (2 * gap_log))); title('Apply the upper limit of pi','Interpreter','none'); colorbar; print(fullfile(fPath,'Apply the upper limit of pi'),'-dpdf','-painters')
+% figure; imagesc(max(-pi, min(pi, (log_func(x) - peak) * pi / (2 * gap_log)))); title('Apply the lower limit of pi','Interpreter','none'); colorbar; print(fullfile(fPath,'Apply the lower limit of pi'),'-dpdf','-painters')
+% figure; imagesc((cos(max(-pi, min(pi, (log_func(x) - peak) * pi / (2 * gap_log)))))); title('Take cosine','Interpreter','none'); colorbar; print(fullfile(fPath,'Take cosine'),'-dpdf','-painters')

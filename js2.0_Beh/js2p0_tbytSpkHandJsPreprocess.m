@@ -24,7 +24,7 @@ load(fullfile(spkDir(1).folder, spkDir(1).name),'spkTimesCell','jkvt')
 vfT = {jkvt(:).vFrameTime}'; % video frame time
 hTrj = {jkvt(:).hTrjF}'; % hand trajectory
 
-sm_kernel = TNC_CreateGaussian(250,15,500,1); % a kernel for smoothing (mu, sigma, time, dT)
+sm_kernel = TNC_CreateGaussian(250,30,500,20); % a kernel for smoothing (mu, sigma, time, dT)
 binSize = 20; % 20 ms
 spkBin = -1000:2000;
 
@@ -63,15 +63,15 @@ for t = 1:size(jkvt,2)
             ss(t).timeAlign = jkvt(t).rStartToPull; % align to reach start to pull
             ss(t).evtAlign  = 'rStart';
             if ~isempty(jkvt(t).rStopToPull)
-                ss(t).rEnd = jkvt(t).rStopToPull;   % reachStop give a room for 100ms
+                ss(t).rEnd = jkvt(t).rStopToPull; % reachStop 
             elseif ~isempty(jkvt(t).pullStops)
-                ss(t).rEnd = jkvt(t).pullStops;   % instead use pullStop give a room for 100ms
+                ss(t).rEnd = jkvt(t).pullStops;   % instead use pullStop 
             else
                 ss(t).rEnd = jkvt(t).trEnd; 
             end
         elseif ~isempty(jkvt(t).pullStarts) && ~isempty(jkvt(t).pullStops) 
             ss(t).timeAlign = jkvt(t).pullStarts;
-            ss(t).rEnd = jkvt(t).trJsReady+jkvt(t).movKins.pullStop;   % reachStop give a room for 100ms
+            ss(t).rEnd = jkvt(t).trJsReady+jkvt(t).movKins.pullStop; % reachStop 
             ss(t).evtAlign  = 'pStart';
         else
             ss(t).timeAlign = jkvt(t).trJsReady; % if no reachStart detected, just align to the joystick ready
@@ -82,7 +82,7 @@ for t = 1:size(jkvt,2)
         if ~isempty(jkvt(t).hTrjRstart) && ~isempty(jkvt(t).hTrjRstop) % if there's a detected reachStart align to that
             ss(t).timeAlign = jkvt(t).vFrameTime(jkvt(t).hTrjRstart(end));
             ss(t).evtAlign  = 'rStart';
-            ss(t).rEnd = jkvt(t).vFrameTime(min(jkvt(t).hTrjRstop(end),length(jkvt(t).vFrameTime))); % reachStop give a room for 100ms 
+            ss(t).rEnd = jkvt(t).vFrameTime(min(jkvt(t).hTrjRstop(end),length(jkvt(t).vFrameTime))); % reachStop 
         else
             ss(t).timeAlign = jkvt(t).trJsReady; % if no reachStart detected, just align to the joystick ready
             ss(t).evtAlign  = 'trJsReady';
@@ -100,6 +100,7 @@ for t = 1:size(jkvt,2)
     if ~isempty(hTrj{t}) && ~isempty(ss(t).timeAlign) % if hTrj available
         spikeT = spkBin+ss(t).timeAlign; % 1-ms spike time bins
         [inthTrj, intX] = interpsm(vfT{t},hTrj{t}); % interpolate and smooth
+        ss(t).hTrjBfull = inthTrj(:,1:binSize:size(inthTrj,2)); 
         t1n = ss(t).timeAlign-abs(spkBin(1)); % t1 for neural spike trains
         tEn = ss(t).timeAlign+abs(spkBin(2)); % tE for neural spike trains
         t1h = intX(1); % t1 for hand trajectory       
@@ -144,6 +145,8 @@ for t = 1:size(jkvt,2)
             ss(t).rchSpeed1ms = sqrt(sum(hVel1(:,max(1,abs(spkBin(1))-100):length(t1n:pullStart)).^2,1)); % cm/s speed (not velocity) during reach phase
             ss(t).maxRchSpeed = max(ss(t).rchSpeed1ms,[],2); % cm/s max speed during reach phase
             ss(t).maxRchSpeedXYZ = max(abs(hVel1(:,max(1,abs(spkBin(1))-100):length(t1n:pullStart))),[],2); % max speed during reach phase on X,Y,Z separately
+            hTrjBfullP1_1ms = inthTrj(:,intX<=pullStart); 
+            ss(t).hTrjBfullP1 = hTrjBfullP1_1ms(:,1:binSize:size(hTrjBfullP1_1ms,2)); 
         end
         
         %% get joystick trajectory (all traj aligned to t1n e.g., -1000ms from rStart)
@@ -182,7 +185,7 @@ end
 [ss(:).blType] = deal(jkvt(:).blType); 
 [ss(:).blShiftLogic] = deal(jkvt(:).blShiftLogic); 
     
-save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'ss','jkvt','trI')
+save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'ss','jkvt','trI','spkTimesCell')
 
 %% %%%%%%%%%%%%%%%%%%%
 %%% Helper function %%
