@@ -5,30 +5,21 @@ clc; clearvars; close all;
 filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles'; 
 cd(filePath)
 % neural data
-load(fullfile('/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles','binSpkCountCTXWR40_081919.mat'), 'spkTimesCell')
-load(fullfile('/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles','binSpkCountCTXWR40_081919.mat'),'rStartToPull','p'); 
-S=rStartToPull; 
-
-% behavioral data
-load(fullfile('/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles','jsTime1k_KinematicsTrajectories.mat'),'jkvt','meta')
+% neural and behavioral data
+spkDir = dir('binSpkCountSTRCTX*');
+load(fullfile(spkDir(1).folder, spkDir(1).name),'spkTimesCell','jkvt','meta')
+%S=rStartToPull; 
 
 % task parameter
-DT = 1; %0.001; % milliseconds
+DT = 20; % 20 ms (width of timeBin)
 
-N_rSTART = 10; % reach start, n bumps
-RANGE_rSTART = [0 3000]; % ms (-1000 to 2000 ms relative to rStartToPull)
-BIAS_rSTART = 5;
+N_MOVE = 10; % reach start, n bumps
+RANGE_MOVE = [0 3000]; % ms (-1000 to 2000 ms relative to rStartToPull)
+BIAS_MOVE = 5;
 
-N_REWARD = 10; % reward
-RANGE_REWARD = 3000; % ms
-BIAS_REWARD = 8;
-
-N_SPEED = 10; % n bumps, linear cosine bumps
-RANGE_SPEED = [0, 40]; % cm/s
-BIAS_SPEED = 10;
-
-N_WORK = 10; % n bumps, linear cosine bumps
-RANGE_WORK = [0, 1000]; % uJ (micro-Joule) 
+N_TASK = 10; % reward
+RANGE_TASK = 3000; % ms (0 to 3000 ms relative to reward delivery) 
+BIAS_TASK = 8;
 
 N_H = 10; % n bumps for spike history
 RANGE_H = 200; 
@@ -42,19 +33,12 @@ CALC_PRM = false;
 % detect events and continuous joystick pull trajectory  
 sessionDur = round(str2double(meta.fileTimeSecs)*1000); % in ms 
 session_range = [1 sessionDur]; 
-clip = @(t) t(t >= session_range(1) & t <= session_range(2)) - session_range(1);
+clip = @(t) t(session_range(1) <= t & t <= session_range(2)) - session_range(1);
 time_bin = (0:DT:sessionDur)';
 n_bin = length(time_bin) - 1;
 
-[jkvt,k] = func.evtKinematics( jkvt, sessionDur ); % pullStarts, pullStops, rStartToPull, rStopToPull
-jsVcmS = abs(k.jsVel); % positive-valued pull velocities in cm/S
-jsWuJ = k.jsWork./10e3; % convert nJ to mJ (force: kg*m/S^2, work: kg*m^2/S^2)
-
 rStartI = cellfun(@(c) ~isempty(c), {jkvt(:).rStartToPull});
-rStopI = cellfun(@(c) ~isempty(c), {jkvt(:).rStopToPull}); 
-
 pullStartI = cellfun(@(c) ~isempty(c), {jkvt(:).pullStarts}); 
-pullStopI = cellfun(@(c) ~isempty(c), {jkvt(:).pullStops}); 
 rewardTimeI = cellfun(@(c) ~isnan(c), {jkvt(:).rewardT}); 
 
 % if reach Start is missing, put estimated values based on the pullStarts with (-200 ms offset)
@@ -62,51 +46,61 @@ rewardTimeI = cellfun(@(c) ~isnan(c), {jkvt(:).rewardT});
 rStartI(~rStartI&pullStartI) = true; 
 assert(unique(pullStartI(rStartI))==true)
 
-[jkvt(~rStopI&pullStopI).rStopToPull] = deal([jkvt(~rStopI&pullStopI).pullStops]); 
-rStopI(~rStopI&pullStopI) = true; 
+%% get event time histograms for each movement and task regressors 
+% parse joystick position - torque combinations
+[posTqC,posTqTypes] = posTrqCombinations( jkvt ); 
+for pt = 1:length(posTqTypes)
+    tmpPosTqI = cell2mat(cellfun(@(a) strcmpi(a,posTqTypes{pt}), posTqC, 'un', 0 )); % position - torque combination
+    dm_move{pt,1} = 'move'; % regressor type 
+    dm_move{pt,2} = posTqTypes{pt}; % regressor name (position-torque combination) 
+    dm_move{pt,3} = histcounts([jkvt(tmpPosTqI).rStartToPull]-1000,time_bin)';  % discrete event histogram, '-1000 ms' to include movement preparatory period 
+end
 
-% identify trial types
-tqList = unique([jkvt(:).pull_torque]);
-posList = unique([jkvt(:).reachP1]); 
+% task regressor: joystick ready (trial start) 
+dm_task{1,1} = 'task'; % regressor type
+dm_task{1,2} = 'jsReady'; % regressor name
+dm_task{1,3} = histcounts([jkvt(:).trJsReady],time_bin)'; % discrete event histogram
 
-lowTqI = cellfun(@(c) c==tqList(1), {jkvt(:).pull_torque}); 
-highTqI = cellfun(@(c) c==tqList(2), {jkvt(:).pull_torque}); 
+% task regressor: reward delivery 
+dm_task{2,1} = 'task'; % regressor type 
+dm_task{2,2} = 'rwd'; % regressor name
+dm_task{2,3} = histcounts([jkvt(:).rewardT],time_bin); % discrete event histogram
 
-leftI = cellfun(@(c) c==posList(1), {jkvt(:).reachP1}); 
-rightI = cellfun(@(c) c==posList(2), {jkvt(:).reachP1}); 
+%% get bumps (timed consine functions) for discrete MOVE and TASK variables using linear or log cosine functions and perform convolution 
+% bumps (linear consine) for movement variables (aligned to -1000ms relative to reachStarts to include preparatory period)
+[MOVE_base, ~, ~] = basis.linear_cos(N_MOVE, RANGE_MOVE, DT, false);
+% convolution of each movement variable 
+for t = 1:size(dm_move,1)
+    dm_move{t,4} = basis.conv(dm_move{t,3},MOVE_base); 
+end
+clearvars t
 
-rwI = [jkvt(:).rewarded]; % reward index
+[TASK_base, ~, ~] = basis.log_cos(N_TASK, RANGE_TASK, DT, 10, false);
+% convolution of each task variable
+for t = 1:size(dm_task)
+    dm_task{t,4} = basis.conv(dm_task{t,3},TASK_base); 
+end
+clearvars t
 
-leReach = [jkvt(pullStartI & leftI).rStartToPull]; % offset 1.5s to include preparatory period 
-riReach = [jkvt(pullStartI & rightI).rStartToPull];  
-lowTqReach = [jkvt(pullStartI & lowTqI).rStartToPull]; 
-hiTqReach = [jkvt(pullStartI & highTqI).rStartToPull]; 
-trEnd = [jkvt(:).trEnd]; % trEnd occurs 1-s before reward delivery or omission
+%% get bumps for continuous hand velocity variable and perform convolution
+% generate bumps for reach and pull phases separately 
+[~,k] = func.evtKinematics( jkvt, sessionDur );
+hvcmS = k.handVel; % hand velocity in cm/S
+hvcmSb = intm(hvcmS,length(time_bin)-1); % bin (skip smoothing)
+% reach phase
+hvcmSbReach = max(0,hvcmSb); % reach phase (away from the initial position) 
+hvcmSbReachBound = max(hvcmSbReach); % just use zero-to-max range
+[hV_ReachBase, hV_ReachBins, hV_ReachFunc] = basis.linear_cos(N_HANDVEL, [0 hvcmSbReachBound], 1, false); % use velocity instead of speed, just edit linear_cos.m to  
+X_reachVel = hV_ReachFunc(hvcmSbReach); % convolution
+% pull phase
+absHvcmSbPull = abs(min(0,hvcmSb)); % pull phase (towards the initial position) 
+absHvcmSbPullBound = max(absHvcmSbPull); % just use zero-to-absMax range
+[hV_PullBase, hV_PullBins, hV_PullFunc] = basis.linear_cos(N_HANDVEL, [0 absHvcmSbPullBound], 1, false); % use velocity instead of speed, just edit linear_cos.m to  
+X_pullVel = hV_ReachFunc(absHvcmSbPull); % convolution
 
-time_le = histcounts(leReach, time_bin)'; % left
-time_ri = histcounts(riReach, time_bin)'; % right
-time_lowTq = histcounts(lowTqReach, time_bin)'; % low
-time_highTq = histcounts(hiTqReach, time_bin)'; % high
-time_rwdYe = histcounts(trEnd(rwI), time_bin)'; % reward delivered
-time_rwdNo = histcounts(trEnd(~rwI), time_bin)'; % reward omission
-
-leRi_bin = [time_le, time_ri]; 
-loHi_bin = [time_lowTq, time_highTq]; 
-rwd_bin = [time_rwdNo, time_rwdYe]; 
-
-% bump
-[start_base, start_time, start_func] = basis.log_cos(N_rSTART, RANGE_rSTART, DT, 10, false);
-%[start_base, start_time, start_func] = basis.linear_cos(N_rSTART, RANGE_rSTART, DT, false);
-[reward_base, reward_time, reward_func] = basis.log_cos(N_REWARD, RANGE_REWARD, DT, 10, false);
-[~, ~, speed_func] = basis.linear_cos(N_SPEED, RANGE_SPEED, DT, false);
-[~, ~, work_func] = basis.linear_cos(N_WORK, RANGE_WORK, DT, false); 
-
-% convolution
-X_leRi = basis.conv(leRi_bin, start_base); % direction left vs right
-X_loHi = basis.conv(loHi_bin, start_base); % torque low vs high
-X_reward = basis.conv(rwd_bin, reward_base); % reward
-X_speed = speed_func(jsVcmS); % velocity cm/S
-X_work = work_func(jsWuJ); % work uJ 
+dm_handVel{1,1} = 'continuous'; % regressor type
+dm_handVel{1,2} = 'handVel'; % regressor name
+dm_handVel{1,3} = hvcmSb; % continuous variable
 
 %% 3. Spike
 % spike
