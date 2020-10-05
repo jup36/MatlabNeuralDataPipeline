@@ -186,6 +186,7 @@ end
 [ss(:).blShiftLogic] = deal(jkvt(:).blShiftLogic); 
     
 save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'ss','jkvt','trI','spkTimesCell')
+%load(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'ss','jkvt','trI','spkTimesCell')
 
 %% %%%%%%%%%%%%%%%%%%%
 %%% Helper function %%

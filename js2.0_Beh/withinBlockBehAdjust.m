@@ -1,10 +1,13 @@
-function [blockRez] = withinBlockBehAdjust(filePath, figSavePath, fileLabel)
+function [blockRez] = withinBlockBehAdjust(filePath, figSavePath)
 %This function analyzes within-block changes in hand trajectory and force
 % trajectories. For each block, the hand trajectories and force trajectories 
 % of the first and last 10 trials are plotted, and they are saved in a
 % structure named 'blockRez'. To run this, 'js2p0_tbybSpkHandJsPreprocess.m'
 % must be run as 'jkvt' and 'ss' in 'js2p0_tbytSpkHandJsTrjBin*.mat' should
 % be loaded as inputs. 
+% filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles';
+% figSavePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles/Figure/withinBlockAdjust'; 
+% fileLabel = 'WR40_082019'; 
 
 cd(filePath)
 fileDir = dir('js2p0_tbytSpkHandJsTrjBin*');
@@ -42,9 +45,9 @@ for b = unique(blNumb)
         jsXY = cell2mat(reshape(cellfun(@(a) smooth2a(intm(a(1:2,:),100),0,3), jsXyzC, 'un', 0),[1,1,length(jsXyzC)]));
         jsXY1 = nanmean([cell2mat({jkvt(trials).jsTreachPosT}),cell2mat({jkvt(trials).jsTreachPosB})],2);
         jsXY1 = jsXY1(1:2,1);
-        if ismember(b,[1,2,5,6]); 
+        if ismember(b,[1,2,5,6]); % left blocks
             colorTheme = 'wblue';
-        else ismember(b,[3,4,7,8]); 
+        else ismember(b,[3,4,7,8]); % right blocks
             colorTheme = 'wred';
         end
         
@@ -132,9 +135,11 @@ for b = unique(blNumb)
 end
 
 % save 'blockRez'
-save(fullfile(filePath,strcat('withinBlockBehAdjustRez_',fileLabel)),'blockRez')
+save(fullfile(fileDir(1).folder, fileDir(1).name),'blockRez','-append')
 
-%% Helper functions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% Helper functions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Force trajectory aligned to the max pull (negative) force point  
 function [forceTrjCollect] = plotForceAlignToMaxTorque(forceTrjC, figSavePath, figSaveName, nBackFromMaxForce, colorScheme)
 % forceTrjC = {ss(trials1).forceB};

@@ -1,10 +1,4 @@
 function decodedTrjPlotReachPullPos(filePath)
-%'trjMovie' takes a data matrix containing actual and estimated
-% trajectories from cortical and striatal neural population activity
-% (pltm), and generates a MPEG movies of those trajectories across time. 
-% plotm is data matrix to be plotted: variable-by-time
-%https://www.mathworks.com/help/matlab/import_export/convert-between-image-sequences-and-video.html
-
 %filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles'; 
 %filePath = 'S:\Junchol_Data\JS2p0\WR40_082019\Matfiles'; 
 cd(filePath)

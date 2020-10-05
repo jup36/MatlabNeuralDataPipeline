@@ -71,7 +71,7 @@ for t = 1:length(ts)
         t1 = max(spikeT(1), xq(1)); % beh neural common starting point
         tE = min(spikeT(end), xq(end)); % beh neural common end point
         
-        t1R = max(t1,ts(t)-200); % 200-ms before rStartToPull
+        t1R = max(t1,ts(t)-100); % 100-ms before rStartToPull
         
         hPos = intV(:,t1<=xq & xq<=tE); % hand position between t1 & tE
         spk  = unitTimeTrial(:,t1<=spikeT & spikeT<=tE ,t); % spk mat between t1 & tE
