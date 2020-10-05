@@ -1,4 +1,4 @@
-function hTrjDecodingKalmanFilter_PosXYZ(filePath, saveName, plotlogic)
+function hTrjDecodingKalmanFilter_hTrjF_PosXYZ(filePath, saveName, plotlogic)
 %This decodes kinematics of mouse 3-d hand movement trajectories (X,Y,Z)
 % using cross-validated (leave-a-trial-out) Kalman filter decoding.
 
@@ -6,7 +6,7 @@ function hTrjDecodingKalmanFilter_PosXYZ(filePath, saveName, plotlogic)
 %filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles';
 cd(filePath)
 
-kfDir = dir('preprocessKFdecodeHTrjCtxStr_WR*');
+kfDir = dir('preprocessKFdecodeHTrjCtxStr_hTrjF*');
 load(fullfile(kfDir.folder,kfDir.name),'s')
 %fileName = 'preprocessKFdecodeHTrjCtxStr_WR40_081919.mat';
 %load(fullfile(filePath,fileName),'s')
@@ -34,6 +34,17 @@ for r = 1:size(s.dat.state,1)
     end
 end
 clearvars r c
+
+% global median subtraction (not baseline subtraction of its own)
+medP1 = nanmedian(cell2mat(cellfun(@(a) a(:,1), reshape(s.dat.state(valTrI),1,1,[]),'un',0)),3);
+for c = 1:size(s.dat.state,2)
+    for r = 1:size(s.dat.state,1) 
+        if ~isempty(s.dat.state{r,c})
+            s.dat.state{r,c} = s.dat.state{r,c}-repmat(medP1,1,size(s.dat.state{r,c},2));
+        end
+    end
+end
+clearvars r c 
 
 %% leave-a-trial-out decoding using Kalman Filter (heavy-lifting part)
 for i = 1:resample %resample % repeat resampling trials
@@ -751,9 +762,9 @@ if plotlogic == 1
     for c = 1:size(s.dat.estStateCtxMean,2)
         for r = 1:20 % just to include the first block only per trial type
             if ~isempty(s.dat.state{r,c})
-                ctxTrjX = s.dat.stateCtx{r,c}(2,:); % Ctx X trj (left-right, horizontal hand position)
-                strTrjX = s.dat.stateStr{r,c}(2,:); % Str X trj
-                actTrjX = s.dat.state{r,c}(2,:); % actual trj
+                ctxTrjX = s.dat.stateCtx{r,c}(1,:); % Ctx X trj (left-right, horizontal hand position)
+                strTrjX = s.dat.stateStr{r,c}(1,:); % Str X trj
+                actTrjX = s.dat.state{r,c}(1,:); % actual trj
                 
                 tempX = timeX+2:timeX+length(actTrjX)+1;
                 timeX = timeX+length(actTrjX)+1; % update timeX
@@ -841,7 +852,75 @@ stateStrCC_sm = smooth2a(stateStrCC,4,0);
 [corrRez.rStrRi,corrRez.pStrRi] = corr([stateCCrilt; stateCCriht],[stateStrCCrilt; stateStrCCriht],'Rows','complete');
 [corrRez.rStrRi_sm,corrRez.pStrRi_sm] = corr(smooth2a([stateCCrilt; stateCCriht],4,0),smooth2a([stateStrCCrilt; stateStrCCriht],4,0),'Rows','complete');
 
-save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPos_',saveName)),'corrRez','-append')
+%% correlation for reach and pull phases separately
+pull1C = cellfun(@(a) find(a,1,'first'), s.dat.pullIdx, 'un',0); % pull start points for each trajectory
+pull2C = cellfun(@(a) find(a,1,'last'), s.dat.pullIdx, 'un',0); % pull end points for each trajectory
+
+% get reach and pull phase trajectories
+for c = 1:size(s.dat.state,2) 
+    for r = 1:size(s.dat.state,1)
+        if ~isempty(s.dat.state{r,c}) && ~isempty(s.dat.stateCtx{r,c}) && ~isempty(s.dat.stateStr{r,c}) && ~isempty(pull1C{r,c})
+           p1 = pull1C{r,c}; 
+           p2 = pull2C{r,c}; 
+           % reach phase trajectory
+           s.dat.stateR{r,c} = s.dat.state{r,c}(:,1:pull1C{r,c});
+           s.dat.stateCtxR{r,c} = s.dat.stateCtx{r,c}(:,1:pull1C{r,c});
+           s.dat.stateStrR{r,c} = s.dat.stateStr{r,c}(:,1:pull1C{r,c});
+           
+           % reach endPoint offset
+           s.dat.rEndOffCtx{r,c} = min(abs(s.dat.state{r,c}(:,p1)-s.dat.stateCtx{r,c}(:,p1-2:p1)),[],2);
+           s.dat.rEndOffStr{r,c} = min(abs(s.dat.state{r,c}(:,p1)-s.dat.stateStr{r,c}(:,p1-2:p1)),[],2);
+           
+           % pull phase trajectory 
+           s.dat.stateP{r,c} = s.dat.state{r,c}(:,pull1C{r,c}:end);
+           s.dat.stateCtxP{r,c} = s.dat.stateCtx{r,c}(:,pull1C{r,c}:end);
+           s.dat.stateStrP{r,c} = s.dat.stateStr{r,c}(:,pull1C{r,c}:end);
+        
+           % pull endPoint offset 
+           s.dat.pEndOffCtx{r,c} = min(abs(s.dat.state{r,c}(:,p2)-s.dat.stateCtx{r,c}(:,p2-2:p2)),[],2);
+           s.dat.pEndOffStr{r,c} = min(abs(s.dat.state{r,c}(:,p2)-s.dat.stateStr{r,c}(:,p2-2:p2)),[],2);     
+        end
+    end
+end
+clearvars r c 
+
+[trjOffset.mREndOffCtx,~,trjOffset.sREndOffCtx] = meanstdsem(cell2mat(reshape(s.dat.rEndOffCtx,[],1)')'); 
+[trjOffset.mREndOffStr,~,trjOffset.sREndOffStr] = meanstdsem(cell2mat(reshape(s.dat.rEndOffStr,[],1)')'); % concatenated state
+
+[trjOffset.mPEndOffCtx,~,trjOffset.sPEndOffCtx] = meanstdsem(cell2mat(reshape(s.dat.pEndOffCtx,[],1)')'); 
+[trjOffset.mPEndOffStr,~,trjOffset.sPEndOffStr] = meanstdsem(cell2mat(reshape(s.dat.pEndOffStr,[],1)')'); % concatenated state
+
+% reach phase correlation
+stateCcR = cell2mat(reshape(s.dat.stateR,[],1)')'; % concatenated state
+stateCtxCcR = cell2mat(reshape(s.dat.stateCtxR,[],1)')'; % concatenated cortex estimated state
+stateStrCcR = cell2mat(reshape(s.dat.stateStrR,[],1)')'; % concatenated striatum estimated state
+
+stateCcR_sm = smooth2a(stateCcR,4,0);
+stateCtxCcR_sm = smooth2a(stateCtxCcR,4,0);
+stateStrCcR_sm = smooth2a(stateStrCcR,4,0);
+
+[corrRez.rCtxRch,corrRez.pCtxRch] = corr(stateCcR, stateCtxCcR, 'Rows','complete');
+[corrRez.rStrRch,corrRez.pStrRch] = corr(stateCcR, stateStrCcR, 'Rows','complete');
+
+[corrRez.rCtxRch_sm,corrRez.pCtxRch_sm] = corr(stateCcR_sm, stateCtxCcR_sm, 'Rows','complete');
+[corrRez.rStrRch_sm,corrRez.pStrRch_sm] = corr(stateCcR_sm, stateStrCcR_sm, 'Rows','complete');
+
+% pull phase correlation
+stateCcP = cell2mat(reshape(s.dat.stateP,[],1)')'; % concatenated state
+stateCtxCcP = cell2mat(reshape(s.dat.stateCtxP,[],1)')'; % concatenated cortex estimated state
+stateStrCcP = cell2mat(reshape(s.dat.stateStrP,[],1)')'; % concatenated striatum estimated state
+
+stateCcP_sm = smooth2a(stateCcP,4,0);
+stateCtxCcP_sm = smooth2a(stateCtxCcP,4,0);
+stateStrCcP_sm = smooth2a(stateStrCcP,4,0);
+
+[corrRez.rCtxPul,corrRez.pCtxPul] = corr(stateCcP, stateCtxCcP, 'Rows','complete');
+[corrRez.rStrPul,corrRez.pStrPul] = corr(stateCcP, stateStrCcP, 'Rows','complete');
+
+[corrRez.rCtxPul_sm,corrRez.pCtxPul_sm] = corr(stateCcP_sm, stateCtxCcP_sm, 'Rows','complete');
+[corrRez.rStrPul_sm,corrRez.pStrPul_sm] = corr(stateCcP_sm, stateStrCcP_sm, 'Rows','complete');
+
+save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPos_',saveName)),'corrRez','trjOffset','s','-append')
 
 %trjMovie([stateCtxCC_sm(:,2), stateStrCC_sm(:,2), stateCC_sm(:,2)]', figSaveDir, 'kfDecode_Ypos_CtxStrAct')
 

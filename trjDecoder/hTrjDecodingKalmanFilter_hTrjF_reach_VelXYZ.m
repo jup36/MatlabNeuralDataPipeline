@@ -160,8 +160,8 @@ for i = 1:resample %resample % repeat resampling trials
                 sigma_str=V; % sample covariance
                 clearvars curEstStateMean*;
                 clearvars curEstStateCov*;
-                valCellICtx = ~sum(C_ctx,2)==0;
-                valCellIStr = ~sum(C_str,2)==0;
+                valCellICtx = ~(sum(C_ctx,2)==0)&~isnan(sum(C_ctx,2));
+                valCellIStr = ~(sum(C_str,2)==0)&~isnan(sum(C_str,2));
                 C_ctxVal = C_ctx(valCellICtx,:); % to drop the cells with no spike at all from the mapping C, if not it leads to singular matrix warning
                 R_ctxVal = R_ctx(valCellICtx,valCellICtx); 
                 C_strVal = C_str(valCellIStr,:); 
@@ -649,3 +649,19 @@ save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrVel_reach_',saveName)),'corr
         end
     end
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-function trjMovieWithRawVideo(hTrjDir, movSaveDir, movSaveName)
+function decodedTrjPlotReachPull(hTrjDir, movSaveDir, movSaveName)
 %'trjMovie' takes a data matrix containing actual and estimated
 % trajectories from cortical and striatal neural population activity
 % (pltm), and generates a MPEG movies of those trajectories across time. 
@@ -14,20 +14,20 @@ cd(filePath)
 %movSaveDir ='/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles/Figure/KalmanFilter_decoding';
 vfList = dir(hTrjDir); 
 
-%% get s.dat from preprocessKFdecode*
-kfDir = dir('rezKFdecodeHTrjCtxStrVel*'); 
-load(fullfile(kfDir.folder,kfDir.name),'s');
+%% get s.dat from KF decoding results for reach and pull trajectories 
+kfDirR = dir('rezKFdecodeHTrjCtxStrPos_reach_hTrjF_*'); 
+sR = load(fullfile(kfDirR.folder,kfDirR.name),'s');
+sR = sR.('s'); 
 
-% load the preprocessing data
-%kfPreDir = dir('preprocessKFdecodeHTrjCtxStr_*'); 
-%preS = load(fullfile(kfPreDir.folder,kfPreDir.name),'s');
-%preS = preS.('s'); 
+kfDirP = dir('rezKFdecodeHTrjCtxStrPos_pull_hTrjF_*'); 
+sP = load(fullfile(kfDirP.folder,kfDirP.name),'s');
+sP = sP.('s'); 
 
-valTrI = cell2mat(cellfun(@(a) ~isempty(a), s.dat.spkCtx, 'un', 0)); % valid trials
-stmTrI = cell2mat(cellfun(@(a) sum(a)>=1, s.dat.laserIdx, 'un', 0)); % stim trials
+valTrI = cell2mat(cellfun(@(a) ~isempty(a), sR.dat.spkCtxR, 'un', 0)); % valid trials
+stmTrI = cell2mat(cellfun(@(a) sum(a)>=1, sR.dat.laserIdxR, 'un', 0)); % stim trials
 
 behDir = dir('jsTime1k_KinematicsTrajectories*'); 
-load(fullfile(behDir(1).folder,fullfile(behDir(1).name)),'jkvt'); 
+%load(fullfile(behDir(1).folder,fullfile(behDir(1).name)),'jkvt'); 
 
 currentFolder = pwd;
 clearvars F
@@ -36,34 +36,40 @@ ax = 2; % axis of interest to plot (X:1,Y:2,Z:3)
 
 %% preprocess trjC
 %trjC = cell(1,sum(sum(valTrI&~stmTrI))); 
-stimeJkvtTr = [s.time.jkvtTr]; 
+sTimeJkvtTr = [sR.time.jkvtTr]; 
 cnt = 0; 
-for c = 1:size(s.dat.state,2)
-    for r = 1:size(s.dat.state,1)
+for c = 1:size(sR.dat.stateR,2)
+    for r = 1:size(sR.dat.stateR,1)
         if valTrI(r,c) && ~stmTrI(r,c)
             cnt = cnt + 1; % count valid no-stim trial
-            tJkvt = s.dat.trialJkvt{r,c}; % trial in jkvt
-            tmpI = stimeJkvtTr==tJkvt; 
-            tmpTrjT = s.time(tmpI).t1R:20:s.time(tmpI).tE; 
-            % get trajectories 
-            tmpCtx = s.dat.stateCtx{r,c}(ax,:); 
-            tmpStr = s.dat.stateStr{r,c}(ax,:); 
-            tmpAct = s.dat.state{r,c}(ax,:);      
-            tmpPull = double(s.dat.pullIdx{r,c}(1,:)); 
-            trjS(cnt).stimeJkvtTr = find(stimeJkvtTr==tJkvt); 
+            tJkvt = sR.dat.trialJkvt{r,c}; % trial in jkvt
+            tmpI = sTimeJkvtTr==tJkvt; 
+            tmpTrjT = sR.time(tmpI).t1R:20:sR.time(tmpI).tE; 
+            %% get trajectories 
+            % reach portion
+            tmpCtxR = sR.dat.stateRCtx{r,c}(ax,:); 
+            tmpStrR = sR.dat.stateRStr{r,c}(ax,:); 
+            tmpActR = sR.dat.stateR{r,c}(ax,:);          
+            % pull portion 
+            tmpCtxP = sP.dat.statePCtx{r,c}(ax,:); 
+            tmpStrP = sP.dat.statePStr{r,c}(ax,:); 
+            tmpActP = sP.dat.stateP{r,c}(ax,:);      
+                  
+            trjS(cnt).sTimeJkvtTr = find(sTimeJkvtTr==tJkvt); 
             trjS(cnt).trjT = tmpTrjT(1:length(tmpCtx));              
+            
             % video frames 
-            tmpPath = jkvt(tJkvt).sVideoInfo.path; % just use the SIDE view video here          
-            vName1 = strfind(tmpPath,'\cam1'); 
-            vfListI = cell2mat(cellfun(@(a) strcmpi(a,tmpPath(vName1+1:end)), {vfList.name},'un',0)); 
-            trjS(cnt).videoPath = fullfile(vfList(vfListI).folder, vfList(vfListI).name); 
-            trjS(cnt).frmT = jkvt(tJkvt).vFrameTime; % frame time            
-            trjS(cnt).frmI = trjS(cnt).trjT(1)<=trjS(cnt).frmT & trjS(cnt).frmT<=trjS(cnt).trjT(end); % frame index 
-            trjS(cnt).frmT1rTe = trjS(cnt).frmT(trjS(cnt).frmI); % frame time within the T1R to Te range
-            % interpolation and smoothing
-            %trjS(cnt).trjm = smooth2a(intm([tmpCtx; tmpStr; tmpAct; tmpPull], sum(trjS(cnt).frmI)),0,10); % cortex, striatum, actual hand trajectory 
-            trjS(cnt).trjm(1:3,:) = smooth2a(intm([tmpCtx; tmpStr; tmpAct], sum(trjS(cnt).frmI)),0,10); % cortex, striatum, actual hand trajectory 
-            trjS(cnt).trjm(4,:) = intm(tmpPull, sum(trjS(cnt).frmI))>.5; % pull index 
+%             tmpPath = jkvt(tJkvt).sVideoInfo.path; % just use the SIDE view video here          
+%             vName1 = strfind(tmpPath,'\cam1'); 
+%             vfListI = cell2mat(cellfun(@(a) strcmpi(a,tmpPath(vName1+1:end)), {vfList.name},'un',0)); 
+%             trjS(cnt).videoPath = fullfile(vfList(vfListI).folder, vfList(vfListI).name); 
+%             trjS(cnt).frmT = jkvt(tJkvt).vFrameTime; % frame time            
+%             trjS(cnt).frmI = trjS(cnt).trjT(1)<=trjS(cnt).frmT & trjS(cnt).frmT<=trjS(cnt).trjT(end); % frame index 
+%             trjS(cnt).frmT1rTe = trjS(cnt).frmT(trjS(cnt).frmI); % frame time within the T1R to Te range
+%             % interpolation and smoothing
+%             %trjS(cnt).trjm = smooth2a(intm([tmpCtx; tmpStr; tmpAct; tmpPull], sum(trjS(cnt).frmI)),0,10); % cortex, striatum, actual hand trajectory 
+%             trjS(cnt).trjm(1:3,:) = smooth2a(intm([tmpCtx; tmpStr; tmpAct], sum(trjS(cnt).frmI)),0,10); % cortex, striatum, actual hand trajectory 
+%             trjS(cnt).trjm(4,:) = intm(tmpPull, sum(trjS(cnt).frmI))>.5; % pull index 
         end
     end
 end

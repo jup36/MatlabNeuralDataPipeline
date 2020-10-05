@@ -1,4 +1,4 @@
-function preprocessingForDecoder_KalmanFilterHTrjF_reachPull(filePath, saveName)
+function preprocessForKFdecoder_HTrjF_rotate_baseSub_reachPull(filePath, saveName)
 %This function performs preprocessing for state decoding from cortical and
 % striatal spike activity using Kalman filter
 
@@ -9,7 +9,8 @@ cd(filePath)
 % neural data
 spkDir = dir('binSpkCountSTRCTX*'); 
 load(fullfile(spkDir(1).folder, spkDir(1).name),'spkTimesCell', 'rStartToPull')
-%load(fullfile('/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles','binSpkCountSTRCTXWR40_081919.mat'), 'spkTimesCell', 'rStartToPull', 'p')
+load(fullfile('/Volumes/Beefcake/Junchol_Data/JS2p0/collectData','clockwiseRotationMatrix'),'cwRot3d') % load the rotation matrix to re-align hand coordinates
+
 S=rStartToPull; clearvars rStartToPull
 % behavioral data
 
@@ -24,8 +25,15 @@ tsMapJkvt = arrayfun(@(a) find([jkvt(1:end-1).trEnd]'<= repmat(a,[size(jkvt,2)-1
 tsJkvtTrs = [{tsMapJkvt1}; tsMapJkvt]; 
 
 vfT = {jkvt(:).vFrameTime}'; % video frame time
-hTrj = {jkvt(:).hTrjF}'; % hand trajectory
-%hTrj = {jkvt(:).hTrjDstBaseXyz}'; % baseline-subtracted hand trajectory
+%hTrj = hTrjMedianSubtractRotate({jkvt(:).hTrjF}); % median subtracted and rotated hand trajectories
+hTrj = hTrjMedianSubtractRotate({jkvt(:).hTrjDstBaseXyz}); 
+
+% Below is just to verify the rotation
+%fillTrI = ~cell2mat(cellfun(@isempty, hTrj, 'un', 0));  
+%hInit = cell2mat(cellfun(@(a) a(1:2,1), hTrj(fillTrI),'un', 0)); 
+%plot(hInit(1,:), hInit(2,:), 'bo')
+%c2mhTrj = -cell2mat(hTrj);
+%plot(c2mhTrj(1,:),c2mhTrj(2,:),'.');
 
 spikeB = S.params.binEdges(2:end);
 unitTimeTrial = S.unitTimeTrial;
@@ -71,7 +79,7 @@ for t = 1:length(ts)
         t1 = max(spikeT(1), xq(1)); % beh neural common starting point
         tE = min(spikeT(end), xq(end)); % beh neural common end point
         
-        t1R = max(t1,ts(t)-100); % 100-ms before rStartToPull
+        t1R = max(t1,ts(t)-200); % 200-ms before rStartToPull
         
         hPos = intV(:,t1<=xq & xq<=tE); % hand position between t1 & tE
         spk  = unitTimeTrial(:,t1<=spikeT & spikeT<=tE ,t); % spk mat between t1 & tE
@@ -184,5 +192,24 @@ for t = 1:length(ts)
     end
     fprintf('processed event# %d\n', t)  
 end
-save(fullfile(filePath,strcat('preprocessKFdecodeHTrjCtxStr_reachPull_',saveName)),'s')
+save(fullfile(filePath,strcat('preprocessKFdecodeHTrjCtxStr_reachPull_rotate_baseSub',saveName)),'s')
+
+%% %%%%%%%%%%%%%% HELPER FUNCTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    function [hTrj3dCout] = hTrjMedianSubtractRotate(hTrj3dC)
+        %This function takes the raw hand trajectories and conduct median
+        % subtraction and rotation 
+        %hTrj3dC = {jkvt(:).hTrjF}; % hand trajectory (original)
+        if ~exist('cwRot3d','var') % get the calibrated rotation matrix if needed
+            load(fullfile('/Volumes/Beefcake/Junchol_Data/JS2p0/collectData','clockwiseRotationMatrix'),'cwRot3d') % load the rotation matrix to re-align hand coordinates
+        end 
+        fillTr = ~cell2mat(cellfun(@isempty,hTrj3dC,'un',0)); % trials with hand trajectories
+        medHInit = nanmedian(cell2mat(cellfun(@(a) a(:,1), hTrj3dC(fillTr), 'un', 0)),2); % median initial hand position for subtraction
+        hTrjMS = cellfun(@(a) a-repmat(medHInit,[1,size(a,2)]), hTrj3dC(fillTr), 'un', 0); % subtract the median initial hand position
+        hTrj3dC(fillTr) = deal(hTrjMS); % put the median subtracted trajectories in
+        hTrjR = deal(cellfun(@(a) cwRot3d*a, hTrj3dC(fillTr), 'un', 0)); % clockwise rotation
+        hTrj3dC(fillTr) = deal(hTrjR); % put rotated trajectories in
+        hTrj3dCout = hTrj3dC;
+    end
+
+
 end

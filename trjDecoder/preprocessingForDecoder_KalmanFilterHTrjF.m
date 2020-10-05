@@ -1,10 +1,10 @@
-function preprocessingForDecoder_KalmanFilterHTrjF_reachPull(filePath, saveName)
+function preprocessingForDecoder_KalmanFilterHTrjF(filePath, saveName)
 %This function performs preprocessing for state decoding from cortical and
 % striatal spike activity using Kalman filter
 
 %% 1. Load data
 %clc; clearvars; close all;
-%filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles';
+%filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles';
 cd(filePath)
 % neural data
 spkDir = dir('binSpkCountSTRCTX*'); 
@@ -24,7 +24,7 @@ tsMapJkvt = arrayfun(@(a) find([jkvt(1:end-1).trEnd]'<= repmat(a,[size(jkvt,2)-1
 tsJkvtTrs = [{tsMapJkvt1}; tsMapJkvt]; 
 
 vfT = {jkvt(:).vFrameTime}'; % video frame time
-hTrj = {jkvt(:).hTrjF}'; % hand trajectory
+hTrj = {jkvt(:).hTrjF}'; % baseline-subtracted hand trajectory
 %hTrj = {jkvt(:).hTrjDstBaseXyz}'; % baseline-subtracted hand trajectory
 
 spikeB = S.params.binEdges(2:end);
@@ -58,7 +58,7 @@ for t = 1:length(ts)
         % interpolation of hTrj (time resolution: 4 to 1ms)
         x = vfT{vfI}; % default timescale (4 ms)
         v = hTrj{vfI}; % hTrj to be interpolated
-        xq = x(1):x(end); % new timescale
+        xq = vfT{vfI}(1):vfT{vfI}(end); % new timescale
         inthTrj = @(a) interp1(x,a,xq); % interpolation function
         vC = mat2cell(v,[ 1 1 1 ], size(v,2)); % convert to cell
         intVC = cellfun(@(a) inthTrj(a), vC, 'un', 0); % interpolated hTrj cell
@@ -127,9 +127,17 @@ for t = 1:length(ts)
         curForceR = tmpForceNt1RtE(:,1:timeBin(end));
         curBforce = curForceR(timeBin); 
         
+        s.dat.state{r,c} = [curBpos(:,1:end-1); curBvel(:,1:end); curBforce(:,1:end-1)]; % state 3-d pos; 3-d vel  
+        
         curSpkR = spkR(:,1:timeBin(end-1))'; % timebin(1ms)-by-neuron spike matrix 
         rsCurSpkR = reshape(curSpkR,binSize,[],size(curSpkR,2)); 
-        binSpkRCtxStr = squeeze(sum(rsCurSpkR,1))'; % unit-by-timeBin        
+        binSpkRCtxStr = squeeze(sum(rsCurSpkR,1))'; % unit-by-timeBin
+        
+        s.dat.spkCtx{r,c} = binSpkRCtxStr(ctxI,:); 
+        s.dat.spkStr{r,c} = binSpkRCtxStr(strI,:);      
+        s.dat.spkCtxStr{r,c} = binSpkRCtxStr;            
+        s.dat.trialEvt{r,c} = t;
+        s.dat.trialJkvt{r,c} = tsJkvtTrs{t}; 
         
         % get the pullStart and pullStop point and pull index, if exists
         if isfield(jkvt(vfI).movKins,'pullStart') && isfield(jkvt(vfI).movKins,'pullStop')
@@ -143,25 +151,6 @@ for t = 1:length(ts)
             t1RtEpullI = pullStart<=t1R:tE & t1R:tE<=pullStop;
             
             s.dat.pullIdx{r,c} = sum(reshape(t1RtEpullI(1:timeBin(end-1)), binSize, []))>=1; 
-            tmpPullStart = max(1,find(s.dat.pullIdx{r,c},1,'first')); 
-            tmpPullEnd = max(tmpPullStart,find(s.dat.pullIdx{r,c},1,'last')); 
-            
-            tmpState = [curBpos(:,1:end-1); curBvel(:,1:end); curBforce(:,1:end-1)]; % state 3-d pos; 3-d vel  
-            
-            if ~isempty(tmpPullStart) && ~isempty(tmpPullEnd)
-                s.dat.stateR{r,c} = tmpState(:,1:tmpPullStart-1);  
-                s.dat.spkCtxR{r,c} = binSpkRCtxStr(ctxI,1:tmpPullStart-1); 
-                s.dat.spkStrR{r,c} = binSpkRCtxStr(strI,1:tmpPullStart-1);      
-                s.dat.spkCtxStrR{r,c} = binSpkRCtxStr(:,1:tmpPullStart-1);            
-            
-                s.dat.stateP{r,c} = tmpState(:,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5));  
-                s.dat.spkCtxP{r,c} = binSpkRCtxStr(ctxI,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5)); 
-                s.dat.spkStrP{r,c} = binSpkRCtxStr(strI,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5));      
-                s.dat.spkCtxStrP{r,c} = binSpkRCtxStr(:,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5));    
-            end
-            s.dat.trialEvt{r,c} = t;
-            s.dat.trialJkvt{r,c} = tsJkvtTrs{t};
-            
         end
         % get the laserStart and laserStop point and laser index, if exists
         if isfield(jkvt,'stimLaserOn')
@@ -172,17 +161,12 @@ for t = 1:length(ts)
                 t1tElaserI = s.time(t).tLaserStart<=t1:tE & t1:tE<=s.time(t).tLaserStop;
                 t1RtElaserI = s.time(t).tLaserStart<=t1R:tE & t1R:tE<=s.time(t).tLaserStop;
                 
+                s.dat.laserIdx{r,c} = sum(reshape(t1RtElaserI(1:timeBin(end-1)), binSize, []))>=1;
                 s.dat.laserOffTime{r,c} = s.time(t).tLaserStop-t1R; % when did laser went off relative to the reach start
-                
-                if isfield(jkvt(vfI).movKins,'pullStart') && isfield(jkvt(vfI).movKins,'pullStop')
-                      s.dat.laserIdx{r,c} = sum(reshape(t1RtElaserI(1:timeBin(end-1)), binSize, []))>=1;
-                      s.dat.laserIdxR{r,c} = s.dat.laserIdx{r,c}(:,1:tmpPullStart-1); 
-                      s.dat.laserIdxP{r,c} = s.dat.laserIdx{r,c}(:,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5)); 
-                end
             end
         end
     end
     fprintf('processed event# %d\n', t)  
 end
-save(fullfile(filePath,strcat('preprocessKFdecodeHTrjCtxStr_reachPull_',saveName)),'s')
+save(fullfile(filePath,strcat('preprocessKFdecodeHTrjCtxStr_',saveName)),'s')
 end
