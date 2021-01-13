@@ -18,6 +18,6 @@ for i_group = 1:n_group
     n_in = double(sum(in_group));
     if n_in == 0; continue; end
     
-    y_mean(:, i_group) = mean(y(:, in_group), 2);
-    y_sem(:, i_group) = std(y(:, in_group), 0, 2) / sqrt(n_in);
+    y_mean(:, i_group) = nanmean(y(:, in_group), 2);
+    y_sem(:, i_group) = nanstd(y(:, in_group), 0, 2) / sqrt(n_in);
 end

@@ -1,5 +1,4 @@
 % Fit GLM a version 
-
 clc; clearvars; close all;
 
 %% 1. Load data
@@ -29,7 +28,7 @@ CALC_PRM = true;
 % detect events and continuous joystick pull trajectory  
 rwdTimes = cell2mat(cellfun(@(a) a(~isnan(a)), {jkvt(:).rewardT}, 'un', 0)); 
 %sessionDur = round(str2double(meta.fileTimeSecs)*1000); % in ms 
-sessionDur = rwdTimes(end)+5*1000; % cut 5 seconds after the last reward
+sessionDur = rwdTimes(end)+10*1000; % cut 10 seconds after the last reward
 session_range = [1 sessionDur]; 
 clip = @(t) t(session_range(1) <= t & t <= session_range(2)) - session_range(1);
 time_bin = (0:DT:sessionDur)';
@@ -43,7 +42,7 @@ leI = cell2mat(cellfun(@(a) contains(a,'p1'), posTqC, 'un', 0 )) &pStartI';
 riI = cell2mat(cellfun(@(a) contains(a,'p2'), posTqC, 'un', 0 )) &pStartI';  
 loI = cell2mat(cellfun(@(a) contains(a,'t1'), posTqC, 'un', 0 )) &pStartI'; 
 hiI = cell2mat(cellfun(@(a) contains(a,'t2'), posTqC, 'un', 0 )) &pStartI';  
-rwI   = [jkvt(:).rewarded]'; 
+rwI = [jkvt(:).rewarded]'; 
 
 % if reach Start is missing, put estimated values based on the pullStarts with (-200 ms offset)
 for tt = find(~rStartI&pStartI)
@@ -95,12 +94,12 @@ hvcmSb = hvcmS(1,time_bin(2:end)); %intm(hvcmS,length(time_bin)-1); % DO NOT USE
 
 % reach phase
 hvcmSbReach = max(0,hvcmSb); % reach phase (away from the initial position) 
-hvcmSbReachBound = max(hvcmSbReach)*.9; % just use zero-to-max range
+hvcmSbReachBound = max(hvcmSbReach); %*.8; % just use zero-to-max range
 [hV_ReachBase, hV_ReachBins, hV_ReachFunc] = basis.linear_cos(N_HANDVEL, [0 hvcmSbReachBound], 1, false); % use velocity instead of speed, just edit linear_cos.m to  
 X_reachVel = hV_ReachFunc(hvcmSbReach); % convolution
 % pull phase
 absHvcmSbPull = abs(min(0,hvcmSb)); % pull phase (towards the initial position) 
-absHvcmSbPullBound = max(absHvcmSbPull)*.9; % just use zero-to-absMax range
+absHvcmSbPullBound = max(absHvcmSbPull); %*.8; % just use zero-to-absMax range
 [hV_PullBase, hV_PullBins, hV_PullFunc] = basis.linear_cos(N_HANDVEL, [0 absHvcmSbPullBound], 1, false); % use velocity instead of speed, just edit linear_cos.m to  
 X_pullVel = hV_PullFunc(absHvcmSbPull); % convolution
 
@@ -179,41 +178,41 @@ end
 % coarse binning
 ratio_time = floor(1 / (DT/1000)); % ratio of 1000ms to DT
 ratio_time_100ms = floor(1 / (DT/100)); % ratio of 100ms to DT
-%coarse_100msBin = @(x) mean(reshape(x(1:floor(n_bin/ratio_time_100ms)*ratio_time_100ms), ratio_time_100ms, []))';   % mean with 100-ms bin
-%coarseMax_100msBin = @(x) max(reshape(x(1:floor(n_bin/ratio_time_100ms)*ratio_time_100ms), ratio_time_100ms, []))'; % max with 100-ms bin
-%spike_100ms = coarse_100msBin(spike_bin) * ratio_time; % spike rate 100-ms bin in Hz (convertion to Hz - multiply the ratio of 1000ms to the original binSize)
-coarse_Bin = @(x) mean(reshape(x(1:floor(n_bin/ratio_time)*ratio_time), ratio_time, []))';   % mean with 1000-ms bin
-coarseMax_Bin = @(x) max(reshape(x(1:floor(n_bin/ratio_time)*ratio_time), ratio_time, []))'; % max with 1000-ms bin
-spike_1000ms = coarse_Bin(spike_bin) * ratio_time; % spike rate 1000-ms bin in Hz (convertion to Hz - multiply the ratio of 1000ms to the original binSize)
+coarse_100msBin = @(x) mean(reshape(x(1:floor(n_bin/ratio_time_100ms)*ratio_time_100ms), ratio_time_100ms, []))';   % mean with 100-ms bin
+coarseMax_100msBin = @(x) max(reshape(x(1:floor(n_bin/ratio_time_100ms)*ratio_time_100ms), ratio_time_100ms, []))'; % max with 100-ms bin
+spike_100ms = coarse_100msBin(spike_bin) * ratio_time; % spike rate 100-ms bin in Hz (convertion to Hz - multiply the ratio of 1000ms to the original binSize)
+%coarse_Bin = @(x) mean(reshape(x(1:floor(n_bin/ratio_time)*ratio_time), ratio_time, []))';   % mean with 1000-ms bin
+%coarseMax_Bin = @(x) max(reshape(x(1:floor(n_bin/ratio_time)*ratio_time), ratio_time, []))'; % max with 1000-ms bin
+%spike_1000ms = coarse_Bin(spike_bin) * ratio_time; % spike rate 1000-ms bin in Hz (convertion to Hz - multiply the ratio of 1000ms to the original binSize)
 % bin max reach velocity
-% reachVel_100ms = coarseMax_100msBin(hvcmSbReach); 
-% reachVel_100msEdge = round(linspace(0,ceil(range(reachVel_100ms)*.9),11)); % to get 10 bins 
-% [rVel_mSpkR_100ms, rVel_sSpkR_100ms, rVel_bin_100ms] = func.group_stat(reachVel_100ms, spike_100ms, reachVel_100msEdge); % get the mean and sem spike rates per binned reach velocity 
-% rVel_logSpkRate_100ms = log(rVel_mSpkR_100ms / spike_rate); % 
-reachVel = coarseMax_Bin(hvcmSbReach); 
-reachVel_Edge = round(linspace(0,ceil(range(reachVel)*.9),6)); % to get 5 bins 
-[rVel_mSpkR, rVel_sSpkR, rVel_bin] = func.group_stat(reachVel, spike_1000ms, reachVel_Edge); % get the mean and sem spike rates per binned reach velocity 
-rVel_logSpkRate = log(rVel_mSpkR / spike_rate); % 
+reachVel_100ms = coarseMax_100msBin(hvcmSbReach); 
+reachVel_100msEdge = round(linspace(0,ceil(range(reachVel_100ms)),11)); % to get 10 bins %round(linspace(0,ceil(range(reachVel_100ms)*.8),11)); % to get 10 bins 
+[rVel_mSpkR_100ms, rVel_sSpkR_100ms, rVel_bin_100ms] = func.group_stat(reachVel_100ms, spike_100ms, reachVel_100msEdge); % get the mean and sem spike rates per binned reach velocity 
+rVel_logSpkRate_100ms = log(rVel_mSpkR_100ms / spike_rate); % 
+%reachVel = coarseMax_Bin(hvcmSbReach); 
+%reachVel_Edge = round(linspace(0,ceil(range(reachVel)*.9),6)); % to get 5 bins 
+%[rVel_mSpkR, rVel_sSpkR, rVel_bin] = func.group_stat(reachVel, spike_1000ms, reachVel_Edge); % get the mean and sem spike rates per binned reach velocity 
+%rVel_logSpkRate = log(rVel_mSpkR / spike_rate); % 
 
 % bin max pull velocity 
-% pullVel_100ms = coarseMax_100msBin(absHvcmSbPull); 
-% pullVel_100msEdge = round(linspace(0,ceil(range(pullVel_100ms)*.9),11)); 
-% [pVel_mSpkR_100ms, pVel_sSpkR_100ms, pVel_bin_100ms] = func.group_stat(pullVel_100ms, spike_100ms, pullVel_100msEdge); % get the mean and sem spike rates per binned reach velocity
-% pVel_logSpkRate_100ms = log(pVel_mSpkR_100ms / spike_rate); % 
-pullVel = coarseMax_Bin(absHvcmSbPull); 
-pullVel_Edge = round(linspace(0,ceil(range(pullVel)*.9),11)); 
-[pVel_mSpkR, pVel_sSpkR, pVel_bin] = func.group_stat(pullVel, spike_1000ms, pullVel_Edge); % get the mean and sem spike rates per binned reach velocity
-pVel_logSpkRate = log(pVel_mSpkR / spike_rate); % 
+pullVel_100ms = coarseMax_100msBin(absHvcmSbPull); 
+pullVel_100msEdge = round(linspace(0,ceil(range(pullVel_100ms)),11)); %round(linspace(0,ceil(range(pullVel_100ms)*.8),11)); 
+[pVel_mSpkR_100ms, pVel_sSpkR_100ms, pVel_bin_100ms] = func.group_stat(pullVel_100ms, spike_100ms, pullVel_100msEdge); % get the mean and sem spike rates per binned reach velocity
+pVel_logSpkRate_100ms = log(pVel_mSpkR_100ms / spike_rate); % 
+%pullVel = coarseMax_Bin(absHvcmSbPull); 
+%pullVel_Edge = round(linspace(0,ceil(range(pullVel)*.9),11)); 
+%[pVel_mSpkR, pVel_sSpkR, pVel_bin] = func.group_stat(pullVel, spike_1000ms, pullVel_Edge); % get the mean and sem spike rates per binned reach velocity
+%pVel_logSpkRate = log(pVel_mSpkR / spike_rate); % 
 
 if PLOT
     % plotting
     figure(1); clf;
     subplot(2, 1, 1);
     hold on;
-    scatter(reachVel, spike_1000ms, '.');
-    errorbar(rVel_bin, rVel_mSpkR, rVel_sSpkR);
+    scatter(reachVel_100ms, spike_100ms, '.');
+    errorbar(rVel_bin_100ms, rVel_mSpkR_100ms, rVel_sSpkR_100ms);
     subplot(2, 1, 2);
-    plot(rVel_bin, rVel_logSpkRate);
+    plot(rVel_bin_100ms, rVel_logSpkRate_100ms);
 end
 
 if PLOT
@@ -221,17 +220,17 @@ if PLOT
     figure(2); clf;
     subplot(2, 1, 1);
     hold on;
-    scatter(pullVel, spike_1000ms, '.');
-    errorbar(pVel_bin, pVel_mSpkR, pVel_sSpkR);
+    scatter(pullVel_100ms, spike_100ms, '.');
+    errorbar(pVel_bin_100ms, pVel_mSpkR_100ms, pVel_sSpkR_100ms);
     subplot(2, 1, 2);
-    plot(pVel_bin, pVel_logSpkRate);
+    plot(pVel_bin_100ms, pVel_logSpkRate_100ms);
 end
 
 %% 5. Parameter fitting
 rStart_base = MOVE_func(time_tr); % base for movement covariates
 reward_base = TASK_func(time_tr); % base for reward covariates
-rVel_base = hV_ReachFunc(rVel_bin); 
-pVel_base = hV_PullFunc(pVel_bin); 
+rVel_base = hV_ReachFunc(rVel_bin_100ms); 
+pVel_base = hV_PullFunc(pVel_bin_100ms); 
 
 % fitting weights by average response
 rStart_proj = pinv(rStart_base' * rStart_base) * rStart_base';
@@ -240,8 +239,8 @@ reward_proj = pinv(reward_base' * reward_base) * reward_base';
 w_leRi0 = rStart_proj * leRi_log; % w0 for the position (left vs right) variable
 w_loHi0 = rStart_proj * loHi_log; % w0 for the torque (low vs high) variable
 w_reward0 = reward_proj * reward_log;
-w_rVel0 = pinv(rVel_base' * rVel_base) * (rVel_base' * rVel_logSpkRate);
-w_pVel0 = pinv(pVel_base' * pVel_base) * (pVel_base' * pVel_logSpkRate);
+w_rVel0 = pinv(rVel_base' * rVel_base) * (rVel_base' * rVel_logSpkRate_100ms);
+w_pVel0 = pinv(pVel_base' * pVel_base) * (pVel_base' * pVel_logSpkRate_100ms);
 %w_h0 = pinv(h_base' * h_base) * (h_base' * spc_log); % spike history (auto correlation) is not included as the binsize = 10ms
 w_c0 = log(spike_rate);
 
@@ -274,14 +273,14 @@ if PLOT
     
     subplot(3, 2, 4); 
     hold on; 
-    plot(rVel_bin, rVel_logSpkRate);
-    plot(rVel_bin, rVel0);
+    plot(rVel_bin_100ms, rVel_logSpkRate_100ms);
+    plot(rVel_bin_100ms, rVel0);
     title('reach velocity')
     
     subplot(3, 2, 5); 
     hold on; 
-    plot(pVel_bin, pVel_logSpkRate);
-    plot(pVel_bin, pVel0);
+    plot(pVel_bin_100ms, pVel_logSpkRate_100ms);
+    plot(pVel_bin_100ms, pVel0);
     title('pull velocity')
 end
 
@@ -346,56 +345,25 @@ title('no-reward vs reward');
 
 subplot(3, 2, 4);
 hold on;
-plot(rVel_bin, rVel0);
-plot(rVel_bin, rVel1);
+plot(rVel_bin_100ms, rVel0);
+plot(rVel_bin_100ms, rVel1);
 title('reach velocity');
 
 subplot(3, 2, 5);
 hold on;
-plot(pVel_bin, pVel0);
-plot(pVel_bin, pVel1);
+plot(pVel_bin_100ms, pVel0);
+plot(pVel_bin_100ms, pVel1);
 title('pull velocity');
 
 %% get model prediction firing rates
 Xprm1 = X*prm1_norm; 
-figure; plot(Xprm1);
-expXprm1 = exp(Xprm1); 
-figure; plot(expXprm1);
+%figure; plot(Xprm1);
+expXprm1 = basis.normal_filter(exp(Xprm1), filter_sigma, 10); 
 
-spike_bin_conv = basis.normal_filter(spike_bin.*(1000/DT), filter_sigma, 10); % filter_sigma = 100 ms
-plot(spike_bin_conv)
+spike_bin_conv = basis.normal_filter((spike_bin.*(1000/DT))', filter_sigma, 10); % filter_sigma = 100 ms
+figure; hold on; plot(spike_bin_conv); plot(expXprm1); hold off;  
 
-%% Variance analysis (R^2)
-
-
-
-%% decoding target position
-% p(r|x=left,x~)
-% align to the task event (reach start to pull)
-[spike_rStart_count, time_tr_org] = alignToTaskEvent([jkvt(:).rStartToPull], spike_time, bin_size, bin_size, window + 4 * filter_sigma);      
-spike_rStart = spike_rStart_count'.*(1000./bin_size); % spike rate (Hz)
-in_t = 1 + cut:length(time_tr_org) - cut;
-time_tr = time_tr_org(in_t);
-
-% binned spike counts aligned to trial end
-[spike_rwdOrNo_count] = alignToTaskEvent([jkvt(:).trEnd]+1000, spike_time, bin_size, bin_size, window + 4 * filter_sigma);      
-spike_rwdOrNo = spike_rwdOrNo_count'.*(1000./bin_size); % spike rate (Hz)
-
-spike_leRi = func.group_stat2(spike_rStart, riI(pStartI)+1); % mean PSTH, lelo vs. rest
-spike_loHi = func.group_stat2(spike_rStart, hiI(pStartI)+1); % mean PSTH, lelo vs. rest
-spike_reward = func.group_stat2(spike_rwdOrNo, rwI+1); % mean PSTH, no Reward vs. reward
-
-% normal filter
-spike_leRi_conv = basis.normal_filter(spike_leRi, filter_sigma, bin_size);
-spike_loHi_conv = basis.normal_filter(spike_loHi, filter_sigma, bin_size);
-spike_reward_conv = basis.normal_filter(spike_reward, filter_sigma, bin_size); 
-
-% log
-leRi_log = log(spike_leRi_conv(in_t, :)/spike_rate);
-loHi_log = log(spike_loHi_conv(in_t, :)/spike_rate);
-reward_log = log(spike_reward_conv(in_t,:)/spike_rate); 
-
-% align fitted data to task events
+% get model prediction PSTHs
 model_rStart = func.alignGlmOutToTaskEvent([jkvt(:).rStartToPull], time_bin, expXprm1, 10, window + 4 * filter_sigma); % fitted rate aligned to reachStart  
 model_rwdOrNo = func.alignGlmOutToTaskEvent([jkvt(:).trEnd]+1000, time_bin, expXprm1, 10, window + 4 * filter_sigma);  % fitted rate aligned to trEnd+1000ms
 
@@ -403,20 +371,34 @@ model_leRi = func.group_stat2(model_rStart, riI(pStartI)+1); % fitted mean left 
 model_loHi = func.group_stat2(model_rStart, hiI(pStartI)+1); % fitted mean low vs. mean high
 model_reward = func.group_stat2(model_rwdOrNo, rwI+1); % fitted mean no-reward vs. mean reward
 
-% normal filter
-model_leRi_conv = basis.normal_filter(model_leRi, filter_sigma, bin_size); 
-model_loHi_conv = basis.normal_filter(model_loHi, filter_sigma, bin_size); 
-model_reward_conv = basis.normal_filter(model_reward, filter_sigma, bin_size); 
+%% Variance analysis (R^2)
+r2 = @(a,b) ones(1,size(a,2))-nansum((a-b).^2)./nansum((a-repmat(nanmean(a,1), size(a,1), 1)).^2); % r-squared = 1-SSres/SStot;
+r2_entire = r2(spike_bin_conv, expXprm1); 
+% calculate only within PSTHs? Not across the whole session
+model_rStart_psth2s = func.alignGlmOutToTaskEvent([jkvt(:).rStartToPull], time_bin, expXprm1, 10, 2000); % fitted rate aligned to reachStart  
+spike_rStart_psth2s = func.alignGlmOutToTaskEvent([jkvt(:).rStartToPull], time_bin, spike_bin_conv, 10, 2000); % fitted rate aligned to reachStart  
+r2_psth = r2(reshape(spike_rStart_psth2s,[],1),reshape(model_rStart_psth2s,[],1));
 
+%% decoding target position
+% p(r|x=left,x~)
+% align fitted data to task events
+% posterior probability (target position, left)
+% take the spike train of the trial
+aSpkTrain = basis.normal_filter(spike_rStart(:,78), filter_sigma, bin_size);
+figure; plot(aSpkTrain)
 
-poisspdf(x,lambda); 
+postLe = cell2mat(arrayfun(@(a,b) poisspdf(a,b), round(aSpkTrain), model_leRi(:,1), 'un', 0)); 
+postRi = cell2mat(arrayfun(@(a,b) poisspdf(a,b), round(aSpkTrain), model_leRi(:,2), 'un', 0)); 
 
+%figure; plot(postLe./(postLe+postRi)); 
+%figure; plot(model_leRi_conv); 
 
+% posterior probability (torque, low)
+postLo = cell2mat(arrayfun(@(a,b) poisspdf(a,b), round(aSpkTrain), model_loHi(:,1), 'un', 0)); 
+postHi = cell2mat(arrayfun(@(a,b) poisspdf(a,b), round(aSpkTrain), model_loHi(:,2), 'un', 0)); 
 
-
-
-
-
+figure; plot(postLo./(postLo+postHi)); 
+%figure; plot(model_loHi_conv); 
 
 
 
@@ -457,7 +439,7 @@ unitIdSTC = find(geomI & wfI);
 end
 
 function [winModelRate] = alignGlmOutToTaskEvent(evt, time_bin, modelRate, binSize, oneWindow)
-    windowBins = [floor(-oneWindow/binSize),ceil(oneWindow/binSize)]; 
+    windowBins = [floor(-oneWindow/binSize)+1,ceil(oneWindow/binSize)]; 
     binEvt = find(histcounts(evt,time_bin)'); % identify bins per event
     windowBound = arrayfun(@(a) a+windowBins,binEvt,'un',0); 
     for t = 1:length(windowBound)
