@@ -1,9 +1,14 @@
-function  [ctxRez, strRez, ctxstrRez] = leaveOneOutKFdecoderTrialTypeBalanced(stateD,ctxD,strD,laserI,resample)
+function  [ctxRez, strRez, ctxstrRez, params] = leaveOneOutKFdecoderTrialTypeBalanced_params(stateD,ctxD,strD,laserI,resample,ctxI_bsc,strI_bsc)
 %stateD = tmpState;
 %ctxD = s.dat.spkCtxR; 
 %strD = s.dat.spkStrR;
 %laserI = s.dat.laserIdxR; 
 %resample = 20; 
+%ctxI_bsc = s.ctxI; 
+%strI_bsc = s.strI; 
+
+ctxI_bscN = find(ctxI_bsc); 
+strI_bscN = find(strI_bsc); 
 
 valTrI = cell2mat(cellfun(@(a) ~isempty(a), ctxD, 'un', 0)); % valid trials
 stmTrI = cell2mat(cellfun(@(a) sum(a)>=1, laserI, 'un', 0)); % stim trials
@@ -146,6 +151,21 @@ for i = 1:resample %resample % repeat resampling trials
                 R_strVal = R_str(valCellIStr,valCellIStr); 
                 C_ctxstrVal = C_ctxstr(valCellICtxStr,:);
                 R_ctxstrVal = R_ctxstr(valCellICtxStr,valCellICtxStr);
+                
+                tempC_ctx = nan(length(ctxI_bsc),size(C_ctxVal,2)); 
+                tempC_ctx(ctxI_bscN(ctxI(valCellICtx)),:) = C_ctxVal; 
+                params.C_ctxVal{r,c,i} = tempC_ctx; 
+                
+                tempC_str = nan(length(strI_bsc),size(C_strVal,2)); 
+                tempC_str(strI_bscN(strI(valCellIStr)),:) = C_strVal; 
+                params.C_strVal{r,c,i} = tempC_str; 
+                
+                tempC_CtxStr = nan(length(ctxI_bsc),size(C_ctxstrVal,2)); 
+                tempC_CtxStrI = [ctxI_bscN(ctxI); strI_bscN(strI)]; 
+                tempC_CtxStrI(valCellICtxStr); 
+                tempC_CtxStr(tempC_CtxStrI(valCellICtxStr),:)=C_ctxstrVal; 
+                params.C_ctxstrVal{r,c,i} = tempC_CtxStr; 
+                
                 
                 for b = 1:curTrLength % # of timebins
                     % One-step prediction by ctx and str data separately

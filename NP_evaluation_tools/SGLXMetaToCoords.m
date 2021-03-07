@@ -9,7 +9,7 @@ function SGLXMetaToCoords(varargin)
 % Output selection: 0 for text coordinate file; 
 %                   1 for KS2 channel map file;
 %                   2 for strings to paste into JRClust .prm file
-outType = 0;
+outType = 1;
 
 if nargin >= 1
     meta = varargin{1}; 

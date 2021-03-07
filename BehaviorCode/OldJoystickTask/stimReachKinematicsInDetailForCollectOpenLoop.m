@@ -12,7 +12,7 @@ function [bTjStimLaser, bTjPStimLaser, thresholdCrossed] = stimReachKinematicsIn
 
 %% get behavioral data 'BehVariables.mat'
 load(fullfile(filePath,'BehVariables.mat'),'ts','reach0','positionData','lick')
-load(fullfile('/Volumes/RAID2/parkj/oldJoystickCalib','jsCalibData'),'mmConv*'); % voltage to mm conversion coefficients from the calibration data
+load(fullfile('/Volumes/Beefcake/Junchol_Data/oldJoystickCalib/jsCalibData.mat'),'mmConv*'); % voltage to mm conversion coefficients from the calibration data
 reach0mm = reach0.*mmConvR0;
 
 % conversion from voltage to mm

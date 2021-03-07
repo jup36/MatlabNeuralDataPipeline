@@ -159,9 +159,9 @@ for j = 1:size(trjSS,2)
                 end
                 rsImg2 = imresize(img2,[rsHeight,rsWidth]);
                 img12 = [img1, rsImg2]; 
-                hImg12 = figure;
-                imshow([img1, rsImg2]); 
-                F(valPtTot) = getframe(hImg12);              
+                hImg1 = figure;
+                imshow(img1); %, rsImg2]); 
+                F(valPtTot) = getframe(hImg1);              
                 pause(0.01);
                 delete(headCtx); delete(headStr); delete(headAct); close
         end

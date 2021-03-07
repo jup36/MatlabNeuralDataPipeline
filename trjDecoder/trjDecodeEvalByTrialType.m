@@ -6,7 +6,7 @@ function [corrRez,r2Rez] = trjDecodeEvalByTrialType(state, stateEst)
 % stateEst = s.dat.statePCtx; % estimated state
 
 nEach=sum(cell2mat(cellfun(@(a) ~isempty(a), state, 'un',0)),1); 
-valType = nEach>15; % evalute trial types with more than 15 trials 
+valType = nEach>10; % evalute trial types with more than 10 trials 
 
 state1 = state(:,valType);  
 stateEst1 = stateEst(:,valType); 

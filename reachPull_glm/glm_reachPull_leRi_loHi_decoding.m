@@ -16,6 +16,7 @@ p.filter_sigma = 100; % ms
 p.window = 5000; %5000; % ms
 p.cut = 4 * p.filter_sigma / p.DT;
 r2 = @(a,b) ones(1,size(a,2))-nansum((a-b).^2)./nansum((a-repmat(nanmean(a,1), size(a,1), 1)).^2); % r-squared = 1-SSres/SStot;
+p.isStr = cell2mat(spkTimesCell(5,:)); 
 
 % code parameter
 PLOT = false;
@@ -48,6 +49,7 @@ if sum(~rStartI & pStartI)>=1
         jkvt(tempMissingRstarts(tt)).rStartToPull = jkvt(tempMissingRstarts(tt)).pullStarts - 200;
     end
 end
+rStartI = cellfun(@(c) ~isempty(c), {jkvt(:).rStartToPull})';
 assert(unique(pStartI(rStartI))==true)
 
 % To save task variables
@@ -436,7 +438,6 @@ for f = 1:5 % 2-fold cross-validation for decoding
             end
             clearvars t
      
-            
         end
         fprintf('processed cell # %d for fold # %d\n', i_cell, f) % report unit progression
     end

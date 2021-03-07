@@ -6,7 +6,7 @@ lb = [1,2,5,6]; % left target position blocks
 rb = [3,4,7,8]; % right target position blocks
 
 for f = 1:size(initHcell,1) % file
-    hold on;
+    figure; hold on;
     for b = 1:size(initHcell,2) % block
         if ~isempty(initHcell{f,b,1})&&~isempty(reachHcell{f,b,1})
             if ismember(b,lb)
@@ -33,6 +33,6 @@ for f = 1:size(initHcell,1) % file
     reachstd = nanstd(reachHall'); 
     ylim([-5 reachmed(2)+3*reachstd(2)])
     print(fullfile(figSavePath,strcat('handScatterAtInitReachJs_',saveNameCell{f})),'-dpdf','-painters','-bestfit')
-    close all
+    %close all
 end
 end
