@@ -1,7 +1,7 @@
-function js2p0_tbytSpkHandJsPreprocess(filePath,saveName)
+function js2p0_tbytSpkHandJsPreprocess_10msBin(filePath,saveName)
 %This is a preprocessing function to first demarcate trials into blocks of
 % different joystick load & position combinations using the function 'jkvtBlockParse'.   
-% Then it gets trial-by-trial binned (e.g. 20-ms bin) spike count matrices aligned to 
+% Then it gets trial-by-trial binned (e.g. 10-ms bin) spike count matrices aligned to 
 % an event ('reachStart' or 'pullStart' or 'trJoystickReady') depending on the trial type. 
 % For each trial, hand/joystick trajectories (from DLC) and joystick kinetics 
 % (force applied from joystick encoder) are acquired, if available, with the same alignment
@@ -25,7 +25,7 @@ vfT = {jkvt(:).vFrameTime}'; % video frame time
 hTrj = {jkvt(:).hTrjF}'; % hand trajectory
 
 sm_kernel = TNC_CreateGaussian(250,30,500,20); % a kernel for smoothing (mu, sigma, time, dT)
-binSize = 20; % 20 ms
+binSize = 10; % 10 ms
 spkBin = -1000:2000;
 
 % cortex/striatum index
@@ -95,8 +95,8 @@ for t = 1:size(jkvt,2)
     % get spike time bins and binned spike count matrices 
     ss(t).spkTimeBins = ss(t).timeAlign + (spkBin(1):binSize:spkBin(end-1));
     spkTime1msBins = ss(t).timeAlign + (spkBin(1):spkBin(end-1));
-    ss(t).unitTimeBCtx = psthBINcellPerTrial( spkTimesCellCTX, ss(t).timeAlign, 20, [abs(spkBin(1)) abs(spkBin(end))]); % binned spikeCounts aligned to this trial
-    ss(t).unitTimeBStr = psthBINcellPerTrial( spkTimesCellSTR, ss(t).timeAlign, 20, [abs(spkBin(1)) abs(spkBin(end))]); % binned spikeCounts aligned to this trial
+    ss(t).unitTimeBCtx = psthBINcellPerTrial( spkTimesCellCTX, ss(t).timeAlign, binSize, [abs(spkBin(1)) abs(spkBin(end))]); % binned spikeCounts aligned to this trial
+    ss(t).unitTimeBStr = psthBINcellPerTrial( spkTimesCellSTR, ss(t).timeAlign, binSize, [abs(spkBin(1)) abs(spkBin(end))]); % binned spikeCounts aligned to this trial
  
     %% get interpolated/binned hand position, velocity and force measured from the joystick encoder (all traj aligned to t1n e.g., -1000ms from rStart)
     if ~isempty(hTrj{t}) && ~isempty(ss(t).timeAlign) % if hTrj available
@@ -187,10 +187,10 @@ end
 [ss(:).blType] = deal(jkvt(:).blType); 
 [ss(:).blShiftLogic] = deal(jkvt(:).blShiftLogic); 
     
-save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'ss','jkvt','trI','spkTimesCell','depthCtx','depthStr')
-% save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'depthCtx','depthStr','-append')
+save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrj10msBin_',saveName)),'ss','jkvt','trI','spkTimesCell','depthCtx','depthStr')
+% save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrj10msBin_',saveName)),'depthCtx','depthStr','-append')
 % save(fullfile('/Users/parkj/Dropbox (HHMI)/j2p0_dataShare/js2p0_tbytSpkHandJsTrjBin_WR40_081919.mat'),'depthCtx','depthStr','-append')
-%load(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'ss','jkvt','trI','spkTimesCell')
+%load(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrj10msBin_',saveName)),'ss','jkvt','trI','spkTimesCell')
 
 %% %%%%%%%%%%%%%%%%%%%
 %%% Helper function %%
@@ -249,10 +249,23 @@ end
 % get interpolated hand trajectory
 function [intV,xq] = interpsm(x,v)
 xq = x(1):x(end); % new timescale
-inthTrjF = @(a) interp1(x,a,xq); % interpolation function
+inthTrj1 = @(a) interp1(x,a,xq); % interpolation function
 vC = mat2cell(v,[ 1 1 1 ], size(v,2)); % convert to cell
-intVC = cellfun(@(a) inthTrjF(a), vC, 'un', 0); % interpolated hTrj cell
-intVCf = cellfun(@(a) sgolayfilt(a,3,201), intVC, 'un', 0); % filtered hTjr cell
+intVC = cellfun(@(a) inthTrj1(a), vC, 'un', 0); % interpolated hTrj cell
+
+lengthIntVC = unique(cellfun(@length, intVC)); 
+
+% to use sg filter get sgfiltFramelen
+if lengthIntVC >= 201
+    sgfiltFramelen = 101;
+elseif lengthIntVC < 201
+    if mod(lengthIntVC,2)==0
+        sgfiltFramelen = lengthIntVC-1; % the frame length for sg filter needs to be an odd number
+    else
+        sgfiltFramelen = lengthIntVC;
+    end
+end
+intVCf = cellfun(@(a) sgolayfilt(a,3,sgfiltFramelen), intVC, 'un', 0); % filtered hTjr cell
 intV = cell2mat(intVCf);
 end
 

@@ -74,7 +74,7 @@ for i = 1:length(nTr)
         [frameTimeC{pullStartI}] = deal('ReachStart');
         
     elseif strcmp(S(nTr(i)).trialType,'ps') % for a push trial, align time to pushStart
-        frameTime = S(nTr(i)).vFrameTime-(S(nTr(i)).trJsReady+S(nTr(i)).movKins.pushStart); % frameTime aligned to pushStart
+        frameTime = S(nTr(i)).Time-(S(nTr(i)).trJsReady+S(nTr(i)).movKins.pushStart); % frameTime aligned to pushStart
         pushTime = 0:S(nTr(i)).movKins.pushStop - S(nTr(i)).movKins.pushStart; % push time bins aligned to pullStart
         pushTimeFrames = ismember(frameTime,pushTime); % logical indicating pullTime frames
         if ~isnan(S(nTr(i)).stimLaserOn)

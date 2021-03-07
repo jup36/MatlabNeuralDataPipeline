@@ -1,4 +1,4 @@
-function js2p0_tbytSpkHandJsPreprocess(filePath,saveName)
+function js2p0_tbytSpkHandJsPreprocess_strOnly(filePath,saveName)
 %This is a preprocessing function to first demarcate trials into blocks of
 % different joystick load & position combinations using the function 'jkvtBlockParse'.   
 % Then it gets trial-by-trial binned (e.g. 20-ms bin) spike count matrices aligned to 
@@ -14,10 +14,10 @@ function js2p0_tbytSpkHandJsPreprocess(filePath,saveName)
 
 %% 1. Load data
 %clc; clearvars; close all;
-%filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles';
+%filePath = '/Volumes/Beefcake/Junchol_Data/np20_test/WR39_100819_g0';
 cd(filePath)
 % neural and behavioral data
-spkDir = dir('binSpkCountSTRCTX*');
+spkDir = dir('binSpkCountWR*');
 load(fullfile(spkDir(1).folder, spkDir(1).name),'spkTimesCell','jkvt')
 
 %% align hand trajectories to neural data
@@ -31,7 +31,7 @@ spkBin = -1000:2000;
 % cortex/striatum index
 depth = cell2mat(cellfun(@(a) a(2), spkTimesCell(4,:),'un',0))'; % depth from pial surface
 ctxI = depth<1900; % cortex index
-spkTimesCellCTX = spkTimesCell(:,ctxI);
+%spkTimesCellCTX = spkTimesCell(:,ctxI);
 depthCtx = depth(ctxI); 
 strI = depth>2100; % striatum index
 spkTimesCellSTR = spkTimesCell(:,strI);
@@ -95,7 +95,7 @@ for t = 1:size(jkvt,2)
     % get spike time bins and binned spike count matrices 
     ss(t).spkTimeBins = ss(t).timeAlign + (spkBin(1):binSize:spkBin(end-1));
     spkTime1msBins = ss(t).timeAlign + (spkBin(1):spkBin(end-1));
-    ss(t).unitTimeBCtx = psthBINcellPerTrial( spkTimesCellCTX, ss(t).timeAlign, 20, [abs(spkBin(1)) abs(spkBin(end))]); % binned spikeCounts aligned to this trial
+    %ss(t).unitTimeBCtx = psthBINcellPerTrial( spkTimesCellCTX, ss(t).timeAlign, 20, [abs(spkBin(1)) abs(spkBin(end))]); % binned spikeCounts aligned to this trial
     ss(t).unitTimeBStr = psthBINcellPerTrial( spkTimesCellSTR, ss(t).timeAlign, 20, [abs(spkBin(1)) abs(spkBin(end))]); % binned spikeCounts aligned to this trial
  
     %% get interpolated/binned hand position, velocity and force measured from the joystick encoder (all traj aligned to t1n e.g., -1000ms from rStart)
@@ -187,7 +187,7 @@ end
 [ss(:).blType] = deal(jkvt(:).blType); 
 [ss(:).blShiftLogic] = deal(jkvt(:).blShiftLogic); 
     
-save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'ss','jkvt','trI','spkTimesCell','depthCtx','depthStr')
+save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'ss','jkvt','trI','spkTimesCell','depthStr')
 % save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'depthCtx','depthStr','-append')
 % save(fullfile('/Users/parkj/Dropbox (HHMI)/j2p0_dataShare/js2p0_tbytSpkHandJsTrjBin_WR40_081919.mat'),'depthCtx','depthStr','-append')
 %load(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'ss','jkvt','trI','spkTimesCell')

@@ -32,7 +32,7 @@ cwRot2d = [cos(theta) sin(theta); -sin(theta) cos(theta)]; % clockwise rotation 
 cwRot3d = [cos(theta) sin(theta) 0; -sin(theta) cos(theta) 0; 0 0 1]; % clockwise rotation matrix
 
 % plot to check if rotation worked accurately
-newxy1 = cwRotM*xy1;
+newxy1 = cwRot2d*xy1;
 hold on; 
 plot(xy1(1,:),xy1(2,:),'bo') % old coordinates
 plot(newxy1(1,:),newxy1(2,:),'ro') % new coordinates

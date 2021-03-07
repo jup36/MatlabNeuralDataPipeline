@@ -18,7 +18,7 @@ clearvars trj3d
 T = T.('trj3d');
 
 hTrjF = {T(:).allPartsMedSgFronXYZ}; % all parts median and Savitzky-Golay filtered hand trajectory front cam
-%hTrjS = {T(:).allPartsMedSgSideXYZ}; % all parts median and Savitzky-Golay filtered hand trajectory side cam
+%hTrjS = {T(:).allPartsMedSgSideXYZ}; % all parts median and Savitzky-Golay filtgetHandJsKinematicsered hand trajectory side cam
 jsBot = {T(:).jsBSgFronXYZ}; 
 jsTop = {T(:).jsTSgFronXYZ}; 
 

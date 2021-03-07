@@ -1,4 +1,4 @@
-function preprocessingForDecoder_KalmanFilterHTrjF_reachPull(filePath, saveName)
+function preprocessingForDecoder_KalmanFilterHTrjF_reachPull_strOnly(filePath, saveName)
 %This function performs preprocessing for state decoding from cortical and
 % striatal spike activity using Kalman filter
 
@@ -7,7 +7,7 @@ function preprocessingForDecoder_KalmanFilterHTrjF_reachPull(filePath, saveName)
 %filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles';
 cd(filePath)
 % neural data
-spkDir = dir('binSpkCountSTRCTX*'); 
+spkDir = dir('binSpkCountSTR*'); 
 load(fullfile(spkDir(1).folder, spkDir(1).name),'spkTimesCell', 'rStartToPull')
 %load(fullfile('/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles','binSpkCountSTRCTXWR40_081919.mat'), 'spkTimesCell', 'rStartToPull', 'p')
 S=rStartToPull; clearvars rStartToPull
@@ -47,11 +47,6 @@ posTqCnt = zeros(length(posTq),1); % count occurrence of each combination
 depth = cell2mat(cellfun(@(a) a(2), spkTimesCell(4,:),'un',0))'; % depth from pial surface
 ctxI = depth<1900; % cortex index
 strI = depth>2100; % striatum index
-
-s.ctxI = ctxI; 
-s.strI = strI; 
-s.ctxI_bsc = find(ctxI); 
-s.strI_bsc = find(strI); 
 
 % preprocessing of hand trajectories
 for t = 1:length(ts)
@@ -134,7 +129,7 @@ for t = 1:length(ts)
         
         curSpkR = spkR(:,1:timeBin(end-1))'; % timebin(1ms)-by-neuron spike matrix 
         rsCurSpkR = reshape(curSpkR,binSize,[],size(curSpkR,2)); 
-        binSpkRCtxStr = squeeze(sum(rsCurSpkR,1))'; % unit-by-timeBin        
+        binSpkR = squeeze(sum(rsCurSpkR,1))'; % unit-by-timeBin        
         
         % get the pullStart and pullStop point and pull index, if exists
         if isfield(jkvt(vfI).movKins,'pullStart') && isfield(jkvt(vfI).movKins,'pullStop')
@@ -155,17 +150,13 @@ for t = 1:length(ts)
             
             if ~isempty(tmpPullStart) && ~isempty(tmpPullEnd)
                 s.dat.stateR{r,c} = tmpState(:,1:tmpPullStart-1);  
-                s.dat.spkCtxR{r,c} = binSpkRCtxStr(ctxI,1:tmpPullStart-1); 
-                s.dat.spkStrR{r,c} = binSpkRCtxStr(strI,1:tmpPullStart-1);      
-                s.dat.spkCtxStrR{r,c} = binSpkRCtxStr(:,1:tmpPullStart-1);            
-            
+                s.dat.spkStrR{r,c} = binSpkR(strI,1:tmpPullStart-1);                          
                 s.dat.stateP{r,c} = tmpState(:,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5));  
-                s.dat.spkCtxP{r,c} = binSpkRCtxStr(ctxI,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5)); 
-                s.dat.spkStrP{r,c} = binSpkRCtxStr(strI,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5));      
-                s.dat.spkCtxStrP{r,c} = binSpkRCtxStr(:,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5));    
+                s.dat.spkStrP{r,c} = binSpkR(strI,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5));      
             end
             s.dat.trialEvt{r,c} = t;
-            s.dat.trialJkvt{r,c} = tsJkvtTrs{t};            
+            s.dat.trialJkvt{r,c} = tsJkvtTrs{t};
+            
         end
         % get the laserStart and laserStop point and laser index, if exists
         if isfield(jkvt,'stimLaserOn')
@@ -188,5 +179,5 @@ for t = 1:length(ts)
     end
     fprintf('processed event# %d\n', t)  
 end
-save(fullfile(filePath,strcat('preprocessKFdecodeHTrjCtxStr_reachPull_',saveName)),'s')
+save(fullfile(filePath,strcat('preprocessKFdecodeHTrjStr_reachPull_',saveName)),'s')
 end

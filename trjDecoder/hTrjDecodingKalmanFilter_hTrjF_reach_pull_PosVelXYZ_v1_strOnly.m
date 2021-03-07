@@ -1,13 +1,19 @@
-function hTrjDecodingKalmanFilter_hTrjF_reach_pull_PosVelXYZ_v1(filePath, saveName)
+function hTrjDecodingKalmanFilter_hTrjF_reach_pull_PosVelXYZ_v1_strOnly(filePath, saveName)
 %This decodes kinematics of mouse 3-d hand movement trajectories (X,Y,Z)
 % using cross-validated (leave-a-trial-out) Kalman filter decoding.
 %filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles';
 cd(filePath)
-kfDir = dir('preprocessKFdecodeHTrjCtxStr_reachpull_hTrjF_20ms*');
+kfDir = dir('preprocessKFdecodeHTrjStr_reachpull_hTrjF_20ms*');
 load(fullfile(kfDir.folder,kfDir.name),'s')
 
 resample = 50;
-valTrI = cell2mat(cellfun(@(a) ~isempty(a), s.dat.spkCtxR, 'un', 0));
+valTrI_spk = cell2mat(cellfun(@(a) ~isempty(a), s.dat.spkStrR, 'un', 0));
+
+valTrI0_state = cell2mat(cellfun(@(a) ~isempty(a), s.dat.stateR, 'un', 0)); % valid trials
+valTrI1_state = cell2mat(cellfun(@(a) ~sum(sum(isnan(a)))>0, s.dat.stateR, 'un', 0));
+valTrI_state = valTrI0_state & valTrI1_state; 
+
+valTrI = valTrI_spk & valTrI_state; 
 
 %% REACH select kinematic variables to fit (e.g. hand position or hand velocity - fitting them both together doesn't seem to be a good idea for some reason(?))
 tmpState0 = cell(size(s.dat.stateR,1),size(s.dat.stateR,2)); 
@@ -24,22 +30,20 @@ for k = 1:8 % MAIN LOOP (fit X,Y,Z sperately and XYZ altogether)
     medP1 = nanmedian(cell2mat(cellfun(@(a) a(:,1), tmpState0(valTrI)','un',0)),2);
     tmpState(valTrI) = cellfun(@(a) a-repmat(medP1,1,size(a,2)),tmpState0(valTrI),'un',0);      
     %% leave-a-trial-out decoding using Kalman Filter (heavy-lifting part)
-    %[s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoder(tmpState, s.dat.spkCtxR, s.dat.spkStrR, s.dat.laserIdxR, 10); 
-    [s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoderTrialTypeBalanced(tmpState, s.dat.spkCtxR, s.dat.spkStrR, s.dat.laserIdxR, resample); 
+    [s.dat.stateRStr{k}] = leaveOneOutKFdecoderTrialTypeBalanced_strOnly(tmpState, s.dat.spkStrR, resample); 
     
     %% evaluate decoding with correlation and r-squred 
-    [corrRez.ctx{k},r2Rez.ctx{k}] =  trjDecodeEvalByTrialType(tmpState, s.dat.stateRCtx{k}.est); 
-    [corrRez.str{k},r2Rez.str{k}] = trjDecodeEvalByTrialType(tmpState, s.dat.stateRStr{k}.est); 
-    [corrRez.ctxstr{k},r2Rez.ctxstr{k}] = trjDecodeEvalByTrialType(tmpState, s.dat.stateRCtxStr{k}.est); 
+    [corrRez.str{k},r2Rez.str{k}] = trjDecodeEvalByTrialType(tmpState, s.dat.stateRStr{k}.est);     
 end
 clearvars k
 
 %% save the result
-save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPosVel_reach_',saveName)),'s','corrRez','r2Rez') % last saved after training without stim trials 5/27 Wed 9pm
+save(fullfile(filePath,strcat('rezKFdecodeHTrjStrPosVel_reach_strOnly',saveName)),'s','corrRez','r2Rez') % last saved after training without stim trials 5/27 Wed 9pm
 %trjMovie([stateCtxCC_sm(:,2), stateStrCC_sm(:,2), stateCC_sm(:,2)]', figSaveDir, 'kfDecode_Ypos_CtxStrAct')
 
 %% PULL
-valTrI = cell2mat(cellfun(@(a) ~isempty(a), s.dat.spkCtxP, 'un', 0));
+valTrI_spk = cell2mat(cellfun(@(a) ~isempty(a), s.dat.spkStrP, 'un', 0));
+valTrI = valTrI_spk & valTrI_state; 
 
 %% REACH select kinematic variables to fit (e.g. hand position or hand velocity - fitting them both together doesn't seem to be a good idea for some reason(?))
 tmpState0 = cell(size(s.dat.stateP,1),size(s.dat.stateP,2)); 
@@ -57,17 +61,15 @@ for k = 1:8 % MAIN LOOP (fit X,Y,Z sperately and XYZ altogether)
     tmpState(valTrI) = cellfun(@(a) a-repmat(medP1,1,size(a,2)),tmpState0(valTrI),'un',0);      
     %% leave-a-trial-out decoding using Kalman Filter (heavy-lifting part)
     %[s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoder(tmpState, s.dat.spkCtxP, s.dat.spkStrP, s.dat.laserIdxP, 10); 
-    [s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoderTrialTypeBalanced(tmpState, s.dat.spkCtxP, s.dat.spkStrP, s.dat.laserIdxP, resample); 
+    [s.dat.stateRStr{k}] = leaveOneOutKFdecoderTrialTypeBalanced_strOnly(tmpState, s.dat.spkStrP, resample); 
     
     %% evaluate decoding with correlation and r-squred 
-    [corrRez.ctx{k},r2Rez.ctx{k}] =  trjDecodeEvalByTrialType(tmpState, s.dat.stateRCtx{k}.est); 
     [corrRez.str{k},r2Rez.str{k}] = trjDecodeEvalByTrialType(tmpState, s.dat.stateRStr{k}.est); 
-    [corrRez.ctxstr{k},r2Rez.ctxstr{k}] = trjDecodeEvalByTrialType(tmpState, s.dat.stateRCtxStr{k}.est); 
 end
 clearvars k
 
 %% save the result
-save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPosVel_pull_',saveName)),'s','corrRez','r2Rez') % last saved after training without stim trials 5/27 Wed 9pm
+save(fullfile(filePath,strcat('rezKFdecodeHTrjStrPosVel_pull_strOnly',saveName)),'s','corrRez','r2Rez') % last saved after training without stim trials 5/27 Wed 9pm
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Helper function %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

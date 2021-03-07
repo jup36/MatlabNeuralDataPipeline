@@ -18,7 +18,8 @@ behDir = dir('jsTime1k_KinematicsTrajectories*');
 load(fullfile(behDir(1).folder, behDir(1).name),'jkvt')
 
 %% align hand and joystick trajectories and skip the neural data
-vfT = {jkvt(:).vFrameTime}'; % video frame time
+vfT = {jkvt(:).vFrameTime}';   % video frame time
+vfI = {jkvt(:).vUseFrameIdx}'; % video frame index
 hTrj = {jkvt(:).hTrjF}'; % hand trajectory
 
 sm_kernel = TNC_CreateGaussian(250,30,500,20); % a kernel for smoothing (mu, sigma, time, dT)
@@ -54,7 +55,7 @@ for t = 1:length(jkvt)
         tmphTrjRstartT = jkvt(t).vFrameTime(jkvt(t).hTrjRstart); 
         jkvt(t).rStartToPull = tmphTrjRstartT(find(tmphTrjRstartT<jkvt(t).pullStarts,1,'last')); 
         % detect reach stop 
-        tmphTrjRstopT = jkvt(t).vFrameTime(jkvt(t).hTrjRstop); 
+        tmphTrjRstopT = jkvt(t).vFrameTime(jkvt(t).hTrjRstop(jkvt(t).hTrjRstop<length(jkvt(t).vFrameTime))); 
         jkvt(t).rStopToPull = tmphTrjRstopT(find(tmphTrjRstopT>jkvt(t).pullStarts,1,'last')); 
     end
 end
@@ -69,114 +70,116 @@ for t = 1:size(jkvt,2)
             ss(t).timeAlign = jkvt(t).rStartToPull; % align to reach start to pull
             ss(t).evtAlign  = 'rStart';
             if ~isempty(jkvt(t).rStopToPull)
-                ss(t).rEnd = jkvt(t).rStopToPull; % reachStop 
+                ss(t).rEnd = jkvt(t).rStopToPull; % reachStop
             elseif ~isempty(jkvt(t).pullStops)
-                ss(t).rEnd = jkvt(t).pullStops;   % instead use pullStop 
+                ss(t).rEnd = jkvt(t).pullStops;   % instead use pullStop
             else
-                ss(t).rEnd = jkvt(t).trEnd; 
+                ss(t).rEnd = jkvt(t).trEnd;
             end
-        elseif ~isempty(jkvt(t).pullStarts) && ~isempty(jkvt(t).pullStops) 
+        elseif ~isempty(jkvt(t).pullStarts) && ~isempty(jkvt(t).pullStops)
             ss(t).timeAlign = jkvt(t).pullStarts;
-            ss(t).rEnd = jkvt(t).trJsReady+jkvt(t).movKins.pullStop; % reachStop 
+            ss(t).rEnd = jkvt(t).trJsReady+jkvt(t).movKins.pullStop; % reachStop
             ss(t).evtAlign  = 'pStart';
         else
             ss(t).timeAlign = jkvt(t).trJsReady; % if no reachStart detected, just align to the joystick ready
             ss(t).evtAlign  = 'trJsReady';
-            ss(t).rEnd = jkvt(t).trEnd; 
+            ss(t).rEnd = jkvt(t).trEnd;
         end
     else % not a success trial
-        if ~isempty(jkvt(t).hTrjRstart) && ~isempty(jkvt(t).hTrjRstop) % if there's a detected reachStart align to that
+        if ~isempty(jkvt(t).hTrjRstart) && ~isempty(jkvt(t).hTrjRstop) && length(jkvt(t).hTrjRstart)==length(jkvt(t).hTrjRstop) % if there's a detected reachStart align to that
             ss(t).timeAlign = jkvt(t).vFrameTime(jkvt(t).hTrjRstart(end));
             ss(t).evtAlign  = 'rStart';
-            ss(t).rEnd = jkvt(t).vFrameTime(min(jkvt(t).hTrjRstop(end),length(jkvt(t).vFrameTime))); % reachStop 
+            ss(t).rEnd = jkvt(t).vFrameTime(min(jkvt(t).hTrjRstop(end),length(jkvt(t).vFrameTime))); % reachStop
         else
             ss(t).timeAlign = jkvt(t).trJsReady; % if no reachStart detected, just align to the joystick ready
             ss(t).evtAlign  = 'trJsReady';
-            ss(t).rEnd = jkvt(t).trEnd; 
+            ss(t).rEnd = jkvt(t).trEnd;
         end
     end
     
-    % skip spike time bins and binned spike count matrices 
+    % skip spike time bins and binned spike count matrices
     ss(t).spkTimeBins = ss(t).timeAlign + (spkBin(1):binSize:spkBin(end-1));
     
     %% get interpolated/binned hand position, velocity and force measured from the joystick encoder (all traj aligned to t1n e.g., -1000ms from rStart)
     if ~isempty(hTrj{t}) && ~isempty(ss(t).timeAlign) % if hTrj available
-        spikeT = spkBin+ss(t).timeAlign; % 1-ms spike time bins
-        [inthTrj, intX] = interpsm(vfT{t},hTrj{t}); % interpolate and smooth
-        ss(t).hTrjBfull = inthTrj(:,1:binSize:size(inthTrj,2)); 
-        t1n = ss(t).timeAlign-abs(spkBin(1)); % t1 for neural spike trains
-        tEn = ss(t).timeAlign+abs(spkBin(2)); % tE for neural spike trains
-        t1h = intX(1); % t1 for hand trajectory       
-        tEr = ss(t).rEnd;  % time reach ends
-        
-        if t1n<t1h % need to extrapolate to the left (earlier)
-            extX1 = t1n:intX(end);
-            [exthTrj1] = extm(intX,extX1,inthTrj,'linear'); % linear extrapolation
-            hTrj1 = exthTrj1(:,1:find(extX1==tEr));
-        else
-            hTrj1 = inthTrj(:,find(intX==t1n):find(intX==tEr));
-        end
-        
-        % bin hTrj1
-        ss(t).hTrjB = hTrj1(:,1:binSize:size(hTrj1,2)); % bin hand trajectory
-        hVel1 = (hTrj1(:,2:end)-hTrj1(:,1:end-1))*(1000/1)/10; % velocity (cm/s)
-        ss(t).hVelB = hVel1(:,1:binSize:size(hVel1,2)); % bin hand velocity
-        ss(t).hInitPos = nanmedian(ss(t).hTrjB(:,1:max(1,abs(spkBin(1))/binSize/2)),2); % initial hand position
-        hDistFromInitPos = cell2mat(cellfun(@(a) sum(sqrt((a-repmat(ss(t).hInitPos,1,size(a,2))).^2),1), {hTrj1}, 'un', 0));  % compute the distance from the jsXY
-        ss(t).hDistFromInitPos = hDistFromInitPos(:,1:binSize:size(hTrj1,2)); % bin hand trajectory
-        
-        % force trace applied onto the joystick 
-        if strcmpi(jkvt(t).trialType, 'sp') && isfield(jkvt(t).movKins,'forceMN')
-            tmpForce = jkvt(t).movKins.forceMN(1,:); % current trial's smoothed Js force trace (from the encoder, acceleration + Mass)
-            tmpForceN = zeros(1, length(tmpForce)); % current trial's force trace only to include negative (means pull) portions
-            tJeNI = jkvt(t).movKins.forceMN(1,:)<0; % time index where force applied toward the pull direction
-            tmpForceN(tJeNI) = tmpForce(tJeNI);     % pull force trace
-            sTmpForceN = conv(tmpForceN,sm_kernel,'same'); % smoothing with convolution
-            tJe = jkvt(t).trJsReady:jkvt(t).trEnd-1; % time points for the joystick trace from encoder 
-            tmpForceNt1ntEr = targetintoreftime(sTmpForceN,tJe,t1n:tEr); % align pulling force to the time frame of hTrj
-            ss(t).maxPullForce = min(tmpForceNt1ntEr(1,abs(spkBin(1)):end)); % max pull force (pulls are negative-valued)
-            ss(t).forceB = tmpForceNt1ntEr(:,1:binSize:size(hTrj1,2)); % bin the forceTrace                
-        end
-        % get the pullStart and pullStop point and pull index, if exists
-        if isfield(jkvt(t).movKins,'pullStart') && isfield(jkvt(t).movKins,'pullStop')
-            pullStart = jkvt(t).trJsReady + jkvt(t).movKins.pullStart;
-            pullStop = jkvt(t).trJsReady + jkvt(t).movKins.pullStop;
-            ss(t).tPullStart = pullStart; 
-            ss(t).tPullStop = pullStop; 
-            ss(t).spkPullIdx = pullStart<=ss(t).spkTimeBins & ss(t).spkTimeBins<=pullStop;
-            ss(t).spkRchIdx  = ss(t).timeAlign<=ss(t).spkTimeBins & ss(t).spkTimeBins<=ss(t).rEnd;
-            ss(t).rchSpeed1ms = sqrt(sum(hVel1(:,max(1,abs(spkBin(1))-100):length(t1n:pullStart)).^2,1)); % cm/s speed (not velocity) during reach phase
-            ss(t).maxRchSpeed = max(ss(t).rchSpeed1ms,[],2); % cm/s max speed during reach phase
-            ss(t).maxRchSpeedXYZ = max(abs(hVel1(:,max(1,abs(spkBin(1))-100):length(t1n:pullStart))),[],2); % max speed during reach phase on X,Y,Z separately
-            hTrjBfullP1_1ms = inthTrj(:,intX<=pullStart); 
-            ss(t).hTrjBfullP1 = hTrjBfullP1_1ms(:,1:binSize:size(hTrjBfullP1_1ms,2)); 
-        end
-        
-        %% get joystick trajectory (all traj aligned to t1n e.g., -1000ms from rStart)
-        if ~isempty(jkvt(t).jsTrjValB)   
-            tJv = vfT{t}(length(vfT{t})-length(jkvt(t).jsTrjValB)+1:end); % joystick traj time points (4ms interval)
-            [intjTrj, intjsX] = interpsm(tJv,jkvt(t).jsTrjValB); % interpolate and smooth         
-            if t1n<tJv(1) % need to extrapolate to the left (earlier)
-                extX1 = t1n:intjsX(end);
-                [extjTrj1] = extm(intjsX,extX1,intjTrj,'linear'); % linear extrapolation
-                jTrj1 = extjTrj1(:,1:find(extX1==tEr));
+        if size(vfT{t},2)==size(hTrj{t},2)
+            spikeT = spkBin+ss(t).timeAlign; % 1-ms spike time bins
+            [inthTrj, intX] = interpsm(vfT{t},hTrj{t}); % interpolate and smooth
+            ss(t).hTrjBfull = inthTrj(:,1:binSize:size(inthTrj,2));
+            t1n = ss(t).timeAlign-abs(spkBin(1)); % t1 for neural spike trains
+            tEn = ss(t).timeAlign+abs(spkBin(2)); % tE for neural spike trains
+            t1h = intX(1); % t1 for hand trajectory
+            tEr = ss(t).rEnd;  % time reach ends
+            
+            if t1n<t1h % need to extrapolate to the left (earlier)
+                extX1 = t1n:intX(end);
+                [exthTrj1] = extm(intX,extX1,inthTrj,'linear'); % linear extrapolation
+                hTrj1 = exthTrj1(:,1:find(extX1==tEr));
             else
-                jTrj1 = intjTrj(:,find(intjsX==t1n):find(intjsX==tEr));
+                hTrj1 = inthTrj(:,find(intX==t1n):find(intX==tEr));
             end
-            % bin jTrj1
-            ss(t).jTrjB = jTrj1(:,1:binSize:size(jTrj1,2)); % 20 ms bins
-            % get the joystick set position from jkvt
-            ss(t).jsXYbot = jkvt(t).jsTreachPosB(1:2); % joystick bottom
-            % compute the reach angle on the horizontal X-Y plane 
-            ss(t).rchAngDeg = computeReachAngle({ss(t).hTrjB(1:2,:)}, ss(t).jsXYbot);  
-        end
-        
-        %% stim trial info
-        if isfield(jkvt,'stimLaserOn')
-            if ~isnan(jkvt(t).stimLaserOn) && ~isnan(jkvt(t).stimLaserOff)
-                ss(t).tLaserStart = jkvt(t).stimLaserOn;
-                ss(t).tLaserStop = jkvt(t).stimLaserOff;
-                ss(t).spkTimeBlaserI = ss(t).tLaserStart<=ss(t).spkTimeBins & ss(t).spkTimeBins<=ss(t).tLaserStop;
+            
+            % bin hTrj1
+            ss(t).hTrjB = hTrj1(:,1:binSize:size(hTrj1,2)); % bin hand trajectory
+            hVel1 = (hTrj1(:,2:end)-hTrj1(:,1:end-1))*(1000/1)/10; % velocity (cm/s)
+            ss(t).hVelB = hVel1(:,1:binSize:size(hVel1,2)); % bin hand velocity
+            ss(t).hInitPos = nanmedian(ss(t).hTrjB(:,1:max(1,abs(spkBin(1))/binSize/2)),2); % initial hand position
+            hDistFromInitPos = cell2mat(cellfun(@(a) sum(sqrt((a-repmat(ss(t).hInitPos,1,size(a,2))).^2),1), {hTrj1}, 'un', 0));  % compute the distance from the jsXY
+            ss(t).hDistFromInitPos = hDistFromInitPos(:,1:binSize:size(hTrj1,2)); % bin hand trajectory
+            
+            % force trace applied onto the joystick
+            if strcmpi(jkvt(t).trialType, 'sp') && isfield(jkvt(t).movKins,'forceMN')
+                tmpForce = jkvt(t).movKins.forceMN(1,:); % current trial's smoothed Js force trace (from the encoder, acceleration + Mass)
+                tmpForceN = zeros(1, length(tmpForce)); % current trial's force trace only to include negative (means pull) portions
+                tJeNI = jkvt(t).movKins.forceMN(1,:)<0; % time index where force applied toward the pull direction
+                tmpForceN(tJeNI) = tmpForce(tJeNI);     % pull force trace
+                sTmpForceN = conv(tmpForceN,sm_kernel,'same'); % smoothing with convolution
+                tJe = jkvt(t).trJsReady:jkvt(t).trEnd-1; % time points for the joystick trace from encoder
+                tmpForceNt1ntEr = targetintoreftime(sTmpForceN,tJe,t1n:tEr); % align pulling force to the time frame of hTrj
+                ss(t).maxPullForce = min(tmpForceNt1ntEr(1,abs(spkBin(1)):end)); % max pull force (pulls are negative-valued)
+                ss(t).forceB = tmpForceNt1ntEr(:,1:binSize:size(hTrj1,2)); % bin the forceTrace
+            end
+            % get the pullStart and pullStop point and pull index, if exists
+            if isfield(jkvt(t).movKins,'pullStart') && isfield(jkvt(t).movKins,'pullStop')
+                pullStart = jkvt(t).trJsReady + jkvt(t).movKins.pullStart;
+                pullStop = jkvt(t).trJsReady + jkvt(t).movKins.pullStop;
+                ss(t).tPullStart = pullStart;
+                ss(t).tPullStop = pullStop;
+                ss(t).spkPullIdx = pullStart<=ss(t).spkTimeBins & ss(t).spkTimeBins<=pullStop;
+                ss(t).spkRchIdx  = ss(t).timeAlign<=ss(t).spkTimeBins & ss(t).spkTimeBins<=ss(t).rEnd;
+                ss(t).rchSpeed1ms = sqrt(sum(hVel1(:,max(1,abs(spkBin(1))-100):length(t1n:pullStart)).^2,1)); % cm/s speed (not velocity) during reach phase
+                ss(t).maxRchSpeed = max(ss(t).rchSpeed1ms,[],2); % cm/s max speed during reach phase
+                ss(t).maxRchSpeedXYZ = max(abs(hVel1(:,max(1,abs(spkBin(1))-100):length(t1n:pullStart))),[],2); % max speed during reach phase on X,Y,Z separately
+                hTrjBfullP1_1ms = inthTrj(:,intX<=pullStart);
+                ss(t).hTrjBfullP1 = hTrjBfullP1_1ms(:,1:binSize:size(hTrjBfullP1_1ms,2));
+            end
+            
+            %% get joystick trajectory (all traj aligned to t1n e.g., -1000ms from rStart)
+            if ~isempty(jkvt(t).jsTrjValB)
+                tJv = vfT{t}(length(vfT{t})-length(jkvt(t).jsTrjValB)+1:end); % joystick traj time points (4ms interval)
+                [intjTrj, intjsX] = interpsm(tJv,jkvt(t).jsTrjValB); % interpolate and smooth
+                if t1n<tJv(1) % need to extrapolate to the left (earlier)
+                    extX1 = t1n:intjsX(end);
+                    [extjTrj1] = extm(intjsX,extX1,intjTrj,'linear'); % linear extrapolation
+                    jTrj1 = extjTrj1(:,1:find(extX1==tEr));
+                else
+                    jTrj1 = intjTrj(:,find(intjsX==t1n):find(intjsX==tEr));
+                end
+                % bin jTrj1
+                ss(t).jTrjB = jTrj1(:,1:binSize:size(jTrj1,2)); % 20 ms bins
+                % get the joystick set position from jkvt
+                ss(t).jsXYbot = jkvt(t).jsTreachPosB(1:2); % joystick bottom
+                % compute the reach angle on the horizontal X-Y plane
+                ss(t).rchAngDeg = computeReachAngle({ss(t).hTrjB(1:2,:)}, ss(t).jsXYbot);
+            end
+            
+            %% stim trial info
+            if isfield(jkvt,'stimLaserOn')
+                if ~isnan(jkvt(t).stimLaserOn) && ~isnan(jkvt(t).stimLaserOff)
+                    ss(t).tLaserStart = jkvt(t).stimLaserOn;
+                    ss(t).tLaserStop = jkvt(t).stimLaserOff;
+                    ss(t).spkTimeBlaserI = ss(t).tLaserStart<=ss(t).spkTimeBins & ss(t).spkTimeBins<=ss(t).tLaserStop;
+                end
             end
         end
     end

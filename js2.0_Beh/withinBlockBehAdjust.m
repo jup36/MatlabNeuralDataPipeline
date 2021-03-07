@@ -27,34 +27,35 @@ handXY1med = nanmedian(cell2mat(reshape(cellfun(@(a) a(1:2,1),{ss(isHTrj).hTrjB}
 %% hand & joystick X-Y trajectories drawn relative to the global reference point (handXY1med)
 for b = unique(blNumb)
     trs = find(blNumb==b & isHTrj==1); % all valid trials of the current block
-    % draw the first and last 10 trials of the block
-    for j = 1:2 % first and last 10 trials
-        if j == 1
-            trials = trs(1:min(10,length(trs))); % trs(1:floor(length(trs)/2)); % trs(1:10); trials to plot
-            figSaveName = sprintf('hand_js_XYtrj_first10ofB%d',b); 
-        elseif j == 2
-            trials = trs(max(1,end-9):end); %trs(ceil(length(trs)/2):end); % trs(end-9:end); trials to plot
-            figSaveName = sprintf('hand_js_XYtrj_last10ofB%d',b);  
-        end
-        rwdTrialI = rewardI(trials);
-        handXyzC = {ss(trials).hTrjB}; %{ss(trials).hTrjB};
-        jsXyzC = {ss(trials).jTrjB}; %{ss(trials).jTrjB};
-        jsXyzC = jsXyzC(~cellfun(@isempty,jsXyzC));
-        
-        handXY = cell2mat(reshape(cellfun(@(a) smooth2a(intm(a(1:2,:),100),0,3), handXyzC, 'un', 0),[1,1,length(handXyzC)]));
-        jsXY = cell2mat(reshape(cellfun(@(a) smooth2a(intm(a(1:2,:),100),0,3), jsXyzC, 'un', 0),[1,1,length(jsXyzC)]));
-        jsXY1 = nanmean([cell2mat({jkvt(trials).jsTreachPosT}),cell2mat({jkvt(trials).jsTreachPosB})],2);
-        jsXY1 = jsXY1(1:2,1);
-        if ismember(b,[1,2,5,6]); % left blocks
-            colorTheme = 'wblue';
-        else ismember(b,[3,4,7,8]); % right blocks
-            colorTheme = 'wred';
-        end
-        
-        if j == 1 
-            [blockRez(b).handXYtrj{1},blockRez(b).jXY1] = plotHandJsTrjXY1(handXY,handXY1med,jsXY,jsXY1,rwdTrialI,colorTheme,figSavePath,figSaveName);
-        elseif j == 2
-            [blockRez(b).handXYtrj{2}] = plotHandJsTrjXY1(handXY,handXY1med,jsXY,jsXY1,rwdTrialI,colorTheme,figSavePath,figSaveName);
+    if length(trs) >= 10 % draw the first and last 10 trials of the block
+        for j = 1:2 % first and last 10 trials
+            if j == 1
+                trials = trs(1:min(10,length(trs))); % trs(1:floor(length(trs)/2)); % trs(1:10); trials to plot
+                figSaveName = sprintf('hand_js_XYtrj_first10ofB%d',b);
+            elseif j == 2
+                trials = trs(max(1,end-9):end); %trs(ceil(length(trs)/2):end); % trs(end-9:end); trials to plot
+                figSaveName = sprintf('hand_js_XYtrj_last10ofB%d',b);
+            end
+            rwdTrialI = rewardI(trials);
+            handXyzC = {ss(trials).hTrjB}; %{ss(trials).hTrjB};
+            jsXyzC = {ss(trials).jTrjB}; %{ss(trials).jTrjB};
+            jsXyzC = jsXyzC(~cellfun(@isempty,jsXyzC));
+            
+            handXY = cell2mat(reshape(cellfun(@(a) smooth2a(intm(a(1:2,:),100),0,3), handXyzC, 'un', 0),[1,1,length(handXyzC)]));
+            jsXY = cell2mat(reshape(cellfun(@(a) smooth2a(intm(a(1:2,:),100),0,3), jsXyzC, 'un', 0),[1,1,length(jsXyzC)]));
+            jsXY1 = nanmean([cell2mat({jkvt(trials).jsTreachPosT}),cell2mat({jkvt(trials).jsTreachPosB})],2);
+            jsXY1 = jsXY1(1:2,1);
+            if ismember(b,[1,2,5,6]); % left blocks
+                colorTheme = 'wblue';
+            else ismember(b,[3,4,7,8]); % right blocks
+                colorTheme = 'wred';
+            end
+            
+            if j == 1
+                [blockRez(b).handXYtrj{1},blockRez(b).jXY1] = plotHandJsTrjXY1_rotate(handXY,handXY1med,jsXY,jsXY1,rwdTrialI,colorTheme,figSavePath,figSaveName);
+            elseif j == 2
+                [blockRez(b).handXYtrj{2}] = plotHandJsTrjXY1_rotate(handXY,handXY1med,jsXY,jsXY1,rwdTrialI,colorTheme,figSavePath,figSaveName);
+            end
         end
     end
 end
@@ -62,34 +63,36 @@ end
 %% (reward trials only) hand & joystick X-Y trajectories drawn relative to the global reference point (handXY1med)
 for b = unique(blNumb)
     trs = find(blNumb==b & isHTrj==1  & rewardI); % all valid trials of the current block
-    % draw the first and last 10 trials of the block
-    for j = 1:2 % first and last 10 trials
-        if j == 1
-            trials = trs(1:min(10,length(trs))); % trs(1:floor(length(trs)/2)); % trs(1:10); trials to plot
-            figSaveName = sprintf('rwdHand_js_XYtrj_first10ofB%d',b); 
-        elseif j == 2
-            trials = trs(max(1,end-9):end); %trs(ceil(length(trs)/2):end); % trs(end-9:end); trials to plot
-            figSaveName = sprintf('rwdHand_js_XYtrj_last10ofB%d',b);  
-        end
-        rwdTrialI = rewardI(trials);
-        handXyzC = {ss(trials).hTrjB}; %{ss(trials).hTrjB};
-        jsXyzC = {ss(trials).jTrjB}; %{ss(trials).jTrjB};
-        jsXyzC = jsXyzC(~cellfun(@isempty,jsXyzC));
-        
-        handXY = cell2mat(reshape(cellfun(@(a) smooth2a(intm(a(1:2,:),100),0,3), handXyzC, 'un', 0),[1,1,length(handXyzC)]));
-        jsXY = cell2mat(reshape(cellfun(@(a) smooth2a(intm(a(1:2,:),100),0,3), jsXyzC, 'un', 0),[1,1,length(jsXyzC)]));
-        jsXY1 = nanmean([cell2mat({jkvt(trials).jsTreachPosT}),cell2mat({jkvt(trials).jsTreachPosB})],2);
-        jsXY1 = jsXY1(1:2,1);
-        if ismember(b,[1,2,5,6]); 
-            colorTheme = 'wblue';
-        else ismember(b,[3,4,7,8]); 
-            colorTheme = 'wred';
-        end
-        
-        if j == 1 
-            [blockRez(b).rwdHandXYtrj{1},blockRez(b).rwdJXY1] = plotHandJsTrjXY1(handXY,handXY1med,jsXY,jsXY1,rwdTrialI,colorTheme,figSavePath,figSaveName);
-        elseif j == 2
-            [blockRez(b).rwdHandXYtrj{2}] = plotHandJsTrjXY1(handXY,handXY1med,jsXY,jsXY1,rwdTrialI,colorTheme,figSavePath,figSaveName);
+    if length(trs) >= 10 % draw the first and last 10 trials of the block
+        % draw the first and last 10 trials of the block
+        for j = 1:2 % first and last 10 trials
+            if j == 1
+                trials = trs(1:min(10,length(trs))); % trs(1:floor(length(trs)/2)); % trs(1:10); trials to plot
+                figSaveName = sprintf('rwdHand_js_XYtrj_first10ofB%d',b);
+            elseif j == 2
+                trials = trs(max(1,end-9):end); %trs(ceil(length(trs)/2):end); % trs(end-9:end); trials to plot
+                figSaveName = sprintf('rwdHand_js_XYtrj_last10ofB%d',b);
+            end
+            rwdTrialI = rewardI(trials);
+            handXyzC = {ss(trials).hTrjB}; %{ss(trials).hTrjB};
+            jsXyzC = {ss(trials).jTrjB}; %{ss(trials).jTrjB};
+            jsXyzC = jsXyzC(~cellfun(@isempty,jsXyzC));
+            
+            handXY = cell2mat(reshape(cellfun(@(a) smooth2a(intm(a(1:2,:),100),0,3), handXyzC, 'un', 0),[1,1,length(handXyzC)]));
+            jsXY = cell2mat(reshape(cellfun(@(a) smooth2a(intm(a(1:2,:),100),0,3), jsXyzC, 'un', 0),[1,1,length(jsXyzC)]));
+            jsXY1 = nanmean([cell2mat({jkvt(trials).jsTreachPosT}),cell2mat({jkvt(trials).jsTreachPosB})],2);
+            jsXY1 = jsXY1(1:2,1);
+            if ismember(b,[1,2,5,6]);
+                colorTheme = 'wblue';
+            else ismember(b,[3,4,7,8]);
+                colorTheme = 'wred';
+            end
+            
+            if j == 1
+                [blockRez(b).rwdHandXYtrj{1},blockRez(b).rwdJXY1] = plotHandJsTrjXY1_rotate(handXY,handXY1med,jsXY,jsXY1,rwdTrialI,colorTheme,figSavePath,figSaveName);
+            elseif j == 2
+                [blockRez(b).rwdHandXYtrj{2}] = plotHandJsTrjXY1_rotate(handXY,handXY1med,jsXY,jsXY1,rwdTrialI,colorTheme,figSavePath,figSaveName);
+            end
         end
     end
 end
@@ -97,41 +100,45 @@ end
 %% force curves aligned to the max (negative) pull force point
 for b = unique(blNumb)
     trs = find(blNumb==b & isHTrj==1); % & isJsTrj);
-    % draw the first 10 trials of the block
-    trials = trs(1:10); %trs(1:floor(length(trs)/2)); % trs(1:10); % the first 10 trials to plot
-    forceTrjs = {ss(trials).forceB}; % binned force trajectories
-    figSaveName = sprintf('forceTrajectory_b%d_first10',b);
-    if ismember(b,[1,2,5,6]);
-        colorTheme = 'wblue';
-    else ismember(b,[3,4,7,8]);
-        colorTheme = 'wred';
+    if length(trs) >= 10
+        % draw the first 10 trials of the block
+        trials = trs(1:10); %trs(1:floor(length(trs)/2)); % trs(1:10); % the first 10 trials to plot
+        forceTrjs = {ss(trials).forceB}; % binned force trajectories
+        figSaveName = sprintf('forceTrajectory_b%d_first10',b);
+        if ismember(b,[1,2,5,6]);
+            colorTheme = 'wblue';
+        else ismember(b,[3,4,7,8]);
+            colorTheme = 'wred';
+        end
+        blockRez(b).forceTrj{1} = plotForceAlignToMaxTorque(forceTrjs, figSavePath, figSaveName, 10, colorTheme);
+        % draw the last 10 trials of the block
+        trials = trs(end-9:end); %trs(ceil(length(trs)/2):end); % trs(end-9:end); % the last 10 trials to plot
+        forceTrjs = {ss(trials).forceB}; % binned force trajectories
+        figSaveName = sprintf('forceTrajectory_b%d_last10',b);
+        blockRez(b).forceTrj{2} = plotForceAlignToMaxTorque(forceTrjs, figSavePath, figSaveName, 10, colorTheme);
     end
-    blockRez(b).forceTrj{1} = plotForceAlignToMaxTorque(forceTrjs, figSavePath, figSaveName, 10, colorTheme);
-    % draw the last 10 trials of the block
-    trials = trs(end-9:end); %trs(ceil(length(trs)/2):end); % trs(end-9:end); % the last 10 trials to plot
-    forceTrjs = {ss(trials).forceB}; % binned force trajectories
-    figSaveName = sprintf('forceTrajectory_b%d_last10',b);
-    blockRez(b).forceTrj{2} = plotForceAlignToMaxTorque(forceTrjs, figSavePath, figSaveName, 10, colorTheme);
 end
 
 %% (reward trials only) force curves aligned to the max (negative) pull force point
 for b = unique(blNumb)
     trs = find(blNumb==b & isHTrj==1 & rewardI); % & isJsTrj);
-    % draw the first 10 trials of the block
-    trials = trs(1:min(10,length(trs))); %trs(1:floor(length(trs)/2)); % trs(1:10); % the first 10 trials to plot
-    forceTrjs = {ss(trials).forceB}; % binned force trajectories
-    figSaveName = sprintf('rwdForceTrajectory_b%d_first10',b);
-    if ismember(b,[1,2,5,6]);
-        colorTheme = 'wblue';
-    else ismember(b,[3,4,7,8]);
-        colorTheme = 'wred';
+    if length(trs) >= 10
+        % draw the first 10 trials of the block
+        trials = trs(1:min(10,length(trs))); %trs(1:floor(length(trs)/2)); % trs(1:10); % the first 10 trials to plot
+        forceTrjs = {ss(trials).forceB}; % binned force trajectories
+        figSaveName = sprintf('rwdForceTrajectory_b%d_first10',b);
+        if ismember(b,[1,2,5,6]);
+            colorTheme = 'wblue';
+        else ismember(b,[3,4,7,8]);
+            colorTheme = 'wred';
+        end
+        blockRez(b).rwdForceTrj{1} = plotForceAlignToMaxTorque(forceTrjs, figSavePath, figSaveName, 10, colorTheme);
+        % draw the last 10 trials of the block
+        trials = trs(max(1,end-9):end); %trs(ceil(length(trs)/2):end); % trs(end-9:end); % the last 10 trials to plot
+        forceTrjs = {ss(trials).forceB}; % binned force trajectories
+        figSaveName = sprintf('rwdForceTrajectory_b%d_last10',b);
+        blockRez(b).rwdForceTrj{2} = plotForceAlignToMaxTorque(forceTrjs, figSavePath, figSaveName, 10, colorTheme);
     end
-    blockRez(b).rwdForceTrj{1} = plotForceAlignToMaxTorque(forceTrjs, figSavePath, figSaveName, 10, colorTheme);
-    % draw the last 10 trials of the block
-    trials = trs(max(1,end-9):end); %trs(ceil(length(trs)/2):end); % trs(end-9:end); % the last 10 trials to plot
-    forceTrjs = {ss(trials).forceB}; % binned force trajectories
-    figSaveName = sprintf('rwdForceTrajectory_b%d_last10',b);
-    blockRez(b).rwdForceTrj{2} = plotForceAlignToMaxTorque(forceTrjs, figSavePath, figSaveName, 10, colorTheme);
 end
 
 % save 'blockRez'
