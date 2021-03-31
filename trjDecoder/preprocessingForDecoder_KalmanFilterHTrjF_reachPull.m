@@ -184,6 +184,10 @@ for t = 1:length(ts)
                       s.dat.laserIdxP{r,c} = s.dat.laserIdx{r,c}(:,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5)); 
                 end
             end
+        else
+            s.dat.laserIdx{r,c} = 0; 
+            s.dat.laserIdxR{r,c} = 0; 
+            s.dat.laserIdxP{r,c} = 0; 
         end
     end
     fprintf('processed event# %d\n', t)  
