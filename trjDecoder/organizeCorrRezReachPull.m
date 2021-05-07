@@ -13,9 +13,9 @@ function [ctxRchCorr, strRchCorr, ctxstrRchCorr, ctxPullCorr, strPullCorr, ctxst
 
 for f = 1:length(filePath) 
     %% load files
-    rDir = dir(fullfile(filePath{f},'rezKFdecodeHTrjCtxStrPosVel_reach_*')); 
+    rDir = dir(fullfile(filePath{f},'rezKFdecodeHTrjCtxStrPosVel_reach_rec_*')); 
     rS = load(fullfile(rDir.folder, rDir.name)); 
-    pDir = dir(fullfile(filePath{f},'rezKFdecodeHTrjCtxStrPosVel_pull_*')); 
+    pDir = dir(fullfile(filePath{f},'rezKFdecodeHTrjCtxStrPosVel_pull_rec_*')); 
     pS = load(fullfile(pDir.folder, pDir.name)); 
     % organize corr    
     for k = 1:length(rS.corrRez.ctx)

@@ -6,7 +6,7 @@ cd(filePath)
 kfDir = dir('preprocessKFdecodeHTrjCtxStr_reachpull_hTrjF_20ms*');
 load(fullfile(kfDir.folder,kfDir.name),'s')
 
-resample = 25; 
+resample = 50; 
 valTrI = cell2mat(cellfun(@(a) ~isempty(a), s.dat.spkCtxR, 'un', 0));
 
 %% REACH select kinematic variables to fit (e.g. hand position or hand velocity - fitting them both together doesn't seem to be a good idea for some reason(?))

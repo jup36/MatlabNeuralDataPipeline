@@ -1,22 +1,22 @@
-% filePath = {'/Volumes/Beefcake/Junchol_Data/JS2p0/WR37_022119/Matfiles'...,
-%     '/Volumes/Beefcake/Junchol_Data/JS2p0/WR38_052219/Matfiles'...,
-%     '/Volumes/Beefcake/Junchol_Data/JS2p0/WR38_052419/Matfiles'...,
-%     '/Volumes/Beefcake/Junchol_Data/JS2p0/WR39_100219/Matfiles'...,
-%     '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles'...,
-%     '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles'...,
-%     '/Volumes/Beefcake/Junchol_Data/JS2p0/WR44_031020/Matfiles'};
+% filePath = {'/Volumes/8TB/Junchol_Data/JS2p0/WR37_022119/Matfiles'...,
+%     '/Volumes/8TB/Junchol_Data/JS2p0/WR38_052219/Matfiles'...,
+%     '/Volumes/8TB/Junchol_Data/JS2p0/WR38_052419/Matfiles'...,
+%     '/Volumes/8TB/Junchol_Data/JS2p0/WR39_100219/Matfiles'...,
+%     '/Volumes/8TB/Junchol_Data/JS2p0/WR40_081919/Matfiles'...,
+%     '/Volumes/8TB/Junchol_Data/JS2p0/WR40_082019/Matfiles'...,
+%     '/Volumes/8TB/Junchol_Data/JS2p0/WR44_031020/Matfiles'};
 
-%filePath = {'/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles'...,
-%            '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles'};
+%filePath = {'/Volumes/8TB/Junchol_Data/JS2p0/WR40_081919/Matfiles'...,
+%            '/Volumes/8TB/Junchol_Data/JS2p0/WR40_082019/Matfiles'};
 
 function [ctxRchR2, strRchR2, ctxstrRchR2, ctxPullR2, strPullR2, ctxstrPullR2] = organizeR2RezReachPull(filePath)
 
 for f = 1:length(filePath) 
     %% load files
-    rDir = dir(fullfile(filePath{f},'rezKFdecodeHTrjCtxStrPosVel_reach_*')); 
-    rS = load(fullfile(rDir.folder, rDir.name)); 
-    pDir = dir(fullfile(filePath{f},'rezKFdecodeHTrjCtxStrPosVel_pull_*')); 
-    pS = load(fullfile(pDir.folder, pDir.name)); 
+    rDir = dir(fullfile(filePath{f},'rezKFdecodeHTrjCtxStrPosVel_reach_rec_*')); 
+    rS = load(fullfile(rDir.folder, rDir.name), 'r2Rez'); 
+    pDir = dir(fullfile(filePath{f},'rezKFdecodeHTrjCtxStrPosVel_pull_rec_*')); 
+    pS = load(fullfile(pDir.folder, pDir.name), 'r2Rez'); 
     % organize r2    
     for k = 1:length(rS.r2Rez.ctx)
         switch k

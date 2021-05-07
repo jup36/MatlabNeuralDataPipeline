@@ -54,7 +54,7 @@ for tt = 1:8
 %     end 
 end
 
-mdPrm_str = cell2mat(cellfun(@(a) nanmean(a), dPrmTrjC_dStr_norm, 'un', 0)'); 
+mdPrm_str = cell2mat(cellfun(@(a) mean(a), dPrmTrjC_dStr_norm, 'un', 0)'); 
 
 % plot pure direction
 figure; hold on; 
@@ -80,7 +80,7 @@ plot(mean(mdPrm_str([1,3,5,7],:)))
 %plot(mdPrm_str(7,:))
 axis tight
 set(gca,'tickDir','out')
-print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure','dPrm_encodingType_temporal_Str'),'-dpdf','-painters')
+print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure','dPrm_neuronType_Str'),'-dpdf','-painters')
 
 %% mCtx
 for tt = 1:8
@@ -91,7 +91,7 @@ for tt = 1:8
 %     end 
 end
 
-mdPrm_ctx = cell2mat(cellfun(@(a) nanmean(a), dPrmTrjC_Ctx_norm, 'un', 0)'); 
+mdPrm_ctx = cell2mat(cellfun(@(a) mean(a), dPrmTrjC_Ctx_norm, 'un', 0)'); 
 
 % plot pure direction
 figure; hold on; 
@@ -117,5 +117,5 @@ plot(mean(mdPrm_ctx([1,3,5,7],:)))
 %plot(mdPrm_ctx(7,:))
 axis tight
 set(gca,'tickDir','out')
-print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure','dPrm_encodingType_temporal_Ctx'),'-dpdf','-painters')
+print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure','dPrm_neuronType_Ctx'),'-dpdf','-painters')
 

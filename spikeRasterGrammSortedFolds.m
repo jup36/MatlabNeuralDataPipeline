@@ -34,7 +34,9 @@ for fd = 1:length(foldDatCell) % increment folds
     for t = 1:length(thisSpikeTimesCell) % increment trials
         
         thisSpikeTrain1ms = zeros(1,sum(psthWin));
-        thisSpikeTrain1ms(thisSpikeTimesCell{t,1}) = 1;
+        if sum(~isnan(thisSpikeTimesCell{t,1}))>0
+            thisSpikeTrain1ms(thisSpikeTimesCell{t,1}) = 1;
+        end
         thisSpikeTrainCell{t,1} = bin1msSpkCountMat( thisSpikeTrain1ms, 50, 50, 'align', 'center' );        
         %thisSpikeTrainCell{t,1} = histcounts(thisSpikeTimesCell{t,1},binX); % count spikes across bins
         thisSpikeTrainCell{t,1} = conv(thisSpikeTrainCell{t,1}.*(1000/binSize),gaussianKernel,'same');  % conversion to Hz
