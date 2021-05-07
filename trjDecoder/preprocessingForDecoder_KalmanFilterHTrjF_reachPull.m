@@ -13,7 +13,7 @@ load(fullfile(spkDir(1).folder, spkDir(1).name),'spkTimesCell', 'rStartToPull')
 S=rStartToPull; clearvars rStartToPull
 % behavioral data
 
-behDir = dir('jsTime1k_KinematicsTrajectories*'); 
+behDir = dir('js2p0_tbytSpkHandJsTrjBin_WR*'); 
 load(fullfile(behDir(1).folder,fullfile(behDir(1).name)),'jkvt'); 
 
 %% align hand trajectories to neural data
@@ -45,8 +45,8 @@ posTqCnt = zeros(length(posTq),1); % count occurrence of each combination
 
 % cortex/striatum index
 depth = cell2mat(cellfun(@(a) a(2), spkTimesCell(4,:),'un',0))'; % depth from pial surface
-ctxI = depth<1900; % cortex index
-strI = depth>2100; % striatum index
+ctxI = depth<2000; % <1900; % cortex index
+strI = depth>2000; % >2100; % striatum index
 
 s.ctxI = ctxI; 
 s.strI = strI; 

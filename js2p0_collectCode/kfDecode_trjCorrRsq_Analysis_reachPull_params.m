@@ -1,12 +1,13 @@
 
-filePath = {'/Volumes/Beefcake/Junchol_Data/JS2p0/WR37_022119/Matfiles'...,
-    '/Volumes/Beefcake/Junchol_Data/JS2p0/WR38_052219/Matfiles'...,
-    '/Volumes/Beefcake/Junchol_Data/JS2p0/WR38_052419/Matfiles'...,
-    '/Volumes/Beefcake/Junchol_Data/JS2p0/WR39_100219/Matfiles'...,
-    '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081919/Matfiles'...,
-    '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles'...,
-    '/Volumes/Beefcake/Junchol_Data/JS2p0/WR44_031020/Matfiles'};
-figSavePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/collectData/kfDecodeCorrKinematics';
+filePath = {'/Volumes/8TB/Junchol_Data/JS2p0/WR37_022119/Matfiles'...,
+            '/Volumes/8TB/Junchol_Data/JS2p0/WR38_052219/Matfiles'...,
+            '/Volumes/8TB/Junchol_Data/JS2p0/WR38_052419/Matfiles'...,
+            '/Volumes/8TB/Junchol_Data/JS2p0/WR39_100219/Matfiles'...,
+            '/Volumes/8TB/Junchol_Data/JS2p0/WR40_081919/Matfiles'...,
+            '/Volumes/8TB/Junchol_Data/JS2p0/WR40_082019/Matfiles'...,
+            '/Volumes/8TB/Junchol_Data/JS2p0/WR44_031020/Matfiles'};
+            
+figSavePath = '/Volumes/8TB/Junchol_Data/JS2p0/collectData/kfDecodeCorrKinematics';
 
 %% load corrRez structure and collect data
 % organize corr data
@@ -17,8 +18,8 @@ figSavePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/collectData/kfDecodeCorrKine
 [ ctxRchW_posM, strRchW_posM, ctxRchW_velM, strRchW_velM, ctxPullW_posM, strPullW_posM, ctxPullW_velM, strPullW_velM ] = organizeKFdecoderWeights(filePath); 
 
 %% save
-%save(fullfile('/Volumes/Beefcake/Junchol_Data/JS2p0/collectData/kfDecodeCorrKinematics','trj_Corr_R2_kfWeight_Collect_reachPull_posVel')) % saved on 3/10/21
-%load(fullfile('/Volumes/Beefcake/Junchol_Data/JS2p0/collectData/kfDecodeCorrKinematics','trj_Corr_R2_kfWeight_Collect_reachPull_posVel'))
+%save(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/kfDecodeCorrKinematics','trj_Corr_R2_kfWeight_Collect_reachPull_posVel')) % saved on 3/10/21
+%load(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/kfDecodeCorrKinematics','trj_Corr_R2_kfWeight_Collect_reachPull_posVel'))
 
 %% post-process weights data weights for X pos Ctx Str
 % reach phase
@@ -34,8 +35,8 @@ xlim([0.1 4])
 print(fullfile(figSavePath,'kfDecodeW_reachPhase_xPos_CtxStr'),'-dpdf','-bestfit','-painters')
 
 % pull phase
-[ctxPullWpos_DepthBin,~] = postprocessWeights(cell2mat(ctxPullW_posM)); 
-[strPullWpos_DepthBin,~] = postprocessWeights(cell2mat(strPullW_posM)); 
+[ctxPullWpos_DepthBin,~] = postprocessWeights(cell2mat(cellfun(@(a) a(:,1:end-1), ctxPullW_posM, 'un', 0))); 
+[strPullWpos_DepthBin,~] = postprocessWeights(cell2mat(cellfun(@(a) a(:,1:end-1), strPullW_posM, 'un', 0))); 
 
 % weights for X pos pull phase Ctx Str
 figure; hold on; 
@@ -48,9 +49,6 @@ print(fullfile(figSavePath,'kfDecodeW_pullPhase_xPos_CtxStr'),'-dpdf','-bestfit'
 
 %% post-process weights data weights for Y pos Ctx Str
 % reach phase
-[ctxRchWpos_DepthBin,~] = postprocessWeights(cell2mat(ctxRchW_posM)); 
-[strRchWpos_DepthBin,~] = postprocessWeights(cell2mat(strRchW_posM)); 
-
 figure; hold on; 
 plot(ctxRchWpos_DepthBin(:,4),smooth2a(abs(ctxRchWpos_DepthBin(:,2)),1,0)) % ctx Y
 plot(strRchWpos_DepthBin(:,4),smooth2a(abs(strRchWpos_DepthBin(:,2)),1,0)) % str Y    
@@ -60,9 +58,6 @@ xlim([0.1 4])
 print(fullfile(figSavePath,'kfDecodeW_reachPhase_yPos_CtxStr'),'-dpdf','-bestfit','-painters')
 
 % pull phase
-[ctxPullWpos_DepthBin,~] = postprocessWeights(cell2mat(ctxPullW_posM)); 
-[strPullWpos_DepthBin,~] = postprocessWeights(cell2mat(strPullW_posM)); 
-
 % weights for Y pos pull phase Ctx Str
 figure; hold on; 
 plot(ctxPullWpos_DepthBin(:,4),smooth2a(abs(ctxPullWpos_DepthBin(:,2)),1,0)) % ctx Y
@@ -74,9 +69,6 @@ print(fullfile(figSavePath,'kfDecodeW_pullPhase_yPos_CtxStr'),'-dpdf','-bestfit'
 
 %% post-process weights data weights for Z pos Ctx Str
 % reach phase
-[ctxRchWpos_DepthBin,~] = postprocessWeights(cell2mat(ctxRchW_posM)); 
-[strRchWpos_DepthBin,~] = postprocessWeights(cell2mat(strRchW_posM)); 
-
 figure; hold on; 
 plot(ctxRchWpos_DepthBin(:,4),smooth2a(abs(ctxRchWpos_DepthBin(:,3)),1,0)) % ctx Z
 plot(strRchWpos_DepthBin(:,4),smooth2a(abs(strRchWpos_DepthBin(:,3)),1,0)) % str Z    
@@ -86,9 +78,6 @@ xlim([0.1 4])
 print(fullfile(figSavePath,'kfDecodeW_reachPhase_zPos_CtxStr'),'-dpdf','-bestfit','-painters')
 
 % pull phase
-[ctxPullWpos_DepthBin,~] = postprocessWeights(cell2mat(ctxPullW_posM)); 
-[strPullWpos_DepthBin,~] = postprocessWeights(cell2mat(strPullW_posM)); 
-
 % weights for Y pos pull phase Ctx Str
 figure; hold on; 
 plot(ctxPullWpos_DepthBin(:,4),smooth2a(abs(ctxPullWpos_DepthBin(:,3)),1,0)) % ctx Z
@@ -100,25 +89,19 @@ print(fullfile(figSavePath,'kfDecodeW_pullPhase_zPos_CtxStr'),'-dpdf','-bestfit'
 
 %% post-process weights data weights for X,Y,Z pos Ctx Str
 % reach phase
-[ctxRchWpos_DepthBin,~] = postprocessWeights(cell2mat(ctxRchW_posM)); 
-[strRchWpos_DepthBin,~] = postprocessWeights(cell2mat(strRchW_posM)); 
-
 figure; hold on; 
-plot(ctxRchWpos_DepthBin(:,4),smooth2a(nansum(abs(ctxRchWpos_DepthBin(:,1:3)),2),1,0)) % ctx XYZ
-plot(strRchWpos_DepthBin(:,4),smooth2a(nansum(abs(strRchWpos_DepthBin(:,1:3)),2),1,0)) % str XYZ  
+plot(ctxRchWpos_DepthBin(:,4),smooth2a(nansum(abs(ctxRchWpos_DepthBin(:,1:3)),2),2,0)) % ctx XYZ
+plot(strRchWpos_DepthBin(:,4),smooth2a(nansum(abs(strRchWpos_DepthBin(:,1:3)),2),2,0)) % str XYZ  
 hold off
 set(gca,'TickDir','out')
 xlim([0.1 4])
 print(fullfile(figSavePath,'kfDecodeW_reachPhase_xyzPos_CtxStr'),'-dpdf','-bestfit','-painters')
 
 % pull phase
-[ctxPullWpos_DepthBin,~] = postprocessWeights(cell2mat(ctxPullW_posM)); 
-[strPullWpos_DepthBin,~] = postprocessWeights(cell2mat(strPullW_posM)); 
-
 % weights for Y pos pull phase Ctx Str
 figure; hold on; 
-plot(ctxPullWpos_DepthBin(:,4),smooth2a(nansum(abs(ctxPullWpos_DepthBin(:,1:3)),2),1,0)) % ctx XYZ
-plot(strPullWpos_DepthBin(:,4),smooth2a(nansum(abs(strPullWpos_DepthBin(:,1:3)),2),1,0)) % str XYZ  
+plot(ctxPullWpos_DepthBin(:,4),smooth2a(nansum(abs(ctxPullWpos_DepthBin(:,1:3)),2),2,0)) % ctx XYZ
+plot(strPullWpos_DepthBin(:,4),smooth2a(nansum(abs(strPullWpos_DepthBin(:,1:3)),2),2,0)) % str XYZ  
 hold off
 set(gca,'TickDir','out')
 xlim([0.1 4])
@@ -126,8 +109,8 @@ print(fullfile(figSavePath,'kfDecodeW_pullPhase_xyzPos_CtxStr'),'-dpdf','-bestfi
 
 %% post-process weights data weights for X vel Ctx Str
 % reach phase
-[ctxRchWvel_DepthBin,~] = postprocessWeights(cell2mat(ctxRchW_velM)); 
-[strRchWvel_DepthBin,~] = postprocessWeights(cell2mat(strRchW_velM)); 
+[ctxRchWvel_DepthBin,~] = postprocessWeights(cell2mat(cellfun(@(a) a(:,1:end-1), ctxRchW_velM, 'un', 0))); % exclude cell Ids at the last column
+[strRchWvel_DepthBin,~] = postprocessWeights(cell2mat(cellfun(@(a) a(:,1:end-1), strRchW_velM, 'un', 0))); % exclude cell Ids at the last column
 
 figure; hold on; 
 plot(ctxRchWvel_DepthBin(:,4),smooth2a(abs(ctxRchWvel_DepthBin(:,1)),1,0)) % ctx X
@@ -138,8 +121,8 @@ xlim([0.1 4])
 print(fullfile(figSavePath,'kfDecodeW_reachPhase_xVel_CtxStr'),'-dpdf','-bestfit','-painters')
 
 % pull phase
-[ctxPullWvel_DepthBin,~] = postprocessWeights(cell2mat(ctxPullW_velM)); 
-[strPullWvel_DepthBin,~] = postprocessWeights(cell2mat(strPullW_velM)); 
+[ctxPullWvel_DepthBin,~] = postprocessWeights(cell2mat(cellfun(@(a) a(:,1:end-1), ctxPullW_velM, 'un', 0))); % exclude cell Ids at the last column
+[strPullWvel_DepthBin,~] = postprocessWeights(cell2mat(cellfun(@(a) a(:,1:end-1), strPullW_velM, 'un', 0))); % exclude cell Ids at the last column
 
 % weights for X vel pull phase Ctx Str
 figure; hold on; 
@@ -152,9 +135,6 @@ print(fullfile(figSavePath,'kfDecodeW_pullPhase_xVel_CtxStr'),'-dpdf','-bestfit'
 
 %% post-process weights data weights for Y vel Ctx Str
 % reach phase
-[ctxRchWvel_DepthBin,~] = postprocessWeights(cell2mat(ctxRchW_velM)); 
-[strRchWvel_DepthBin,~] = postprocessWeights(cell2mat(strRchW_velM)); 
-
 figure; hold on; 
 plot(ctxRchWvel_DepthBin(:,4),smooth2a(abs(ctxRchWvel_DepthBin(:,2)),1,0)) % ctx Y
 plot(strRchWvel_DepthBin(:,4),smooth2a(abs(strRchWvel_DepthBin(:,2)),1,0)) % str Y    
@@ -164,9 +144,6 @@ xlim([0.1 4])
 print(fullfile(figSavePath,'kfDecodeW_reachPhase_yVel_CtxStr'),'-dpdf','-bestfit','-painters')
 
 % pull phase
-[ctxPullWvel_DepthBin,~] = postprocessWeights(cell2mat(ctxPullW_velM)); 
-[strPullWvel_DepthBin,~] = postprocessWeights(cell2mat(strPullW_velM)); 
-
 % weights for Y vel pull phase Ctx Str
 figure; hold on; 
 plot(ctxPullWvel_DepthBin(:,4),smooth2a(abs(ctxPullWvel_DepthBin(:,2)),1,0)) % ctx Y
@@ -178,25 +155,19 @@ print(fullfile(figSavePath,'kfDecodeW_pullPhase_yVel_CtxStr'),'-dpdf','-bestfit'
 
 %% post-process weights data weights for Z vel Ctx Str
 % reach phase
-[ctxRchWvel_DepthBin,~] = postprocessWeights(cell2mat(ctxRchW_velM)); 
-[strRchWvel_DepthBin,~] = postprocessWeights(cell2mat(strRchW_velM)); 
-
 figure; hold on; 
-plot(ctxRchWvel_DepthBin(:,4),smooth2a(abs(ctxRchWvel_DepthBin(:,3)),1,0)) % ctx Z
-plot(strRchWvel_DepthBin(:,4),smooth2a(abs(strRchWvel_DepthBin(:,3)),1,0)) % str Z    
+plot(ctxRchWvel_DepthBin(:,4),smooth2a(abs(ctxRchWvel_DepthBin(:,3)),2,0)) % ctx Z
+plot(strRchWvel_DepthBin(:,4),smooth2a(abs(strRchWvel_DepthBin(:,3)),2,0)) % str Z    
 hold off
 set(gca,'TickDir','out')
 xlim([0.1 4])
 print(fullfile(figSavePath,'kfDecodeW_reachPhase_zVel_CtxStr'),'-dpdf','-bestfit','-painters')
 
 % pull phase
-[ctxPullWvel_DepthBin,~] = postprocessWeights(cell2mat(ctxPullW_velM)); 
-[strPullWvel_DepthBin,~] = postprocessWeights(cell2mat(strPullW_velM)); 
-
 % weights for Y vel pull phase Ctx Str
 figure; hold on; 
-plot(ctxPullWvel_DepthBin(:,4),smooth2a(abs(ctxPullWvel_DepthBin(:,3)),1,0)) % ctx Z
-plot(strPullWvel_DepthBin(:,4),smooth2a(abs(strPullWvel_DepthBin(:,3)),1,0)) % str Z    
+plot(ctxPullWvel_DepthBin(:,4),smooth2a(abs(ctxPullWvel_DepthBin(:,3)),2,0)) % ctx Z
+plot(strPullWvel_DepthBin(:,4),smooth2a(abs(strPullWvel_DepthBin(:,3)),2,0)) % str Z    
 hold off
 set(gca,'TickDir','out')
 xlim([0.1 4])
@@ -204,25 +175,19 @@ print(fullfile(figSavePath,'kfDecodeW_pullPhase_zVel_CtxStr'),'-dpdf','-bestfit'
 
 %% post-process weights data weights for X,Y,Z vel Ctx Str
 % reach phase
-[ctxRchWvel_DepthBin,~] = postprocessWeights(cell2mat(ctxRchW_velM)); 
-[strRchWvel_DepthBin,~] = postprocessWeights(cell2mat(strRchW_velM)); 
-
 figure; hold on; 
-plot(ctxRchWvel_DepthBin(:,4),smooth2a(nansum(abs(ctxRchWvel_DepthBin(:,1:3)),2),1,0)) % ctx XYZ
-plot(strRchWvel_DepthBin(:,4),smooth2a(nansum(abs(strRchWvel_DepthBin(:,1:3)),2),1,0)) % str XYZ  
+plot(ctxRchWvel_DepthBin(:,4),smooth2a(nansum(abs(ctxRchWvel_DepthBin(:,1:3)),2),2,0)) % ctx XYZ
+plot(strRchWvel_DepthBin(:,4),smooth2a(nansum(abs(strRchWvel_DepthBin(:,1:3)),2),2,0)) % str XYZ  
 hold off
 set(gca,'TickDir','out')
 xlim([0.1 4])
 print(fullfile(figSavePath,'kfDecodeW_reachPhase_xyzVel_CtxStr'),'-dpdf','-bestfit','-painters')
 
 % pull phase
-[ctxPullWvel_DepthBin,~] = postprocessWeights(cell2mat(ctxPullW_velM)); 
-[strPullWvel_DepthBin,~] = postprocessWeights(cell2mat(strPullW_velM)); 
-
 % weights for Y vel pull phase Ctx Str
 figure; hold on; 
-plot(ctxPullWvel_DepthBin(:,4),smooth2a(nansum(abs(ctxPullWvel_DepthBin(:,1:3)),2),1,0)) % ctx XYZ
-plot(strPullWvel_DepthBin(:,4),smooth2a(nansum(abs(strPullWvel_DepthBin(:,1:3)),2),1,0)) % str XYZ  
+plot(ctxPullWvel_DepthBin(:,4),smooth2a(nansum(abs(ctxPullWvel_DepthBin(:,1:3)),2),2,0)) % ctx XYZ
+plot(strPullWvel_DepthBin(:,4),smooth2a(nansum(abs(strPullWvel_DepthBin(:,1:3)),2),2,0)) % str XYZ  
 hold off
 set(gca,'TickDir','out')
 xlim([0.1 4])
@@ -250,7 +215,7 @@ print(fullfile(figSavePath,'r2overall_pullPhase_velDecode'),'-dpdf','-bestfit','
 [~,stats.r2pullVelCtxStrPval,~,stats.r2pullVelCtxStrStats] = ttest(cell2mat(ctxPullR2.velXyzToverall),cell2mat(strPullR2.velXyzToverall));
 
 %% save
-save(fullfile('/Volumes/Beefcake/Junchol_Data/JS2p0/collectData/kfDecodeCorrKinematics','trj_Corr_R2_kfWeight_Collect_reachPull_posVel'),'stats','-append')
+save(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/kfDecodeCorrKinematics','trj_Corr_R2_kfWeight_Collect_reachPull_posVel'),'stats','-append')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% helper function
