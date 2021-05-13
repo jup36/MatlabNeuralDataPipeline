@@ -1,4 +1,4 @@
-function behaviorTimestampsReachToGrasp(filePath,varargin)
+function behaviorTimestampsReachToGraspMoreBehavioralChannels(filePath)
 
 binFile = dir(fullfile(filePath,'*.nidq.bin')); % look for nidq.bin file
 
@@ -17,9 +17,9 @@ totalTimeSecs = str2double(meta.fileTimeSecs); % total duration of file in secon
 
 % Specify the relevant behavioral channel numbers
 camTrigCh = 64+1;  
-cueCh = 64+2;
-wvsCh = 64+3;
-laserCh = 64+4;
+cueCh = 64+2+1;
+wvsCh = 64+3+1+1;
+laserCh = 64+4+1+1+1;
 
 % preallocate the behavioral data arrays
 camTrig = zeros(1,floor(totalTimeSecs*1000)); % the time resolution will be 1000Hz (1ms) after decimation
@@ -56,7 +56,7 @@ cueThres      = mean(abs(cue))+2*cueStd;
 cueIdx        = find(abs(cue)>cueThres);     
 valCueIdx     = cueIdx(diff([0,cueIdx])>500);  
 ts.cue = valCueIdx; 
-fprintf('Cues detected: %d\n', length(valRewIdx));
+fprintf('Cues detected: %d\n', length(valCueIdx));
 
 %% laser detection 
 % detect rise and fall of laser
@@ -67,11 +67,13 @@ if length(laserRiseIdx)~=length(laserFallIdx)
 end
 
 laserDur = laserFallIdx-laserRiseIdx; 
-if sum(laserDur<500)>0
-    error('Check out the laser duration!')
-end
+%if sum(laserDur<500)>0
+%    error('Check out the laser duration!')
+%end
+%laserDur = laserDur(laserDur>500); 
 
-ts.tagLaser1s = laserRiseIdx(laserDur<1100); 
+
+ts.tagLaser1s = laserRiseIdx(laserDur>500&laserDur<1100); 
 laser2s = laserRiseIdx(laserDur>1900); 
 laserRiseInt = arrayfun(@(x) x-1000:x+1000, laserRiseIdx(laserDur>1900), 'un', 0); 
 laserCueI = cell2mat(cellfun(@(a) sum(ismember(valCueIdx,a))==1, laserRiseInt, 'un', 0)); 

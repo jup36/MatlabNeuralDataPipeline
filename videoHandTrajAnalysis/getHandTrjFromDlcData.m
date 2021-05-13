@@ -1,7 +1,7 @@
 function getHandTrjFromDlcData(filePath, hTrjPath)
 
-%filePath = '/Volumes/Beefcake/Junchol_Data/JS2.0/WR40_081419';
-%filePath = 'S:\Junchol_Data\JS2.0\WR40_081419'; % data folder (beefcake)
+%filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_081419';
+%filePath = 'S:\Junchol_Data\JS2p0\WR40_081419'; % data folder (beefcake)
 %hTrjPath = '/Volumes/dudmanlab/dilucid-drop-output/mouseJoystick3/081419_WR40';
 %hTrjPath = 'T:\dilucid-drop-output\mouseJoystick3\081419_WR40'; % hand trajectory folder
 
@@ -11,8 +11,8 @@ if exist(fullfile(stereoCalibFile),'file')==2
     calibParams = load(fullfile(stereoCalibFile),'om','T','fc_left','cc_left','kc_left','alpha_c_left','fc_right','cc_right','kc_right','alpha_c_right');
 else
     disp('Point to "Calib_Results_stereo_011619.mat" with stereo camera calibration data!')
-    [calibFileSelect,calibPathSelect] = uigetfile('C:\Users\parkj\Documents\TOOLBOX_calib');
-    load(fullfile(calibPathSelect,calibFileSelect),'om','T','fc_left','cc_left','kc_left','alpha_c_left','fc_right','cc_right','kc_right','alpha_c_right'); % load stereo camera calibration data
+    [calibFileSelect,calibPathSelect] = uigetfile('D:\Junchol_Data\JS2p0\TOOLBOX_calib\*.mat');
+    calibParams = load(fullfile(calibPathSelect,calibFileSelect),'om','T','fc_left','cc_left','kc_left','alpha_c_left','fc_right','cc_right','kc_right','alpha_c_right'); % load stereo camera calibration data
 end
     
 %% collect jsTime1k_Kinematics data
@@ -64,8 +64,8 @@ for f = 1:length(allCsv)
         fg1Idx = cellfun(@(a) strcmpi(a,'Finger1'), tmpCsvCell(1,:));
         fg2Idx = cellfun(@(a) strcmpi(a,'Finger2'), tmpCsvCell(1,:));
         hdIdx = cellfun(@(a) strcmpi(a,'hand'), tmpCsvCell(1,:));
-        js1Idx = cellfun(@(a) strcmpi(a,'Joystick1'), tmpCsvCell(1,:));
-        js2Idx = cellfun(@(a) strcmpi(a,'Joystick2'), tmpCsvCell(1,:));
+        jsTIdx = cellfun(@(a) strcmpi(a,'Joystick1'), tmpCsvCell(1,:));
+        jsBIdx = cellfun(@(a) strcmpi(a,'Joystick2'), tmpCsvCell(1,:));
         
         xIdx = cellfun(@(a) strcmpi(a,'x'), tmpCsvCell(2,:));
         yIdx = cellfun(@(a) strcmpi(a,'y'), tmpCsvCell(2,:));
@@ -93,21 +93,21 @@ for f = 1:length(allCsv)
     % trj = tmpTrj.hdY; trjlh = tmpTrj.hdlh; lm = ht;
     % trj = tmpTrj.hdX; trjlh = tmpTrj.hdlh; lm = wd;
     
-    % js1: joystick bottom
-    tmpTrj.js1X = cellfun(@str2double, tmpCsvCell(3:end,js1Idx & xIdx)); % finger1 x
-    tmpTrj.js1Y = cellfun(@str2double, tmpCsvCell(3:end,js1Idx & yIdx)); % finger1 y
-    tmpTrj.js1lh = cellfun(@str2double, tmpCsvCell(3:end,js1Idx & lIdx)); % finger1 likelihood
-    [tmpTrj.js1IntX,tempTrj.js1fstPtX] = interplh(tmpTrj.js1X, tmpTrj.js1lh, wd, true); % interpolate based on data likelihood (confidence)
-    [tmpTrj.js1IntY,tempTrj.js1fstPtY] = interplh(tmpTrj.js1Y, tmpTrj.js1lh, ht, true); % interpolate based on data likelihood (confidence)
-    % trj = tmpTrj.js1Y; trjlh = tmpTrj.js1lh; lm = ht;
-    % trj = tmpTrj.js1X; trjlh = tmpTrj.js1lh; lm = wd;
+    % jsT: joystick Top
+    tmpTrj.jsTX = cellfun(@str2double, tmpCsvCell(3:end,jsTIdx & xIdx)); % finger1 x
+    tmpTrj.jsTY = cellfun(@str2double, tmpCsvCell(3:end,jsTIdx & yIdx)); % finger1 y
+    tmpTrj.jsTlh = cellfun(@str2double, tmpCsvCell(3:end,jsTIdx & lIdx)); % finger1 likelihood
+    [tmpTrj.jsTIntX,tmpTrj.jsTfstPtX] = interplh(tmpTrj.jsTX, tmpTrj.jsTlh, wd, true); % interpolate based on data likelihood (confidence)
+    [tmpTrj.jsTIntY,tmpTrj.jsTfstPtY] = interplh(tmpTrj.jsTY, tmpTrj.jsTlh, ht, true); % interpolate based on data likelihood (confidence)
+    % trj = tmpTrj.jsTY; trjlh = tmpTrj.jsTlh; lm = ht;
+    % trj = tmpTrj.jsTX; trjlh = tmpTrj.jsTlh; lm = wd;
     
-    % js2: joystick top
-    tmpTrj.js2X = cellfun(@str2double, tmpCsvCell(3:end,js2Idx & xIdx)); % finger1 x
-    tmpTrj.js2Y = cellfun(@str2double, tmpCsvCell(3:end,js2Idx & yIdx)); % finger1 y
-    tmpTrj.js2lh = cellfun(@str2double, tmpCsvCell(3:end,js2Idx & lIdx)); % finger1 likelihood
-    [tmpTrj.js2IntX,tmpTrj.js2fstPtX] = interplh(tmpTrj.js2X, tmpTrj.js2lh, wd, true); % interpolate based on data likelihood (confidence)
-    [tmpTrj.js2IntY,tmpTrj.js2fstPtY] = interplh(tmpTrj.js2Y, tmpTrj.js2lh, ht, true); % interpolate based on data likelihood (confidence)
+    % jsB: joystick Bottom
+    tmpTrj.jsBX = cellfun(@str2double, tmpCsvCell(3:end,jsBIdx & xIdx)); % finger1 x
+    tmpTrj.jsBY = cellfun(@str2double, tmpCsvCell(3:end,jsBIdx & yIdx)); % finger1 y
+    tmpTrj.jsBlh = cellfun(@str2double, tmpCsvCell(3:end,jsBIdx & lIdx)); % finger1 likelihood
+    [tmpTrj.jsBIntX,tmpTrj.jsBfstPtX] = interplh(tmpTrj.jsBX, tmpTrj.jsBlh, wd, true); % interpolate based on data likelihood (confidence)
+    [tmpTrj.jsBIntY,tmpTrj.jsBfstPtY] = interplh(tmpTrj.jsBY, tmpTrj.jsBlh, ht, true); % interpolate based on data likelihood (confidence)
     
     if contains(tmpTrj.FileName,'cam0','IgnoreCase',true)
         fronCnt = fronCnt + 1;
@@ -128,17 +128,17 @@ fList = {fron(:).FileName}; % front video list
 sList = {side(:).FileName}; % side video list
 
 for t = 1:length(fVideoInfo) % increment trials of jsTime1k_KV
-    trj3d(t).fg1f = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).fg2f = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).hdf  = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).js1f = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).js2f = nan(3,length(vFrameTime{t,1}));
+    trj3d(t).fg1f = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).fg2f = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).hdf  = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).jsTf = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).jsBf = nan(3,length(vUseFrameIdx{t,1}));
     
-    trj3d(t).fg1s = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).fg2s = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).hds  = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).js1s = nan(3,length(vFrameTime{t,1}));
-    trj3d(t).js2s = nan(3,length(vFrameTime{t,1}));
+    trj3d(t).fg1s = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).fg2s = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).hds  = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).jsTs = nan(3,length(vUseFrameIdx{t,1}));
+    trj3d(t).jsBs = nan(3,length(vUseFrameIdx{t,1}));
     
     if isstruct(fVideoInfo{t}) && isstruct(sVideoInfo{t})
         [fPath,fName,~] = fileparts(fVideoInfo{t}.path);
@@ -150,20 +150,25 @@ for t = 1:length(fVideoInfo) % increment trials of jsTime1k_KV
         trj3d(t).sV = fullfile(sPath,sName); % side video path
         trj3d(t).vFrameT = vFrameTime{t}; % front/side video frame time points
         trj3d(t).vUseFrameIdx = vUseFrameIdx{t};
+         
         
-        if sum(fIdx)==1 && sum(sIdx)==1
+        if sum(fIdx)==1 && sum(sIdx)==1 % in case, there are both front and side video files for this trial
             
             fFg1XY = [fron(fIdx).fg1IntX, fron(fIdx).fg1IntY]'; % finger1 front XY
             fFg2XY = [fron(fIdx).fg2IntX, fron(fIdx).fg2IntY]'; % finger2 front XY
             fHdXY  = [fron(fIdx).hdIntX, fron(fIdx).hdIntY]'; % hand front XY
-            fJs1XY = [fron(fIdx).js1IntX, fron(fIdx).js1IntY]'; % joystick1 front XY
-            fJs2XY = [fron(fIdx).js2IntX, fron(fIdx).js2IntY]'; % joystick2 front XY
+            fjsTXY = [fron(fIdx).jsTIntX, fron(fIdx).jsTIntY]'; % joystick1 front XY
+            fjsBXY = [fron(fIdx).jsBIntX, fron(fIdx).jsBIntY]'; % joystick2 front XY
+            trj3d(t).jsfstPtFB = max([fron(fIdx).jsBfstPtX, fron(fIdx).jsBfstPtY]); 
+            trj3d(t).jsfstPtFT = max([fron(fIdx).jsTfstPtX, fron(fIdx).jsTfstPtY]); 
+            trj3d(t).jsfstPtSB = max([side(sIdx).jsBfstPtX, side(sIdx).jsBfstPtY]); 
+            trj3d(t).jsfstPtST = max([side(sIdx).jsTfstPtX, side(sIdx).jsTfstPtY]); 
             
             sFg1XY = [side(sIdx).fg1IntX, side(sIdx).fg1IntY]'; % finger1 side XY
             sFg2XY = [side(sIdx).fg2IntX, side(sIdx).fg2IntY]'; % finger2 side XY
             sHdXY  = [side(sIdx).hdIntX, side(sIdx).hdIntY]'; % hand side XY
-            sJs1XY = [side(sIdx).js1IntX, side(sIdx).js1IntY]'; % joystick1 side XY
-            sJs2XY = [side(sIdx).js2IntX, side(sIdx).js2IntY]'; % joystick2 side XY
+            sjsTXY = [side(sIdx).jsTIntX, side(sIdx).jsTIntY]'; % joystick1 side XY
+            sjsBXY = [side(sIdx).jsBIntX, side(sIdx).jsBIntY]'; % joystick2 side XY
             
             % stereo triangulation
             if sum(sum(isnan(fFg1XY)==true))==0 && sum(sum(isnan(sFg1XY)==true))==0
@@ -178,18 +183,18 @@ for t = 1:length(fVideoInfo) % increment trials of jsTime1k_KV
                 [trj3d(t).hdf,trj3d(t).hds] = stereoTriangulation(fHdXY, sHdXY, calibParams);
             end
             
-            if sum(sum(isnan(fJs1XY)==true))==0 && sum(sum(isnan(sJs1XY)==true))==0
-                [trj3d(t).js1f,trj3d(t).js1s] = stereoTriangulation(fJs1XY, sJs1XY, calibParams);
+            if sum(sum(isnan(fjsTXY)==true))==0 && sum(sum(isnan(sjsTXY)==true))==0
+                [trj3d(t).jsTf,trj3d(t).jsTs] = stereoTriangulation(fjsTXY, sjsTXY, calibParams);
             end
             
-            if sum(sum(isnan(fJs2XY)==true))==0 && sum(sum(isnan(sJs2XY)==true))==0
-                [trj3d(t).js2f,trj3d(t).js2s] = stereoTriangulation(fJs2XY, sJs2XY, calibParams);
+            if sum(sum(isnan(fjsBXY)==true))==0 && sum(sum(isnan(sjsBXY)==true))==0
+                [trj3d(t).jsBf,trj3d(t).jsBs] = stereoTriangulation(fjsBXY, sjsBXY, calibParams);
             end
             
             %figure; plot3(trj3d.fg1f(1,:),trj3d.fg1f(2,:),trj3d.fg1f(3,:))
             %figure; plot3(trj3d.hdf(1,:),trj3d.hdf(2,:),trj3d.hdf(3,:))
-            %figure; plot3(trj3d.js1f(1,:),trj3d.js1f(2,:),trj3d.js1f(3,:))
-            %figure; plot3(trj3d.js2f(1,:),trj3d.js2f(2,:),trj3d.js2f(3,:))
+            %figure; plot3(trj3d.jsTf(1,:),trj3d.jsTf(2,:),trj3d.jsTf(3,:))
+            %figure; plot3(trj3d.jsBf(1,:),trj3d.jsBf(2,:),trj3d.jsBf(3,:))
             
             % For fingers and hand, take the median and smooth
             trj3d(t).allPartsF(:,:,1)=trj3d(t).fg1f;
@@ -214,23 +219,46 @@ for t = 1:length(fVideoInfo) % increment trials of jsTime1k_KV
                 end
             end
             trj3d(t).allPartsMedSgFron = sgolayfilt(trj3d(t).allPartsMedF',5,33)';%sgfiltFramelen)';
-            trj3d(t).allPartsMedSgSide = sgolayfilt(trj3d(t).allPartsMedS',5,33)';%sgfiltFramelen)';
+            trj3d(t).allPartsMedSgSide = sgolayfilt(trj3d(t).allPartsMedS',5,33)';%sgfiltFramelen)';        
             % plot3(trj3d(t).allPartsMedSgFron(1,:),trj3d(t).allPartsMedSgFron(2,:),trj3d(t).allPartsMedSgFron(3,:));
             % plot3(trj3d(t).allPartsMedSgSide(1,:),trj3d(t).allPartsMedSgSide(2,:),trj3d(t).allPartsMedSgSide(3,:));
             
             % For joystick trajectories, just smooth using sgolayfilt
+            trj3d(t).jsTSgFron = sgolayfilt(trj3d(t).jsTf',5,55)'; % for js trj just smooth
+            trj3d(t).jsTSgSide = sgolayfilt(trj3d(t).jsTs',5,55)'; % for js trj just smooth
             
-            trj3d(t).js1SgFron = sgolayfilt(trj3d(t).js1f',5,33)'; % for js trj just smooth
-            trj3d(t).js1SgSide = sgolayfilt(trj3d(t).js1s',5,33)'; % for js trj just smooth
-            
-            trj3d(t).js2SgFron = sgolayfilt(trj3d(t).js2f',5,33)';
-            trj3d(t).js2SgSide = sgolayfilt(trj3d(t).js2s',5,33)';
+            trj3d(t).jsBSgFron = sgolayfilt(trj3d(t).jsBf',5,55)';
+            trj3d(t).jsBSgSide = sgolayfilt(trj3d(t).jsBs',5,55)';
             
             % select the valid portion of each trajectory when a file contained multiple trials
             if length(vUseFrameIdx{t})>length(vFrameTime{t})
                 trj3d(t).allPartsMedSgFron = trj3d(t).allPartsMedSgFron(:,vUseFrameIdx{t});
                 trj3d(t).allPartsMedSgSide = trj3d(t).allPartsMedSgSide(:,vUseFrameIdx{t});
             end
+            % arrange rows to get intuitive XYZ trajectories
+            trj3d(t).allPartsMedSgFronXYZ(1,:) = trj3d(t).allPartsMedSgFron(1,:); % X to be AP hand movement
+            trj3d(t).allPartsMedSgFronXYZ(2,:) = trj3d(t).allPartsMedSgFron(3,:); % Y to be ML hand movement
+            trj3d(t).allPartsMedSgFronXYZ(3,:) = -trj3d(t).allPartsMedSgFron(2,:); % Z to be UpOrDown hand movement 
+            
+            trj3d(t).allPartsMedSgSideXYZ(1,:) = trj3d(t).allPartsMedSgSide(1,:); 
+            trj3d(t).allPartsMedSgSideXYZ(2,:) = trj3d(t).allPartsMedSgSide(3,:); 
+            trj3d(t).allPartsMedSgSideXYZ(3,:) = -trj3d(t).allPartsMedSgSide(2,:);     
+        
+            trj3d(t).jsTSgFronXYZ(1,:) = trj3d(t).jsTSgFron(1,vUseFrameIdx{t}); 
+            trj3d(t).jsTSgFronXYZ(2,:) = trj3d(t).jsTSgFron(3,vUseFrameIdx{t}); 
+            trj3d(t).jsTSgFronXYZ(3,:) = -trj3d(t).jsTSgFron(2,vUseFrameIdx{t}); 
+            
+            trj3d(t).jsTSgSideXYZ(1,:) = trj3d(t).jsTSgSide(1,vUseFrameIdx{t});
+            trj3d(t).jsTSgSideXYZ(2,:) = trj3d(t).jsTSgSide(3,vUseFrameIdx{t});
+            trj3d(t).jsTSgSideXYZ(3,:) = -trj3d(t).jsTSgSide(2,vUseFrameIdx{t});
+            
+            trj3d(t).jsBSgFronXYZ(1,:) = trj3d(t).jsBSgFron(1,vUseFrameIdx{t}); 
+            trj3d(t).jsBSgFronXYZ(2,:) = trj3d(t).jsBSgFron(3,vUseFrameIdx{t}); 
+            trj3d(t).jsBSgFronXYZ(3,:) = -trj3d(t).jsBSgFron(2,vUseFrameIdx{t}); 
+            
+            trj3d(t).jsBSgSideXYZ(1,:) = trj3d(t).jsBSgSide(1,vUseFrameIdx{t});
+            trj3d(t).jsBSgSideXYZ(2,:) = trj3d(t).jsBSgSide(3,vUseFrameIdx{t});
+            trj3d(t).jsBSgSideXYZ(3,:) = -trj3d(t).jsBSgSide(2,vUseFrameIdx{t});
         end
     end
     clearvars tmp*
@@ -242,35 +270,39 @@ save(fullfile(filePath,'trj3d.mat'), 'trj3d'); % save the raw pixel values
 end
 
 % rewardTrs = find([jsTime1k_KV(:).rewarded]==1);
-% close all; 
-% rwdTrI = 100;
-% x = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-% y = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-% z = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSide(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% rwdTrI = 160;
+% % x = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSideXYZ(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% % y = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSideXYZ(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% % z = trj3d(rewardTrs(rwdTrI)).allPartsMedSgSideXYZ(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% % c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
+% % 
+% % figure;
+% % patch([x nan],[y nan],[z nan],[c nan],'FaceColor','none','EdgeColor','interp')
+% % colormap parula
+% % colorbar
+% % caxis([400 1000])
+% 
+% figure; hold on
+% xT = trj3d(rewardTrs(rwdTrI)).jsTSgSideXYZ(1,trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% yT = trj3d(rewardTrs(rwdTrI)).jsTSgSideXYZ(2,trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% zT = trj3d(rewardTrs(rwdTrI)).jsTSgSideXYZ(3,trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
 % c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
 % 
-% figure;
-% patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
-% colormap parula
-% colorbar
-% caxis([400 1000])
+% patch([xT nan],[yT nan],[zT nan],[c nan],'FaceColor','none','EdgeColor','interp')
 % 
-% x = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(1,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-% y = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(2,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
-% z = trj3d(rewardTrs(rwdTrI)).allPartsMedSgFron(3,:); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% xB = trj3d(rewardTrs(rwdTrI)).jsBSgSideXYZ(1,trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% yB = trj3d(rewardTrs(rwdTrI)).jsBSgSideXYZ(2,trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
+% zB = trj3d(rewardTrs(rwdTrI)).jsBSgSideXYZ(3,trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); %trj3d(rewardTrs(rwdTrI)).vUseFrameIdx);
 % c = 1:sum(trj3d(rewardTrs(rwdTrI)).vUseFrameIdx); % generate a colormap;
 % 
-% figure;
-% patch([x nan],[z nan],abs([y nan]),[c nan],'FaceColor','none','EdgeColor','interp')
-% colormap parula
+% patch([xB nan],[yB nan],[zB nan],[c nan],'FaceColor','none','EdgeColor','interp')
+% colormap cool
 % colorbar
 % caxis([400 1000])
 % 
 % print(fullfile(filePath,'Figure',sprintf('tr#%d',rewardTrs(rwdTrI))),'-dpdf','-painters','-bestfit')
 % jsTime1k_KV(rewardTrs(rwdTrI)).fVideo
 % jsTime1k_KV(rewardTrs(rwdTrI)).sVideo
-
-
 
 % fronFg1Fig2Dist = cell2mat(cellfun(@(a,b,c,d) sqrt((a-b).^2+(c-d).^2), {fron(:).fg1X}, {fron(:).fg2X}, {fron(:).fg1Y}, {fron(:).fg2Y},'Un',0)'); % front, point-by-point distance between two fingers
 % fronFg1hdDist = cell2mat(cellfun(@(a,b,c,d) sqrt((a-b).^2+(c-d).^2), {fron(:).fg1X}, {fron(:).hdX}, {fron(:).fg1Y}, {fron(:).hdY},'Un',0)'); % front, point-by-point distance between two fingers
@@ -291,14 +323,20 @@ function  [intTrj,fstPt] = interplh(trj,trjlh,lm, zeroFirstNaNs)
 % interpolates a timeseries (trj) based on it's likelihood (trjlh), enforce the Trjs to be within the frame dimension (lm)
 %trj = tmpTrj.fg1Y;
 
-%trj = tmpTrj.js1X; trj1h = tmpTrj.js1lh; lm = wd; zeroFirstNaNs = true;
+%trj = tmpTrj.jsTX; trjlh = tmpTrj.jsTlh; lm = wd; zeroFirstNaNs = true;
 intTrj = nan(length(trj),1);
 x = 1:length(trj);
 
 trj(trjlh<.9)=nan;
 fstPt = NaN;
 
-if sum(isnan(trj))/length(trj)<.4 % interpolation would be problematic with NaNs at the end
+if zeroFirstNaNs
+    isnanThres = .9; % in case for Joystick, there's a lot of NaNs expected while Js positioning
+else
+    isnanThres = .4; 
+end
+
+if sum(isnan(trj))/length(trj)<isnanThres % interpolation would be problematic with NaNs at the end
     valPts = strfind(num2str(trjlh>.9)','111');
     if sum(isnan(trj(end-4:end)))==0 % deal with last NaNs
         lastValPt = length(trj);
@@ -334,7 +372,7 @@ end
 % % interpolates a timeseries (trj) based on it's likelihood (trjlh), enforce the Trjs to be within the frame dimension (lm)  
 % %trj = tmpTrj.fg1Y;
 % 
-% %trj = tmpTrj.js1X; trj1h = tmpTrj.js1lh; lm = wd; dealFirstNaNs = true;
+% %trj = tmpTrj.jsTX; trj1h = tmpTrj.jsTlh; lm = wd; dealFirstNaNs = true;
 % intTrj = nan(length(trj),1); 
 % x = 1:length(trj);
 % 

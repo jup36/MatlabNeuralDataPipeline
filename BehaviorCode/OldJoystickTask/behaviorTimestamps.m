@@ -159,8 +159,8 @@ fprintf('Licks detected: %d\n', length(valLickIdx));
 %hold on; plot(lick); plot(valLickIdx,lick(valLickIdx),'or'); hold off
 
 % detect camTriggers
-[camTrigRiseIdx, camTrigFallIdx, camPulseTrainIdx] = detecteventbythreshold(camTrig, 1000, 5, 'stdFactor', 1, 'plotRez',false, 'chunkPulses', true, 'chunkInterval', 1000, 'correctLongPulse', true); % camera trigger
-fprintf('completed camera trigger detection!');
+%[camTrigRiseIdx, camTrigFallIdx, camPulseTrainIdx] = detecteventbythreshold(camTrig, 1000, 5, 'stdFactor', 1, 'plotRez',false, 'chunkPulses', true, 'chunkInterval', 1000, 'correctLongPulse', true); % camera trigger
+%fprintf('completed camera trigger detection!');
 
 if p.Results.laserUsed
     % laser (TTL pulses for laser) detection

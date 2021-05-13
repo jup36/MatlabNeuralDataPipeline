@@ -1,4 +1,4 @@
-function behaviorTimestampsReachToGrasp(filePath)
+function behaviorTimestampsReachToGraspNoCueRecorded(filePath)
 cd(filePath)
 
 binFile = dir(fullfile(filePath,'*.nidq.bin')); % look for nidq.bin file
@@ -39,7 +39,7 @@ else
         tempLaser = decimate(tempDataArray(laserCh,:),round(nSamp/1000));
         
         camTrig(1,i*1000+1:(i+1)*1000) = tempCamTrig; % camera trigger (concatenated the decimated data)
-        cue(1,i*1000+1:(i+1)*1000) = tempCue; % cue for trial onset
+        cue(1,i*1000+1:(i+1)*1000) = tempCue; %  for trial onset
         wvs(1,i*1000+1:(i+1)*1000) = tempWvs; % wave surfer signal
         laser(1,i*1000+1:(i+1)*1000) = tempLaser; % laser (1. cue+laser(2s), 2. laser-only (2s), 3. tagg-laser (1s))
         
@@ -88,12 +88,17 @@ ts.laserCue2s = laserRiseIdx(laserDur>1900&laserCueIdx); %laser2s(laserCueI);
 ts.laserOnly2s = laserRiseIdx(laserDur>1900&laserOnlyIdx); %laser2s(~laserCueI);
 fprintf('completed laser detection!');
 
-%% cue detection
-[~,cueStd,~] = meanstdsem(abs(cue)');
-cueThres      = mean(abs(cue))+2*cueStd;
-%cueThres     = 0.8*10^-4; 
-cueIdx        = find(abs(cue)>cueThres);
-valCueIdx     = cueIdx(diff([0,cueIdx])>5000);
+%% cue detection (WHEN NO CUE WAS RECORDED BY MISTAKE, TRY TO INFER FROM CAMTRIG AND LASER)
+% [~,cueStd,~] = meanstdsem(abs(cue)');
+% cueThres      = mean(abs(cue))+2*cueStd;
+% %cueThres     = 0.8*10^-4; 
+% cueIdx        = find(abs(cue)>cueThres);
+% valCueIdx     = cueIdx(diff([0,cueIdx])>5000);
+% ts.cue = valCueIdx;
+% fprintf('Cues detected: %d\n', length(valCueIdx));
+
+cueIdx = camRiseIdx+1000; 
+valCueIdx = cueIdx(diff([0,cueIdx])>5000);
 ts.cue = valCueIdx;
 fprintf('Cues detected: %d\n', length(valCueIdx));
 
