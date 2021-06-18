@@ -10,7 +10,7 @@ function [ pcaResult, pcaDat ] = runPCA( filePath, fileName, saveNameTag, vararg
 % Modified on 9/6/18 to extract SpkCountMat from SpkTimes
 
 p = parse_input_runPCA( filePath, fileName, saveNameTag, varargin );
-% p = parse_input_runPCA( filePath, fileName, saveNameTag, { 'frHighPass', 2, 'frLowPass', 50, 'timeRange', [-2e3 2e3], 'pcaBinSize', 50, 'pcaDim', 5, 'pcaKernSD', 100, 'fullCrossVal', false, 'xcorThresholdPer', 0.2, 'crossValFolds', 0, 'baseSubtrt', true, 'sqrtSC', false, 'unitIdxFile', [] } ); % use this when running line-by-line
+% p = parse_input_runPCA( filePath, fileName, saveNameTag, { 'frHighPass', 2, 'frLowPass', 50, 'timeRange', [-3e3 2e3], 'pcaBinSize', 50, 'pcaDim', 5, 'pcaKernSD', 100, 'fullCrossVal', false,'xcorThresholdPer', 0.2, 'crossValFolds', 0, 'baseSubtrt', true, 'sqrtSC', false } ); % use this when running line-by-line
 saveName = sprintf('%s_%dD_%02dmsBin', p.Results.saveNameTag, p.Results.pcaDim, p.Results.pcaBinSize );
 
 cd(p.Results.filePath)

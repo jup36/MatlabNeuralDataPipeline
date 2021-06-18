@@ -19,21 +19,13 @@ cd(p.Results.filePath)   % change directory to the data folder
 % get behavioral data
 behFile = dir(fullfile(p.Results.filePath,'BehVariablesJs.mat')); % look for 'BehVariablesJs.mat' file    
 
-if length(behFile)>1 || isempty(behFile)
-    disp('Select BehVariablesJs.mat!')
-    [behFileSelect,behPathSelect] = uigetfile(p.Results.filePath);
-    evt = load(fullfile(behPathSelect,behFileSelect),'evtIdx1k');
-    evt = evt.('evtIdx1k'); 
-    jst = load(fullfile(behPathSelect,behFileSelect),'jsTime1k');
-    jst = jst.('jsTime1k'); 
-    clearvars evtIdx1k jsTime1k
-else
-    evt = load(fullfile(behPathSelect,behFileSelect),'evtIdx1k');
-    evt = evt.('evtIdx1k'); 
-    jst = load(fullfile(behPathSelect,behFileSelect),'jsTime1k');
-    jst = jst.('jsTime1k'); 
-    clearvars evtIdx1k jsTime1k
-end
+disp('Select BehVariablesJs.mat!')
+[behFileSelect,behPathSelect] = uigetfile(p.Results.filePath);
+evt = load(fullfile(behPathSelect,behFileSelect),'evtIdx1k');
+evt = evt.('evtIdx1k');
+jst = load(fullfile(behPathSelect,behFileSelect),'jsTime1k');
+jst = jst.('jsTime1k');
+clearvars evtIdx1k jsTime1k
 
 % get meta 
 if contains(p.Results.probeType,'im','IgnoreCase',true)
@@ -43,9 +35,9 @@ elseif contains(p.Results.probeType,'ni','IgnoreCase',true)
 end
 
 % get probe geometry file 
-if isempty(dir(fullfile(p.Results.filePath,'*_kilosortChanMap.mat')))
-    SGLXMetaToCoords() % make a chanMap file from meta, set outType=1 for ks2 format
-end
+%SGLXMetaToCoords(meta) % make a chanMap file from meta, set outType=1 for ks2 format
+SGLXMetaToCoordsJP(meta)
+
 geomFile = dir(fullfile(p.Results.filePath,'*_kilosortChanMap.mat'));  % look for '*_kilosortChanMap.mat' file 
 load(fullfile(geomFile.folder,geomFile.name),'xcoords','ycoords'); 
 geometry = [xcoords, ycoords]; % probe x, y coordinates 
@@ -116,48 +108,66 @@ clearvars u
 spkTimesCell = struct2cell(spkTimes'); % the entire spike times converted into a cell 
 
 %% Specify all the time points to align neural data onto 
-evt.trJsReady = [jst.trJsReady]'; % joystick ready timePoint per trial
-pullTrsIdx = cellfun(@(c)strcmpi(c,'sp'), {jst.trialType}); % successfull pull trials
-evt.pullStarts = [];  
-evt.pullStops  = []; 
-for t = 1:length(pullTrsIdx)
-    if pullTrsIdx(t) && ~isempty(jst(t).movKins.pullStart) && ~isempty(jst(t).movKins.pullStop)
-        evt.pullStarts = [evt.pullStarts; jst(t).trJsReady + jst(t).movKins.pullStart]; 
-        evt.pullStops  = [evt.pullStops;  jst(t).trJsReady + jst(t).movKins.pullStop]; 
+evt.trJsReady = [jkvt.trJsReady]'; % joystick ready timePoint per trial
+pullTrsIdx = cellfun(@(c)strcmpi(c,'sp'), {jkvt.trialType}); % successfull pull trials
+
+for t = 1:length(jkvt)
+    % detect pull start/stop of a successful trials
+    if pullTrsIdx(t) && ~isempty(jkvt(t).movKins.pullStart) && ~isempty(jkvt(t).movKins.pullStop)
+        jkvt(t).pullStarts = jkvt(t).trJsReady + jkvt(t).movKins.pullStart; 
+        jkvt(t).pullStops  = jkvt(t).trJsReady + jkvt(t).movKins.pullStop; 
+        % detect reach start (hand lift) of each successful trial 
+        tmphTrjRstartT = jkvt(t).vFrameTime(jkvt(t).hTrjRstart); 
+        jkvt(t).rStartToPull = tmphTrjRstartT(find(tmphTrjRstartT<jkvt(t).pullStarts,1,'last')); 
+        if isempty(jkvt(t).rStartToPull)
+            jkvt(t).rStartToPull = jkvt(t).pullStarts-200;         
+        end      
+        % detect reach stop 
+        tmphTrjRstopT = jkvt(t).vFrameTime(jkvt(t).hTrjRstop); 
+        jkvt(t).rStopToPull = tmphTrjRstopT(find(tmphTrjRstopT>jkvt(t).pullStarts,1,'last')); 
     end
 end
 clearvars t
 
-% binned spike count CTX 
-pullStarts  = psthBINcell( p.Results.fileInfo, [], spkTimesCell, evt.pullStarts, evt.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag ); 
-pullStops   = psthBINcell( p.Results.fileInfo, [], spkTimesCell, evt.pullStops, evt.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag ) ; 
-%trStart     = psthBINcell( p.Results.fileInfo, [], spkTimesCell, evt.trStartIdx', evt.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag ); % align to all trial starts
-%trEnd       = psthBINcell( p.Results.fileInfo, [], spkTimesCell, evt.trEndIdx', evt.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag );   % align to all trial ends
-reward      = psthBINcell( p.Results.fileInfo, [], spkTimesCell, evt.rwdIdx', evt.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag );     % entire rewardDelivery
-%stmLaser    = psthBINcell( p.Results.fileInfo, [], spkTimesCell, evt.stimLaserRiseIdx', evt.stimLaserRiseIdx', 1, [1e3 5e3], -1, p.Results.psthPlotFlag ); % laser stim trials
-%tagLaser    = psthBINcell( p.Results.fileInfo, [], spkTimesCell, evt.tagLaserRiseIdx', evt.tagLaserRiseIdx', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag ); % laser tag trials
+pullStarts     = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCell, [jkvt.pullStarts]', evt.trJsReady-1000, 1, [3e3 2e3], -1, p.Results.psthPlotFlag ); 
+pullStarts.trI = find(~cellfun(@isempty, {jkvt.pullStarts}));  
+pullStops      = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCell, [jkvt.pullStops]', evt.trJsReady-1000, 1, [3e3 2e3], -1, p.Results.psthPlotFlag );
+pullStops.trI  = find(~cellfun(@isempty, {jkvt.pullStops}));  
+rStartToPull   = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCell, [jkvt.rStartToPull]', evt.trJsReady-1000, 1, [3e3 2e3], -1, p.Results.psthPlotFlag );
+rStartToPull.trI = find(~cellfun(@isempty, {jkvt.rStartToPull}));  
+rStopToPull    = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCell, [jkvt.rStopToPull]', evt.trJsReady-1000, 1, [3e3 2e3], -1, p.Results.psthPlotFlag );
+rStopToPull.trI = find(~cellfun(@isempty, {jkvt.rStopToPull}));  
+reward         = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCell, evt.rwdIdx', evt.trJsReady-1000, 1, [3e3 2e3], -1, p.Results.psthPlotFlag );     % entire rewardDelivery
+reward.trI     = find([jkvt.rewarded]);  
+
+% % binned spike count CTX 
+% pullStarts  = psthBINcell( p.Results.fileInfo, [], spkTimesCell, evt.pullStarts, evt.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag ); 
+% pullStops   = psthBINcell( p.Results.fileInfo, [], spkTimesCell, evt.pullStops, evt.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag ) ; 
+% %trStart     = psthBINcell( p.Results.fileInfo, [], spkTimesCell, evt.trStartIdx', evt.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag ); % align to all trial starts
+% %trEnd       = psthBINcell( p.Results.fileInfo, [], spkTimesCell, evt.trEndIdx', evt.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag );   % align to all trial ends
+% reward      = psthBINcell( p.Results.fileInfo, [], spkTimesCell, evt.rwdIdx', evt.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag );     % entire rewardDelivery
+% %stmLaser    = psthBINcell( p.Results.fileInfo, [], spkTimesCell, evt.stimLaserRiseIdx', evt.stimLaserRiseIdx', 1, [1e3 5e3], -1, p.Results.psthPlotFlag ); % laser stim trials
+% %tagLaser    = psthBINcell( p.Results.fileInfo, [], spkTimesCell, evt.tagLaserRiseIdx', evt.tagLaserRiseIdx', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag ); % laser tag trials
 
 binSpkCount.pullStarts = pullStarts; 
 binSpkCount.pullStops  = pullStops; 
-%binSpkCount.trStart = trStart; 
-%binSpkCount.trEnd   = trEnd; 
+binSpkCount.rStartToPull = rStartToPull; 
+binSpkCount.rStopToPull = rStopToPull; 
 binSpkCount.reward = reward; 
-%binSpkCount.stmLaser = stmLaser; 
-%binSpkCount.tagLaser = tagLaser; 
 binSpkCount.meta = meta; 
 binSpkCount.p = p; 
 binSpkCount.spkTimesCell = spkTimesCell; % just to save the cell
 
 saveName = strcat('binSpkCount',p.Results.fileInfo);
 save(fullfile(p.Results.filePath,saveName),'-struct','binSpkCount') % save the fields of the structure separately 
-save(fullfile(p.Results.filePath,saveName), 'evt', 'jst', '-append') % append the behavioral timestamps
+save(fullfile(p.Results.filePath,saveName), 'evt', 'jkvt', '-append') % append the behavioral timestamps
 
 clearvars pullStarts pullStops trStart trEnd reward stmLaser tagLaser
 
 %% Individual unit raster plot
-unitNumb = 61; 
-spikeRasterGramm( [2e3 2e3], {'pullStarts'}, [2e3 2e3], binSpkCount.pullStarts.SpkTimes{unitNumb});
-spikeRasterGramm( [2e3 2e3], {'reward'}, [2e3 2e3], binSpkCount.reward.SpkTimes{unitNumb});
+unitNumb = 111; 
+spikeRasterGramm( [3e3 2e3], {'rStartToPull'}, [2e3 2e3], binSpkCount.rStartToPull.SpkTimes{unitNumb});
+spikeRasterGramm( [3e3 2e3], {'reward'}, [2e3 2e3], binSpkCount.reward.SpkTimes{unitNumb});
 
 print( fullfile(filePath,'Figure',strcat(fileInfo,'_',sprintf('unit#%d',unitNumb),'pullStart')), '-dpdf','-painters', '-bestfit')
 

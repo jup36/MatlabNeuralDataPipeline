@@ -43,7 +43,7 @@ for u = 1:size(neural,2)   % increment units
     
     % get delta function for the whole spike train
     delta = zeros(1,ceil(neural{1,u}(end))); % delta function of the whole spike train of the current unit
-    delta(1,ceil(neural{1,u})) = 1; % delta function of the whole spike train - put 1 at spike times
+    delta(1,ceil(neural{1,u}(1:end))) = 1; % delta function of the whole spike train - put 1 at spike times
     tmpSmooth = conv(delta,params.filter.kernel,'same'); % convolution of the delta function with the Gaussian kernel
     validEvts = zeros(length(currEvt),1); % valid task events being used for spike counts
       
@@ -73,7 +73,7 @@ for u = 1:size(neural,2)   % increment units
     end 
     clearvars tr
     
-    % get trial-by-trial baseline binned spike counts
+    % get trial-by-trial baseline binned spike counts 
     tmpBaseBinGCountMat = zeros(length(baseEvt),round(sum(psthWin)/2));   % temporary binned spike count matrix (Gaussian convolved) for the baseline period
     for tr = 1:length(baseEvt)
         if baseEvt(tr) < length(delta)

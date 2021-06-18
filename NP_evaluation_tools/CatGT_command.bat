@@ -1,0 +1,1 @@
+CatGT -dir=D:\Junchol_Data\np20_test\WR39_100819_g0\WR39_100819_g0_imec0\export10min -run=WR39_100819 -g=0 -t=0,0 -prb_fld -prb=2 -ap -aphipass=300 -aplopass=9000 -gbldmx -gfix=0.4,0.1,0.02 -dest=D:\Junchol_Data\np20_test\eval 

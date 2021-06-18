@@ -10,18 +10,23 @@ function PSTH_rasters_Cg( filePath, fileInfo, probeDepth, varargin )
 
 p = parse_input_psth_Cg(filePath, fileInfo, probeDepth, varargin ); % parse input
 %filePath = '/Volumes/RAID2/parkj/NeuralData/js2.0/WR37/022619/Matfiles'; 
+%filePath = '/Volumes/8TB/Junchol_Data/JS2p0/WR40_082019'; 
+%filePath = '/Volumes/8TB/Junchol_Data/JS2p0/WR40_082019/nidq'; 
+%filePath = '/Volumes/8TB/Junchol_Data/JS2p0/WR37_022119/nidq'; 
+%p = parse_input_psth_Cg(filePath,'WR40_082019', 1304, {'probeAngle',10,'numbSiteProbe',64,'psthPlotFlag',false,'reachWin',[2e3 3e3],'rewardWin',[3e3 2e3],'tagLaserWin',[5e3 5e3]}) % when running line-by-line
 %p = parse_input_psth_Cg(filePath,'WR37_022719',2124,{'probeAngle',10,'numbSiteProbe',64,'psthPlotFlag',false,'reachWin',[2e3 3e3],'rewardWin',[3e3 2e3],'tagLaserWin',[5e3 5e3]}) % when running line-by-line
 %p = parse_input_psth_Cg(filePath,'WR37_022619',2140,{'probeAngle',10,'numbSiteProbe',64,'psthPlotFlag',false,'reachWin',[2e3 3e3],'rewardWin',[3e3 2e3],'tagLaserWin',[5e3 5e3]}) % when running line-by-line
+%p = parse_input_psth_Cg(filePath,'WR37_022119', 1486, {'probeAngle',10,'numbSiteProbe',64, 'laserUsed', false}); 
 
 %% Load files 
 cd(p.Results.filePath)   % change directory to the data folder
 
-behFile = dir(fullfile(p.Results.filePath,'BehVariablesJs.mat')); % look for 'BehVariablesJs.mat' file    
+behFile = dir(fullfile(p.Results.filePath,'evtIndices.mat')); % look for 'BehVariablesJs.mat' file    
 
 if length(behFile)>1 || isempty(behFile)    
     error('File could not be found or multiple BehVariables.mat files exist!');
 else
-    load(behFile.name, 'evtIdx1k', 'jsTime1k') % load behavioral timestamps 
+    load(behFile.name, 'evtIdx1k') % load behavioral timestamps 
 end
 
 geometry = getHH3geom; % get the geometry of the imec3opt3 probe
@@ -31,6 +36,12 @@ if contains(p.Results.probeType,'im','IgnoreCase',true)
 elseif contains(p.Results.probeType,'ni','IgnoreCase',true)
     meta = getmetaNidq;  
 end
+
+% get jkvt
+disp('Select a matfile containing jkvt!')
+[jkvtFileSelect,jkvtPathSelect] = uigetfile('*.mat',p.Results.filePath);
+jkvt = load(fullfile(jkvtPathSelect,jkvtFileSelect),'jkvt');
+jkvt = jkvt.('jkvt');
 
 %% kilosort-phy
 spike_times = double(readNPY(fullfile(p.Results.filePath, 'spike_times.npy'))); % timestamp (in sample #) of all spikes, (n_spike, 1)
@@ -98,49 +109,79 @@ clearvars u
 spkTimesCell = struct2cell(spkTimes'); % the entire spike times converted into a cell 
 
 %% Specify all the time points to align neural data onto 
-evtIdx1k.trJsReady = [jsTime1k.trJsReady]'; % joystick ready timePoint per trial
-pullTrsIdx = cellfun(@(c)strcmpi(c,'sp'), {jsTime1k.trialType}); % successfull pull trials
-evtIdx1k.pullStarts = [];  
-evtIdx1k.pullStops  = []; 
-for t = 1:length(pullTrsIdx)
-    if pullTrsIdx(t) && ~isempty(jsTime1k(t).movKins.pullStart) && ~isempty(jsTime1k(t).movKins.pullStop)
-        evtIdx1k.pullStarts = [evtIdx1k.pullStarts; jsTime1k(t).trJsReady + jsTime1k(t).movKins.pullStart]; 
-        evtIdx1k.pullStops  = [evtIdx1k.pullStops;  jsTime1k(t).trJsReady + jsTime1k(t).movKins.pullStop]; 
-    end
+evt = evtIdx1k; clearvars evtIdx1k
+evt.trJsReady = [jkvt.trJsReady]'; % joystick ready timePoint per trial
+pullTrsIdx = cellfun(@(c)strcmpi(c,'sp'), {jkvt.trialType}); % successfull pull trials
+
+pullStarts     = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCell, [jkvt.pullStarts]', evt.trJsReady-1000, 1, [3e3 2e3], -1, p.Results.psthPlotFlag ); 
+pullStarts.trI = find(~cellfun(@isempty, {jkvt.pullStarts}));  
+pullStops      = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCell, [jkvt.pullStops]', evt.trJsReady-1000, 1, [3e3 2e3], -1, p.Results.psthPlotFlag );
+pullStops.trI  = find(~cellfun(@isempty, {jkvt.pullStops}));  
+rStartToPull   = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCell, [jkvt.rStartToPull]', evt.trJsReady-1000, 1, [3e3 2e3], -1, p.Results.psthPlotFlag );
+rStartToPull.trI = find(~cellfun(@isempty, {jkvt.rStartToPull}));  
+rStopToPull    = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCell, [jkvt.rStopToPull]', evt.trJsReady-1000, 1, [3e3 2e3], -1, p.Results.psthPlotFlag );
+rStopToPull.trI = find(~cellfun(@isempty, {jkvt.rStopToPull}));  
+reward         = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCell, evt.rwdIdx', evt.trJsReady-1000, 1, [3e3 2e3], -1, p.Results.psthPlotFlag );     % entire rewardDelivery
+reward.trI     = find([jkvt.rewarded]);  
+if p.Results.laserUsed
+    stmLaser       = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCell, evt.stimLaserRiseIdx', evt.stimLaserRiseIdx', 1, [1e3 5e3], -1, p.Results.psthPlotFlag ); % laser stim trials
+    tagLaser       = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCell, evt.tagLaserRiseIdx', evt.tagLaserRiseIdx', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag ); % laser tag trials
+    
+    binSpkCountCg.stmLaser = stmLaser;
+    binSpkCountCg.tagLaser = tagLaser;
 end
-clearvars t
+binSpkCountCg.pullStarts = pullStarts; 
+binSpkCountCg.pullStops  = pullStops; 
+binSpkCountCg.rStartToPull = rStartToPull; 
+binSpkCountCg.rStopToPull = rStopToPull; 
+binSpkCountCg.reward = reward; 
+binSpkCountCg.meta = meta; 
+binSpkCountCg.p = p; 
+binSpkCountCg.spkTimesCell = spkTimesCell; % just to save the cell
 
-% binned spike count CTX 
-pullStarts  = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evtIdx1k.pullStarts, evtIdx1k.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag ); 
-pullStops   = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evtIdx1k.pullStops, evtIdx1k.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag ) ; 
-%trStart     = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evtIdx1k.trStartIdx', evtIdx1k.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag ); % align to all trial starts
-%trEnd       = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evtIdx1k.trEndIdx', evtIdx1k.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag );   % align to all trial ends
-reward      = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evtIdx1k.rwdIdx', evtIdx1k.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag );     % entire rewardDelivery
-stmLaser    = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evtIdx1k.stimLaserRiseIdx', evtIdx1k.stimLaserRiseIdx', 1, [1e3 5e3], -1, p.Results.psthPlotFlag ); % laser stim trials
-tagLaser    = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evtIdx1k.tagLaserRiseIdx', evtIdx1k.tagLaserRiseIdx', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag ); % laser tag trials
 
-binSpkCount.pullStarts = pullStarts; 
-binSpkCount.pullStops  = pullStops; 
-%binSpkCount.trStart = trStart; 
-%binSpkCount.trEnd   = trEnd; 
-binSpkCount.reward = reward; 
-binSpkCount.stmLaser = stmLaser; 
-binSpkCount.tagLaser = tagLaser; 
-binSpkCount.meta = meta; 
-binSpkCount.p = p; 
-binSpkCount.spkTimesCell = spkTimesCell; % just to save the cell
+% pullTrsIdx = cellfun(@(c)strcmpi(c,'sp'), {jkvt.trialType}); % successfull pull trials
+% evt.pullStarts = [];  
+% evt.pullStops  = []; 
+% for t = 1:length(pullTrsIdx)
+%     if pullTrsIdx(t) && ~isempty(jkvt(t).movKins.pullStart) && ~isempty(jkvt(t).movKins.pullStop)
+%         evt.pullStarts = [evt.pullStarts; jkvt(t).trJsReady + jkvt(t).movKins.pullStart]; 
+%         evt.pullStops  = [evt.pullStops;  jkvt(t).trJsReady + jkvt(t).movKins.pullStop]; 
+%     end
+% end
+% clearvars t
+% 
+% % binned spike count CTX 
+% pullStarts  = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evt.pullStarts, evt.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag ); 
+% pullStops   = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evt.pullStops, evt.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag ) ; 
+% %trStart     = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evt.trStartIdx', evt.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag ); % align to all trial starts
+% %trEnd       = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evt.trEndIdx', evt.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag );   % align to all trial ends
+% reward      = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evt.rwdIdx', evt.trJsReady-1000, 1, [2e3 2e3], -1, p.Results.psthPlotFlag );     % entire rewardDelivery
+% stmLaser    = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evt.stimLaserRiseIdx', evt.stimLaserRiseIdx', 1, [1e3 5e3], -1, p.Results.psthPlotFlag ); % laser stim trials
+% tagLaser    = psthBINcell( p.Results.fileInfo, 'Cg', spkTimesCell, evt.tagLaserRiseIdx', evt.tagLaserRiseIdx', 1, p.Results.tagLaserWin, -1, p.Results.psthPlotFlag ); % laser tag trials
+% 
+% binSpkCount.pullStarts = pullStarts; 
+% binSpkCount.pullStops  = pullStops; 
+% %binSpkCount.trStart = trStart; 
+% %binSpkCount.trEnd   = trEnd; ß
+% binSpkCount.reward = reward; 
+% binSpkCount.stmLaser = stmLaser; 
+% binSpkCount.tagLaser = tagLaser; 
+% binSpkCount.meta = meta; 
+% binSpkCount.p = p; 
+% binSpkCount.spkTimesCell = spkTimesCell; % just to save the cell
 
-saveName = strcat('binSpkCount',p.Results.fileInfo);
-save(fullfile(p.Results.filePath,saveName),'-struct','binSpkCount') % save the fields of the structure separately 
-save(fullfile(p.Results.filePath,saveName), 'evtIdx1k', 'jsTime1k', '-append') % append the behavioral timestamps
+saveName = strcat('binSpkCountCg',p.Results.fileInfo);
+save(fullfile(p.Results.filePath,saveName),'-struct','binSpkCountCg') % save the fields of the structure separately 
+save(fullfile(p.Results.filePath,saveName), 'evt', 'jkvt', '-append') % append the behavioral timestamps
 
 clearvars pullStarts pullStops trStart trEnd reward stmLaser tagLaser
 
-%% Individual unit raster plot
-unitNumb = 3; 
-spikeRasterGramm( [2e3 2e3], {'pullStarts'}, [2e3 2e3], binSpkCount.pullStarts.SpkTimes{unitNumb});
-spikeRasterGramm( [2e3 2e3], {'reward'}, [2e3 2e3], binSpkCount.reward.SpkTimes{unitNumb});
-spikeRasterGramm( [5e3 5e3], {'tagLaser'}, [2e3 2e3], binSpkCount.tagLaser.SpkTimes{unitNumb});
+% %% Individual unit raster plot
+% unitNumb = 3; 
+% spikeRasterGramm( [2e3 2e3], {'pullStarts'}, [2e3 2e3], binSpkCount.pullStarts.SpkTimes{unitNumb});
+% spikeRasterGramm( [2e3 2e3], {'reward'}, [2e3 2e3], binSpkCount.reward.SpkTimes{unitNumb});
+% spikeRasterGramm( [5e3 5e3], {'tagLaser'}, [2e3 2e3], binSpkCount.tagLaser.SpkTimes{unitNumb});
 
 %unit = 139; % str unit 128 (laser activated)
 %spikeRasterGramm( [1e3 3e3], {'reach','stim','stimReach'}, binSpkCountSTRReach(unit).SpkTimes, binSpkCountSTRstmLaser(unit).SpkTimes,binSpkCountSTRstmReach(unit).SpkTimes );
@@ -149,33 +190,33 @@ spikeRasterGramm( [5e3 5e3], {'tagLaser'}, [2e3 2e3], binSpkCount.tagLaser.SpkTi
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % NESTED HELPER FUNCTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%
-
-    function p = parse_input_psth_Cg( filePath, fileInfo, probeDepth, vargs ) % note that a nested function must use vargs not varargin when varargin was used for the main function 
-        %parse input, and extract name-value pairs for the main function
-        % 'PSTH_rasters'
-                
-        default_probeAngle = 10;       % default probe angle in degree 
-        default_numbSiteProbe = 64; % default number of sites per probe(s) (can be an arrary, if there are multiple probes used
-        default_psthPlotFlag = false;  % default logic indicating psth draw or not 
-        default_reachWin = [2e3 2e3];  % default time window for reach psth
-        default_rewardWin = [2e3 2e3]; % default time window for reward psth
-        default_tagLaserWin = [5e3 5e3]; % default time window for tagLaser psth
-        default_probeType = 'nidq';    % default probe type imec
-        
-        p = inputParser; % create parser object
-        addRequired(p,'filePath');
-        addRequired(p,'fileInfo');
-        addRequired(p,'probeDepth');
-        addParameter(p,'probeAngle', default_probeAngle)        
-        addParameter(p,'numbSiteProbe', default_numbSiteProbe)
-        addParameter(p,'psthPlotFlag', default_psthPlotFlag)
-        addParameter(p,'reachWin', default_reachWin)
-        addParameter(p,'rewardWin', default_rewardWin)
-        addParameter(p,'tagLaserWin', default_tagLaserWin)
-        addParameter(p,'probeType', default_probeType)
-        
-        parse(p,filePath, fileInfo, probeDepth, vargs{:})
-    end
+% 
+%     function p = parse_input_psth_Cg( filePath, fileInfo, probeDepth, vargs ) % note that a nested function must use vargs not varargin when varargin was used for the main function 
+%         %parse input, and extract name-value pairs for the main function
+%         % 'PSTH_rasters'
+%                 
+%         default_probeAngle = 10;       % default probe angle in degree 
+%         default_numbSiteProbe = 64; % default number of sites per probe(s) (can be an arrary, if there are multiple probes used
+%         default_psthPlotFlag = false;  % default logic indicating psth draw or not 
+%         default_reachWin = [2e3 2e3];  % default time window for reach psth
+%         default_rewardWin = [2e3 2e3]; % default time window for reward psth
+%         default_tagLaserWin = [5e3 5e3]; % default time window for tagLaser psth
+%         default_probeType = 'nidq';    % default probe type imec
+%         
+%         p = inputParser; % create parser object
+%         addRequired(p,'filePath');
+%         addRequired(p,'fileInfo');
+%         addRequired(p,'probeDepth');
+%         addParameter(p,'probeAngle', default_probeAngle)        
+%         addParameter(p,'numbSiteProbe', default_numbSiteProbe)
+%         addParameter(p,'psthPlotFlag', default_psthPlotFlag)
+%         addParameter(p,'reachWin', default_reachWin)
+%         addParameter(p,'rewardWin', default_rewardWin)
+%         addParameter(p,'tagLaserWin', default_tagLaserWin)
+%         addParameter(p,'probeType', default_probeType)
+%         
+%         parse(p,filePath, fileInfo, probeDepth, vargs{:})
+%     end
 end
 
 
@@ -235,6 +276,36 @@ else
     error('Check the *jrc.mat file; one *_jrc.mat file must exist in the working folder!')
 end
 
+end
+
+function p = parse_input_psth_Cg( filePath, fileInfo, probeDepth, vargs ) % note that a nested function must use vargs not varargin when varargin was used for the main function
+%parse input, and extract name-value pairs for the main function
+% 'PSTH_rasters'
+
+default_probeAngle = 10;       % default probe angle in degree
+default_numbSiteProbe = 64;    % default number of sites per probe(s) (can be an arrary, if there are multiple probes used
+default_psthPlotFlag = false;  % default logic indicating psth draw or not
+default_reachWin = [2e3 2e3];  % default time window for reach psth
+default_rewardWin = [3e3 1e3]; % default time window for reward psth
+default_tagLaserWin = [5e3 5e3]; % default time window for tagLaser psth
+default_probeType = 'nidq';    % default probe type imec
+default_laserUsed = 'true';    % default laser used logic
+
+p = inputParser; % create parser object
+addRequired(p,'filePath');
+addRequired(p,'fileInfo');
+addRequired(p,'probeDepth');
+
+addParameter(p,'probeAngle', default_probeAngle)
+addParameter(p,'numbSiteProbe', default_numbSiteProbe)
+addParameter(p,'psthPlotFlag', default_psthPlotFlag)
+addParameter(p,'reachWin', default_reachWin)
+addParameter(p,'rewardWin', default_rewardWin)
+addParameter(p,'tagLaserWin', default_tagLaserWin)
+addParameter(p,'probeType', default_probeType)
+addParameter(p,'laserUsed', default_laserUsed)
+
+parse(p,filePath, fileInfo, probeDepth, vargs{:})
 end
 
 

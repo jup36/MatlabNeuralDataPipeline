@@ -4,7 +4,11 @@ function jsVideoPreprocess(filePath, nTr, varargin)
 cd(filePath)
 
 pVP = parse_input_jsVideo(filePath, nTr, varargin);
+<<<<<<< HEAD
 % pVP = parse_input_jsVideo(filePath, 9, {'slowPlay',5, 'frTimeRange', []});
+=======
+% pVP = parse_input_jsVideo(filePath, 77, {'slowPlay',5, 'frTimeRange', [-8000 1000]});
+>>>>>>> master
 
 % load the structure with video file info and Js kinematics (jsTime1k_KV)
 if exist('jsTime1k_KV','var') ~= 1
@@ -74,7 +78,7 @@ for i = 1:length(nTr)
         [frameTimeC{pullStartI}] = deal('ReachStart');
         
     elseif strcmp(S(nTr(i)).trialType,'ps') % for a push trial, align time to pushStart
-        frameTime = S(nTr(i)).vFrameTime-(S(nTr(i)).trJsReady+S(nTr(i)).movKins.pushStart); % frameTime aligned to pushStart
+        frameTime = S(nTr(i)).Time-(S(nTr(i)).trJsReady+S(nTr(i)).movKins.pushStart); % frameTime aligned to pushStart
         pushTime = 0:S(nTr(i)).movKins.pushStop - S(nTr(i)).movKins.pushStart; % push time bins aligned to pullStart
         pushTimeFrames = ismember(frameTime,pushTime); % logical indicating pullTime frames
         if ~isnan(S(nTr(i)).stimLaserOn)

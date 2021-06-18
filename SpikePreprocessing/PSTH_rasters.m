@@ -9,8 +9,7 @@ function PSTH_rasters( filePath, fileInfo, probeDepth, varargin )
 % reachStart to tagLaser. 
 
 p = parse_input_psth(filePath, fileInfo, probeDepth, varargin ); % parse input
-%p = parse_input_psth(filePath,'PT10_071618',4102,{'probeAngle',10,'strCtx',true,'strCtxBorder',2000,'numbSiteProbe',384,...
-%'psthPlotFlag',false,'reachWin',[2e3 3e3],'rewardWin',[3e3 2e3],'tagLaserWin',[5e3 5e3]}) % when running line-by-line
+%p = parse_input_psth(filePath,'PT10_071618',4102,{'probeAngle',10,'strCtx',true,'strCtxBorder',2000,'numbSiteProbe',384,'psthPlotFlag',false,'reachWin',[2e3 3e3],'rewardWin',[3e3 2e3],'tagLaserWin',[5e3 5e3]}) % when running line-by-line
 
 %% Load files 
 cd(p.Results.filePath)   % change directory to the data folder
@@ -19,10 +18,17 @@ behFile = dir(fullfile(p.Results.filePath,'BehVariables.mat')); % look for 'BehV
 
 if length(behFile)>1 || isempty(behFile)    
     [selectFile,selectPath] = uigetfile(fullfile(p.Results.filePath),'Select the BehVariables.mat file!'); 
+<<<<<<< HEAD
     beh = load(fullfile(selectPath,selectFile)); % load behavioral timestamps
 else
     beh = load(behFile.name); % load behavioral timestamps 
+=======
+    b = load(fullfile(selectPath,selectFile)); % load behavioral timestamps
+else
+    b = load('behVariables.mat'); %b = load(fullfile(behFile.folder,behFile.name)); % load behavioral timestamps 
+>>>>>>> master
 end
+ts = b.('ts'); 
 
 geometry = getimec3opt3geom; % get the geometry of the imec3opt3 probe
 
@@ -32,7 +38,7 @@ elseif contains(p.Results.probeType,'ni','IgnoreCase',true)
     meta = getmetaNidq;  
 end
 
-[S_clu,viTime_spk,viSite_spk] = getjrcmatVar; % get the structure variable containing cluster info
+[S_clu,viTime_spk,viSite_spk,viSite_clu] = getjrcmatVarThis; % get the structure variable containing cluster info
 dvCosConvert   = cos(p.Results.probeAngle/180*pi);  % if probe was angled, probe coordinates need to be corrected 
 
 if length(p.Results.probeDepth)~=length(p.Results.numbSiteProbe)
@@ -66,7 +72,7 @@ for u = 1:S_clu.nClu % increment valid clusters (units)
     end
     
     spkTimes(u).clusId   = u; % cluster ID
-    spkTimes(u).maxSite  = mode(double(viSite_spk(spkIdx))); % assign the current cluster to a site of the probe
+    spkTimes(u).maxSite  = mode(double(viSite_spk(spkIdx))); % assign the current cluster to a site of the probe (what's the difference between viSite_spk and viSite_clu?)
     spkTimes(u).geometry(1) = geometry(spkTimes(u).maxSite,1);        % horizontal geometry
     spkTimes(u).geometry(2) = p.Results.probeDepth(whichProbe(spkTimes(u).maxSite))-geometry(spkTimes(u).maxSite,2); % vertical geometry
     spkTimes(u).geometry(2) = spkTimes(u).geometry(2).*dvCosConvert;  % corrected dv (original dv multiplied by cosine(probe angle))

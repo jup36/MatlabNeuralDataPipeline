@@ -13,7 +13,11 @@ load(fullfile(spkDir(1).folder, spkDir(1).name),'spkTimesCell', 'rStartToPull')
 S=rStartToPull; clearvars rStartToPull
 % behavioral data
 
+<<<<<<< HEAD
 behDir = dir('jsTime1k_KinematicsTrajectories*'); 
+=======
+behDir = dir('js2p0_tbytSpkHandJsTrjBin_WR*'); 
+>>>>>>> master
 load(fullfile(behDir(1).folder,fullfile(behDir(1).name)),'jkvt'); 
 
 %% align hand trajectories to neural data
@@ -45,8 +49,13 @@ posTqCnt = zeros(length(posTq),1); % count occurrence of each combination
 
 % cortex/striatum index
 depth = cell2mat(cellfun(@(a) a(2), spkTimesCell(4,:),'un',0))'; % depth from pial surface
+<<<<<<< HEAD
 ctxI = depth<1900; % cortex index
 strI = depth>2100; % striatum index
+=======
+ctxI = depth<2000; % <1900; % cortex index
+strI = depth>2000; % >2100; % striatum index
+>>>>>>> master
 
 s.ctxI = ctxI; 
 s.strI = strI; 
@@ -179,6 +188,7 @@ for t = 1:length(ts)
                 s.dat.laserOffTime{r,c} = s.time(t).tLaserStop-t1R; % when did laser went off relative to the reach start
                 
                 if isfield(jkvt(vfI).movKins,'pullStart') && isfield(jkvt(vfI).movKins,'pullStop')
+<<<<<<< HEAD
                     s.dat.laserIdx{r,c} = sum(reshape(t1RtElaserI(1:timeBin(end-1)), binSize, []))>=1;
                     s.dat.laserIdxR{r,c} = s.dat.laserIdx{r,c}(:,1:tmpPullStart-1);
                     s.dat.laserIdxP{r,c} = s.dat.laserIdx{r,c}(:,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5));
@@ -188,6 +198,17 @@ for t = 1:length(ts)
             s.dat.laserIdx{r,c} = 0;
             s.dat.laserIdxR{r,c} = 0;
             s.dat.laserIdxP{r,c} = 0;         
+=======
+                      s.dat.laserIdx{r,c} = sum(reshape(t1RtElaserI(1:timeBin(end-1)), binSize, []))>=1;
+                      s.dat.laserIdxR{r,c} = s.dat.laserIdx{r,c}(:,1:tmpPullStart-1); 
+                      s.dat.laserIdxP{r,c} = s.dat.laserIdx{r,c}(:,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5)); 
+                end
+            end
+        else
+            s.dat.laserIdx{r,c} = 0; 
+            s.dat.laserIdxR{r,c} = 0; 
+            s.dat.laserIdxP{r,c} = 0; 
+>>>>>>> master
         end
     end
     fprintf('processed event# %d\n', t)  

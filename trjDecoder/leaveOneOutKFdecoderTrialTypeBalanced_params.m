@@ -143,7 +143,11 @@ for i = 1:resample %resample % repeat resampling trials
                 clearvars estStateCov_*;
                 valCellICtx = ~(sum(C_ctx,2)==0)&~isnan(sum(C_ctx,2));
                 valCellIStr = ~(sum(C_str,2)==0)&~isnan(sum(C_str,2));
+<<<<<<< HEAD
                 valCellICtxStr = ~(sum(C_ctxstr,2)==0)&~isnan(sum(C_ctxstr,2));
+=======
+                valCellICtxStr = ~(sum(C_ctxstr,2)==0)&~isnan(sum(C_ctxstr,2)); %~(sum(C_ctxstr,2)==0)&~isnan(sum(C_ctxstr,2));
+>>>>>>> master
                 
                 C_ctxVal = C_ctx(valCellICtx,:); % to drop the cells with no spike at all from the mapping C, if not it leads to singular matrix warning
                 R_ctxVal = R_ctx(valCellICtx,valCellICtx); 
@@ -200,7 +204,11 @@ for i = 1:resample %resample % repeat resampling trials
                     
                     % update the state by ctxstr observation
                     curObsX_ctxstr = [ctxD{testI}(ctxI,b);strD{testI}(strI,b)]; % take the current ctx spikes bin-by-bin
+<<<<<<< HEAD
                     curObsX_ctxstr = curObsX_ctxstr([valCellICtx;valCellIStr],1); 
+=======
+                    curObsX_ctxstr = curObsX_ctxstr(valCellICtxStr,1); %curObsX_ctxstr([valCellICtx;valCellIStr],1); 
+>>>>>>> master
                     
                     mu_ctxstr = mu_ctxstr + K_ctxstr*(curObsX_ctxstr-C_ctxstrVal*mu_ctxstr);
                     sigma_ctxstr = sigma_ctxstr - K_ctxstr*C_ctxstrVal*sigma_ctxstr;

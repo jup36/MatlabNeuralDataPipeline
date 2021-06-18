@@ -12,7 +12,7 @@ function [bTj, bTjStimLaser, bTjPStimLaser, lTj] = stimReachKinematicsInDetailFo
 
 %% get behavioral data 'BehVariables.mat'
 load(fullfile(filePath,'BehVariables.mat'),'ts','reach0','positionData','lick')
-load(fullfile('/Volumes/RAID2/parkj/oldJoystickCalib','jsCalibData'),'mmConv*'); % voltage to mm conversion coefficients from the calibration data
+load(fullfile('/Volumes/8TB/Junchol_Data/oldJoystickCalib/jsCalibData.mat'),'mmConv*'); % voltage to mm conversion coefficients from the calibration data
 
 % conversion from voltage to mm
 reach0mm = reach0.*mmConvR0;
@@ -82,7 +82,7 @@ for t = 1:length(reachXYrwd) % increment trials, take the trial-by-trial positio
         bTj(valNoStimRwdTCnt).maxReachVel = max(bTj(valNoStimRwdTCnt).reachVelReachWin); % max reach velocity within the time window of interest
         bTj(valNoStimRwdTCnt).trialId = t;
         bTj(valNoStimRwdTCnt).lick = bin1msSpkCountMat(lickBin(timeWin),50, 50);   % get binned lick counts using the bin1msSpkCountMat
-        bTj(valNoStimRwdTCnt).lickTrace = conv(bTj(valNoStimRwdTCnt).lick, gaussianKernel, 'same')*(1000/50); % smoothing with a Gaussian kernel
+        bTj(valNoStimRwdTCnt).lickTrace = conv(bTj(valNoStimRwdTCnt).lick, gaussianKernel, 'same')*(1000); % smoothing with a Gaussian kernel
         bTj(valNoStimRwdTCnt).lickCount = sum(bTj(valNoStimRwdTCnt).lick(bTS.rwdLickBins)); % lick Counts within the lickTimeBins               
     end
 end
@@ -127,7 +127,7 @@ for t = 1:length(reachXYStim)
         bTjStimLaser(t).maxReachVel = max(bTjStimLaser(t).reachVelReachWin); % max reach velocity within the time window of interest        
         bTjStimLaser(t).trialId = t;
         bTjStimLaser(t).lick = bin1msSpkCountMat(lickBin(timeWin-1),50, 50);   % get binned lick counts using the bin1msSpkCountMat
-        bTjStimLaser(t).lickTrace = conv(bTjStimLaser(t).lick, gaussianKernel, 'same')*(1000/50); % smoothing with a Gaussian kernel
+        bTjStimLaser(t).lickTrace = conv(bTjStimLaser(t).lick, gaussianKernel, 'same')*(1000); % smoothing with a Gaussian kernel
         bTjStimLaser(t).lickCount = sum(bTjStimLaser(t).lick(bTS.rchLickBins)); % lick Counts within the lickTimeBins               
     end
     
@@ -167,13 +167,13 @@ if pseudoLaserLogic
             timeWin = bTS.pstmLaserRwd(t)+bTS.rchBinE1ms; % the time window relative to reachStart, -2 to 3 sec
             bTjPStimLaser(t).reachPos = smooth(binAvg1msSpkCountMat(reachXYPStim{t},50,50),3)'; % get reach position
             bTjPStimLaser(t).reachPosReachWin = bTjPStimLaser(t).reachPos(bTS.rchReachBins); % reach Position within the reach window
-            bTjPStimLaser(t).reachVel = smooth(diff([bTjPStimLaser(t).reachPos(1) bTjPStimLaser(t).reachPos]),3)'.*(1000/50); % get reach velocities
+            bTjPStimLaser(t).reachVel = smooth(diff([bTjPStimLaser(t).reachPos(1) bTjPStimLaser(t).reachPos]),3)'.*(1000); % get reach velocities
             bTjPStimLaser(t).reachVelReachWin = bTjPStimLaser(t).reachVel(bTS.rchReachBins); % reach velocity within the reach window
             bTjPStimLaser(t).maxReachPos = max(bTjPStimLaser(t).reachPosReachWin); % max reach position within the time window of interest
             bTjPStimLaser(t).maxReachVel = max(bTjPStimLaser(t).reachVelReachWin); % max reach velocity within the time window of interest
             bTjPStimLaser(t).trialId = t;
             bTjPStimLaser(t).lick = bin1msSpkCountMat(lickBin(timeWin-1),50, 50);  % get binned lick counts using the bin1msSpkCountMat
-            bTjPStimLaser(t).lickTrace = conv(bTjPStimLaser(t).lick, gaussianKernel, 'same')*(1000/50); % smoothing with a Gaussian kernel
+            bTjPStimLaser(t).lickTrace = conv(bTjPStimLaser(t).lick, gaussianKernel, 'same')*(1000); % smoothing with a Gaussian kernel
             bTjPStimLaser(t).lickCount = sum(bTjPStimLaser(t).lick(bTS.rchLickBins)); % lick Counts within the lickTimeBins
         end
     end

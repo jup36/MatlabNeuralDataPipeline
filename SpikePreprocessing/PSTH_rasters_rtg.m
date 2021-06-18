@@ -116,12 +116,21 @@ spkTimesCellCTX = spkTimesCell(:,cell2mat(spkTimesCell(3,:))<=64); % the CTX spi
 
 %% get psths
 % binned spike count CTX
+<<<<<<< HEAD
 cueRangeC = arrayfun(@(a) a-2000:a+2000, ts.cue, 'un', 0); 
 cueNoLaserI = cell2mat(cellfun(@(a) sum(ismember(ts.laserCue2s,a))==0, cueRangeC, 'un', 0)); 
 ts.cueNoLaser = ts.cue(cueNoLaserI); 
 
 if ~isempty(ts.tagLaser1s)
     tagLaser1s     = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.tagLaser1s', ts.cue'-1000, 1, [5e3 5e3], -1, p.Results.psthPlotFlag );
+=======
+cueRangeC = arrayfun(@(a) a-3000:a+3000, ts.cue, 'un', 0); 
+cueNoLaserI = cell2mat(cellfun(@(a) sum(ismember([ts.laserCue2s, ts.laserOnly2s, ts.tagLaser1s],a))==0, cueRangeC, 'un', 0)); 
+ts.cueNoLaser = ts.cue(cueNoLaserI); 
+
+if ~isempty(ts.tagLaser1s)
+    tagLaser1s     = psthBINcellRmvArtifactNearZero( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.tagLaser1s', ts.cue'-1000, 1, [5e3 5e3], -1, p.Results.psthPlotFlag );
+>>>>>>> master
     binSpkCountCTX.tagLaser1s = tagLaser1s;
 end
 
@@ -131,7 +140,11 @@ if  ~isempty(ts.laserCue2s)
 end
 
 if  ~isempty(ts.laserOnly2s)
+<<<<<<< HEAD
     laserOnly2s    = psthBINcell( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.laserOnly2s', ts.cue'-1000, 1, [5e3 5e3], -1, p.Results.psthPlotFlag );
+=======
+    laserOnly2s    = psthBINcellRmvArtifactNearZero( p.Results.fileInfo, 'M1', spkTimesCellCTX, ts.laserOnly2s', ts.cue'-1000, 1, [5e3 5e3], -1, p.Results.psthPlotFlag );
+>>>>>>> master
     binSpkCountCTX.laserOnly2s = laserOnly2s;
 end
 
@@ -145,6 +158,7 @@ save(fullfile(p.Results.filePath,saveName),'-struct','binSpkCountCTX') % save th
 save(fullfile(p.Results.filePath,saveName), 'ts', '-append') % append the behavioral timestamps
 
 %% Individual unit raster plot 
+<<<<<<< HEAD
 unit = 6; % 32, 37, 40, 45, 66, 69 (M314_20200427_1000um)
 spikeRasterGramm( [5e3 5e3], {'tagLaser1s'}, [3e3 3e3], [tagLaser1s.SpkTimes{unit};laserOnly2s.SpkTimes{unit}]);
 spikeRasterGramm( [5e3 5e3], {'tagLaser1s'}, [3e3 3e3], tagLaser1s.SpkTimes{unit});
@@ -152,14 +166,27 @@ spikeRasterGramm( [5e3 5e3], {'laserOnly2s'}, [3e3 3e3], laserOnly2s.SpkTimes{un
 %spikeRasterGramm( [5e3 5e3], {'tagLaser1s'}, [3e3 3e3], binSpkCountCTX.tagLaser1s.SpkTimes{unit});
 %spikeRasterGramm( [5e3 5e3], {'laserOnly2s'}, [3e3 3e3], binSpkCountCTX.laserOnly2s.SpkTimes{unit});
 %print( fullfile(filePath,'Figure',strcat(fileInfo,'_',sprintf('unit#%d',unit),'tagLaser1sLaserOnly2s')), '-dpdf','-painters', '-bestfit')
+=======
+%unit = 1; % 32, 37, 40, 45, 66, 69 (M314_20200427_1000um)
+%spikeRasterGramm( [5e3 5e3], {'tagLaser1s'}, [3e3 3e3], [tagLaser1s.SpkTimes{unit};laserOnly2s.SpkTimes{unit}]);
+%spikeRasterGramm( [5e3 5e3], {'tagLaser1s'}, [3e3 3e3], tagLaser1s.SpkTimes{unit});
+%spikeRasterGramm( [5e3 5e3], {'laserOnly2s'}, [3e3 3e3], laserOnly2s.SpkTimes{unit});
+%print( fullfile(filePath,'Figure',strcat(fileInfo,'_',sprintf('unit#%d',unit),'LaserOnly2s')), '-dpdf','-painters', '-bestfit')
+>>>>>>> master
 %unit = unit+1;
 
 %unit = 139; % str unit 128 (laser activated)
 %spikeRasterGramm( [1e3 3e3], {'reach','stim','stimReach'}, binSpkCountSTRReach(unit).SpkTimes, binSpkCountSTRstmLaser(unit).SpkTimes,binSpkCountSTRstmReach(unit).SpkTimes );
 
+<<<<<<< HEAD
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % NESTED HELPER FUNCTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%
+=======
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% NESTED HELPER FUNCTIONS %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+>>>>>>> master
 function p = parse_input_psth_rtg( filePath, fileInfo, probeDepth, vargs ) % note that a nested function must use vargs not varargin when varargin was used for the main function
 %parse input, and extract name-value pairs for the main function
 % 'PSTH_rasters'

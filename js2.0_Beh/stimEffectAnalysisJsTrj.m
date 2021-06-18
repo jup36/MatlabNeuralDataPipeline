@@ -13,7 +13,11 @@ else
     error('No behavioral data found!!!')
 end
     
+<<<<<<< HEAD
 maxPtsToPlot = 10000; % 10s
+=======
+maxPtsToPlot = 20000; % 10s
+>>>>>>> master
 rewardIdx = [S.rewarded];
 trJsReady = [S.trJsReady];
 firstRwdTrial = find([S(:).rewarded]==1,1,'first'); 
@@ -133,6 +137,121 @@ print(fullfile(filePath,'Figure','reachProb_expectedJsPos'), '-dpdf','-bestfit',
 [~,fileN,~] = fileparts(filePath); 
 save(fullfile(filePath,strcat(fileN,'_stimR')))
 
+<<<<<<< HEAD
 end
 
 
+=======
+%% plot sgJsTrajmm of stim vs non-stim trials aligned to the actual and putative stim onset times
+% All trials
+tqs = unique([S(:).pull_torque]); % pull torques in the session
+hTqTrs = cellfun(@ (a) a==tqs(end), {S(:).pull_torque})'; % high torque trials 
+lTqTrs = cellfun(@ (a) a==tqs(1), {S(:).pull_torque})'; % low torque trials
+stmTrials = ~isnan([S(:).stimLaserOn]'); 
+
+lTqPullStart = []; 
+hTqPullStart = []; 
+
+trStartPt = nan(length(S),1); 
+
+for t = 1:length(S)
+    if S(t).rewarded && strcmpi(S(t).trialType,'sp')
+        if isnan(S(t).stimLaserOn)
+            if isstruct(S(t).movKins)
+                if isfield(S,'pLaserOn') && ~isnan(S(t).pLaserOn) % if pseudo laser pulse was used
+                    trStartPt(t,1) = S(t).trJsReady + S(t).movKins.pullStart - (S(t).pLaserOn+4000); % align to the putative pStim on, stim generated 4-sec after the last trial offset with the camTrigger                    
+                    
+                end
+            end
+        elseif ~isnan(S(t).stimLaserOn)
+            if isstruct(S(t).movKins)
+                trStartPt(t,1) = S(t).trJsReady + S(t).movKins.pullStart - (S(t).stimLaserOn+4000); % align to the putative stim on, stim generated 4-sec after the last trial offset with the camTrigger
+            end
+        end
+    end
+end
+clearvars t
+
+rStartRelStim.stmhTq = trStartPt(stmTrials & hTqTrs); 
+rStartRelStim.stmlTq = trStartPt(stmTrials & lTqTrs); 
+rStartRelStim.pStmhTq = trStartPt(~stmTrials & hTqTrs); 
+rStartRelStim.pStmlTq = trStartPt(~stmTrials & lTqTrs); 
+
+rStartRelStim.stmhTq = rStartRelStim.stmhTq(rStartRelStim.stmhTq<10000);% & rStartRelStim.stmhTq>0); % stim high torque
+rStartRelStim.stmlTq = rStartRelStim.stmlTq(rStartRelStim.stmlTq<10000);% & rStartRelStim.stmlTq>0); % stim low torque
+rStartRelStim.pStmhTq = rStartRelStim.pStmhTq(rStartRelStim.pStmhTq<10000);% & rStartRelStim.pStmhTq>0); % pStim high torque
+rStartRelStim.pStmlTq = rStartRelStim.pStmlTq(rStartRelStim.pStmlTq<10000);% & rStartRelStim.pStmlTq>0); % pStim low torque
+
+%% histogram the pullStart latencies 
+edges = -4000:200:10000; 
+% low torque stim
+figure; hold on; 
+[rStartRelStim.stmlTqHist, rStartRelStim.stmlTqHistE] = histcounts(rStartRelStim.stmlTq, edges); % histcounts
+rStartRelStim.stmlTqHistNorm = rStartRelStim.stmlTqHist./sum(rStartRelStim.stmlTqHist); % normalized histcounts 
+rStartRelStim.stmlTqHcNormCumSum = cumsum(rStartRelStim.stmlTqHistNorm); % cumulative sum
+bar(edges(1:end-1),rStartRelStim.stmlTqHistNorm,1,'FaceAlpha',.5,'EdgeColor','none'); 
+
+% low torque pStim
+[rStartRelStim.pStmlTqHist, rStartRelStim.pStmlTqHistE] = histcounts(rStartRelStim.pStmlTq, edges);
+rStartRelStim.pStmlTqHistNorm = rStartRelStim.pStmlTqHist./sum(rStartRelStim.pStmlTqHist); 
+rStartRelStim.pStmlTqHcNormCumSum = cumsum(rStartRelStim.pStmlTqHistNorm); % cumulative sum
+bar(edges(1:end-1),rStartRelStim.pStmlTqHistNorm,1,'FaceAlpha',.5,'EdgeColor','none'); 
+hold off; 
+ylim([0 .4])
+yticks(0:.1:1);
+set(gca,'TickDir','out')
+
+% plot cumulative pullStart on low torque
+figure; hold on; 
+plot(edges(1:end-1), rStartRelStim.pStmlTqHcNormCumSum)
+plot(edges(1:end-1), rStartRelStim.stmlTqHcNormCumSum)
+set(gca,'TickDir','out')
+
+% high torque stim
+figure; hold on; 
+[rStartRelStim.stmhTqHist, rStartRelStim.stmhTqHistE] = histcounts(rStartRelStim.stmhTq, edges);
+rStartRelStim.stmhTqHistNorm = rStartRelStim.stmhTqHist./sum(rStartRelStim.stmhTqHist); 
+rStartRelStim.stmhTqHcNormCumSum = cumsum(rStartRelStim.stmhTqHistNorm); % cumulative sum
+bar(edges(1:end-1),rStartRelStim.stmhTqHistNorm,1,'FaceAlpha',.5,'EdgeColor','none'); 
+set(gca,'TickDir','out')
+
+% high torque pStim
+[rStartRelStim.pStmhTqHist, rStartRelStim.pStmhTqHistE] = histcounts(rStartRelStim.pStmhTq, edges);
+rStartRelStim.pStmhTqHistNorm = rStartRelStim.pStmhTqHist./sum(rStartRelStim.pStmhTqHist); 
+rStartRelStim.pStmhTqHcNormCumSum = cumsum(rStartRelStim.pStmhTqHistNorm); % cumulative sum
+bar(edges(1:end-1),rStartRelStim.pStmhTqHistNorm,1,'FaceAlpha',.5,'EdgeColor','none'); 
+hold off; 
+ylim([0 max(rStartRelStim.pStmhTqHistNorm)+.02])
+yticks(0:.1:1);
+set(gca,'TickDir','out')
+
+% plot cumulative pullStart on high torque
+figure; hold on; 
+plot(edges(1:end-1), rStartRelStim.pStmhTqHcNormCumSum)
+plot(edges(1:end-1), rStartRelStim.stmhTqHcNormCumSum)
+set(gca,'TickDir','out')
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+>>>>>>> master
