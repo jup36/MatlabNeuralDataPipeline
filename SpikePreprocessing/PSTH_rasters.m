@@ -32,7 +32,7 @@ elseif contains(p.Results.probeType,'ni','IgnoreCase',true)
     meta = getmetaNidq;  
 end
 
-[S_clu,viTime_spk,viSite_spk,viSite_clu] = getjrcmatVar; % get the structure variable containing cluster info
+[S_clu,viTime_spk,viSite_spk,viSite_clu] = getjrcmatVarThis; % get the structure variable containing cluster info
 dvCosConvert   = cos(p.Results.probeAngle/180*pi);  % if probe was angled, probe coordinates need to be corrected 
 
 if length(p.Results.probeDepth)~=length(p.Results.numbSiteProbe)

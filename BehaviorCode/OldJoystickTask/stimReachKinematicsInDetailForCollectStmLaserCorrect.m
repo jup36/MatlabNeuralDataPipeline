@@ -12,7 +12,7 @@ function [bTj, bTjStimLaser, bTjPStimLaser, lTj] = stimReachKinematicsInDetailFo
 
 %% get behavioral data 'BehVariables.mat'
 load(fullfile(filePath,'BehVariables.mat'),'ts','reach0','positionData','lick')
-load(fullfile('/Volumes/Beefcake/Junchol_Data/oldJoystickCalib/jsCalibData.mat'),'mmConv*'); % voltage to mm conversion coefficients from the calibration data
+load(fullfile('/Volumes/8TB/Junchol_Data/oldJoystickCalib/jsCalibData.mat'),'mmConv*'); % voltage to mm conversion coefficients from the calibration data
 
 % conversion from voltage to mm
 reach0mm = reach0.*mmConvR0;
@@ -122,7 +122,7 @@ for t = 1:length(reachXYStim)
         timeWin = bTS.stmLaserRwd(t)+bTS.rchBinE1ms; % the time window relative to reachStart, -2 to 3 sec
         bTjStimLaser(t).reachPos = smooth(binAvg1msSpkCountMat(reachXYStim{t},50,50),3)'; % get reach position
         bTjStimLaser(t).reachPosReachWin = bTjStimLaser(t).reachPos(bTS.rchReachBins); % reach Position within the reach window
-        bTjStimLaser(t).reachVel = smooth(diff([bTjStimLaser(t).reachPos(1) bTjStimLaser(t).reachPos]),3)'.*(1000); % get reach velocities 
+        bTjStimLaser(t).reachVel = smooth(diff([bTjStimLaser(t).reachPos(1) bTjStimLaser(t).reachPos]),3)'.*(1000/50); % get reach velocities 
         bTjStimLaser(t).reachVelReachWin = bTjStimLaser(t).reachVel(bTS.rchReachBins); % reach velocity within the reach window
         bTjStimLaser(t).maxReachPos = max(bTjStimLaser(t).reachPosReachWin); % max reach position within the time window of interest
         bTjStimLaser(t).maxReachVel = max(bTjStimLaser(t).reachVelReachWin); % max reach velocity within the time window of interest        
