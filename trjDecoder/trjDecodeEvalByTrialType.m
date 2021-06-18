@@ -1,31 +1,23 @@
 function [corrRez,r2Rez] = trjDecodeEvalByTrialType(state, stateEst)
 %Computes pearson correlation and r-squared metrics between actual and
 % estimated states, each input should be trial-by-trialType cell, whose cell
-% element should be variables-by-timeBin.
+% element should be variables-by-timeBin. 
 % state = s.dat.stateP; % actual state
 % stateEst = s.dat.statePCtx; % estimated state
 
-valCellState = cell2mat(cellfun(@(a) ~isempty(a), state, 'un', 0));
-valCellStateEst = cell2mat(cellfun(@(a) ~isempty(a), stateEst, 'un', 0));
-valCell = valCellState&valCellStateEst;
-state(~valCell)=deal({[]});
-stateEst(~valCell)=deal({[]});
+nEach=sum(cell2mat(cellfun(@(a) ~isempty(a), state, 'un',0)),1); 
+valType = nEach>10; % evalute trial types with more than 10 trials 
 
-nEach=sum(cell2mat(cellfun(@(a) ~isempty(a), state, 'un',0)),1);
-valType = nEach>15; % evalute trial types with more than 15 trials
-
-state1 = state(:,valType);
-stateEst1 = stateEst(:,valType);
+state1 = state(:,valType);  
+stateEst1 = stateEst(:,valType); 
 
 s1 = cell2mat(reshape(state1,[],1)')'; % state mat
 s2 = cell2mat(reshape(stateEst1,[],1)')'; % stateEst mat
 
-if size(s1,1)==size(s2,1) && size(s1,2)==size(s2,2)
-    r2 = @(a,b) ones(1,size(a,2))-nansum((a-b).^2)./nansum((a-repmat(nanmean(a,1), size(a,1), 1)).^2); % r-squared = 1-SSres/SStot;
-    r2overall = @(a,b) 1-sum(nansum((a-b).^2))./sum(nansum((a-repmat(nanmean(a,1), size(a,1), 1)).^2)); % r-squared = 1-SSres/SStot;
-    r2Rez.all = r2(s1,s2); % r^2 across all trials
-    r2Rez.overall = r2overall(s1,s2);
-end
+r2 = @(a,b) ones(1,size(a,2))-nansum((a-b).^2)./nansum((a-repmat(nanmean(a,1), size(a,1), 1)).^2); % r-squared = 1-SSres/SStot;
+r2overall = @(a,b) 1-sum(nansum((a-b).^2))./sum(nansum((a-repmat(nanmean(a,1), size(a,1), 1)).^2)); % r-squared = 1-SSres/SStot;
+r2Rez.all = r2(s1,s2); % r^2 across all trials
+r2Rez.overall = r2overall(s1,s2); 
 
 corrRez.all = corr(s1,s2,'Rows','complete'); % corr without smoothing
 corrRez.all_sm = corr(smooth2a(s1,3,0),smooth2a(s2,3,0),'Rows','complete'); % corr with smoothing across time bins (smoothing seems to hurt usually)
@@ -40,7 +32,7 @@ for tt = 1:size(state,2) % trial types
     else
         tempCorr = nan;
         tempCorr_sm = nan;
-        tempR2 = nan;
+        tempR2 = nan;   
     end
     
     switch tt

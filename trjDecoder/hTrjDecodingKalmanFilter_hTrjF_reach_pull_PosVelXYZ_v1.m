@@ -6,39 +6,31 @@ cd(filePath)
 kfDir = dir('preprocessKFdecodeHTrjCtxStr_reachpull_hTrjF_20ms*');
 load(fullfile(kfDir.folder,kfDir.name),'s')
 
-resample = 50;
+resample = 5;
 valTrI = cell2mat(cellfun(@(a) ~isempty(a), s.dat.spkCtxR, 'un', 0));
 
-if ~isfield(s.dat,'laserIdxR')
-    s.dat.laserIdxR = num2cell(zeros(size(s.dat.stateR,1),size(s.dat.stateR,2)));
-end
-
-if ~isfield(s.dat,'laserIdxP')
-    s.dat.laserIdxP = num2cell(zeros(size(s.dat.stateP,1),size(s.dat.stateP,2)));
-end
-
 %% REACH select kinematic variables to fit (e.g. hand position or hand velocity - fitting them both together doesn't seem to be a good idea for some reason(?))
-tmpState0 = cell(size(s.dat.stateR,1),size(s.dat.stateR,2));
-tmpState = cell(size(s.dat.stateR,1),size(s.dat.stateR,2));
-for k = 1:8 % MAIN LOOP (fit X,Y,Z sperately and XYZ altogether)
+tmpState0 = cell(size(s.dat.stateR,1),size(s.dat.stateR,2)); 
+tmpState = cell(size(s.dat.stateR,1),size(s.dat.stateR,2)); 
+for k = 1:8 % MAIN LOOP (fit X,Y,Z sperately and XYZ altogether) 
     if k <= 6
-        tmpState0(valTrI)=deal(cellfun(@(a) a(k,:),s.dat.stateR(valTrI),'un',0));
+        tmpState0(valTrI)=deal(cellfun(@(a) a(k,:),s.dat.stateR(valTrI),'un',0)); 
     elseif k == 7 % position variables together
-        tmpState0(valTrI)=deal(cellfun(@(a) a(1:3,:),s.dat.stateR(valTrI),'un',0));
+        tmpState0(valTrI)=deal(cellfun(@(a) a(1:3,:),s.dat.stateR(valTrI),'un',0)); 
     elseif k == 8 % velosity variables together
-        tmpState0(valTrI)=deal(cellfun(@(a) a(4:6,:),s.dat.stateR(valTrI),'un',0));
+        tmpState0(valTrI)=deal(cellfun(@(a) a(4:6,:),s.dat.stateR(valTrI),'un',0)); 
     end
     % global median subtraction (not baseline subtraction of its own)
     medP1 = nanmedian(cell2mat(cellfun(@(a) a(:,1), tmpState0(valTrI)','un',0)),2);
-    tmpState(valTrI) = cellfun(@(a) a-repmat(medP1,1,size(a,2)),tmpState0(valTrI),'un',0);
+    tmpState(valTrI) = cellfun(@(a) a-repmat(medP1,1,size(a,2)),tmpState0(valTrI),'un',0);      
     %% leave-a-trial-out decoding using Kalman Filter (heavy-lifting part)
-    %[s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoder(tmpState, s.dat.spkCtxR, s.dat.spkStrR, s.dat.laserIdxR, 10);
-    [s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoderTrialTypeBalanced(tmpState, s.dat.spkCtxR, s.dat.spkStrR, s.dat.laserIdxR, resample);
+    %[s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoder(tmpState, s.dat.spkCtxR, s.dat.spkStrR, s.dat.laserIdxR, 10); 
+    [s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoderTrialTypeBalanced(tmpState, s.dat.spkCtxR, s.dat.spkStrR, s.dat.laserIdxR, resample); 
     
-    %% evaluate decoding with correlation and r-squred
-    [corrRez.ctx{k},r2Rez.ctx{k}] =  trjDecodeEvalByTrialType(tmpState, s.dat.stateRCtx{k}.est);
-    [corrRez.str{k},r2Rez.str{k}] = trjDecodeEvalByTrialType(tmpState, s.dat.stateRStr{k}.est);
-    [corrRez.ctxstr{k},r2Rez.ctxstr{k}] = trjDecodeEvalByTrialType(tmpState, s.dat.stateRCtxStr{k}.est);
+    %% evaluate decoding with correlation and r-squred 
+    [corrRez.ctx{k},r2Rez.ctx{k}] =  trjDecodeEvalByTrialType(tmpState, s.dat.stateRCtx{k}.est); 
+    [corrRez.str{k},r2Rez.str{k}] = trjDecodeEvalByTrialType(tmpState, s.dat.stateRStr{k}.est); 
+    [corrRez.ctxstr{k},r2Rez.ctxstr{k}] = trjDecodeEvalByTrialType(tmpState, s.dat.stateRCtxStr{k}.est); 
 end
 clearvars k
 
@@ -50,27 +42,27 @@ save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPosVel_reach_',saveName)),'s
 valTrI = cell2mat(cellfun(@(a) ~isempty(a), s.dat.spkCtxP, 'un', 0));
 
 %% REACH select kinematic variables to fit (e.g. hand position or hand velocity - fitting them both together doesn't seem to be a good idea for some reason(?))
-tmpState0 = cell(size(s.dat.stateP,1),size(s.dat.stateP,2));
-tmpState = cell(size(s.dat.stateP,1),size(s.dat.stateP,2));
-for k = 1:8 % MAIN LOOP (fit X,Y,Z sperately and XYZ altogether)
+tmpState0 = cell(size(s.dat.stateP,1),size(s.dat.stateP,2)); 
+tmpState = cell(size(s.dat.stateP,1),size(s.dat.stateP,2)); 
+for k = 1:8 % MAIN LOOP (fit X,Y,Z sperately and XYZ altogether) 
     if k <= 6
-        tmpState0(valTrI)=deal(cellfun(@(a) a(k,:),s.dat.stateP(valTrI),'un',0));
+        tmpState0(valTrI)=deal(cellfun(@(a) a(k,:),s.dat.stateP(valTrI),'un',0)); 
     elseif k == 7 % position variables together
-        tmpState0(valTrI)=deal(cellfun(@(a) a(1:3,:),s.dat.stateP(valTrI),'un',0));
+        tmpState0(valTrI)=deal(cellfun(@(a) a(1:3,:),s.dat.stateP(valTrI),'un',0)); 
     elseif k == 8 % velosity variables together
-        tmpState0(valTrI)=deal(cellfun(@(a) a(4:6,:),s.dat.stateP(valTrI),'un',0));
+        tmpState0(valTrI)=deal(cellfun(@(a) a(4:6,:),s.dat.stateP(valTrI),'un',0)); 
     end
     % global median subtraction (not baseline subtraction of its own)
     medP1 = nanmedian(cell2mat(cellfun(@(a) a(:,1), tmpState0(valTrI)','un',0)),2);
-    tmpState(valTrI) = cellfun(@(a) a-repmat(medP1,1,size(a,2)),tmpState0(valTrI),'un',0);
+    tmpState(valTrI) = cellfun(@(a) a-repmat(medP1,1,size(a,2)),tmpState0(valTrI),'un',0);      
     %% leave-a-trial-out decoding using Kalman Filter (heavy-lifting part)
-    %[s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoder(tmpState, s.dat.spkCtxP, s.dat.spkStrP, s.dat.laserIdxP, 10);
-    [s.dat.statePCtx{k},s.dat.statePStr{k},s.dat.statePCtxStr{k}] = leaveOneOutKFdecoderTrialTypeBalanced(tmpState, s.dat.spkCtxP, s.dat.spkStrP, s.dat.laserIdxP, resample);
+    %[s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoder(tmpState, s.dat.spkCtxP, s.dat.spkStrP, s.dat.laserIdxP, 10); 
+    [s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoderTrialTypeBalanced(tmpState, s.dat.spkCtxP, s.dat.spkStrP, s.dat.laserIdxP, resample); 
     
-    %% evaluate decoding with correlation and r-squred
-    [corrRez.ctx{k},r2Rez.ctx{k}] =  trjDecodeEvalByTrialType(tmpState, s.dat.statePCtx{k}.est);
-    [corrRez.str{k},r2Rez.str{k}] = trjDecodeEvalByTrialType(tmpState, s.dat.statePStr{k}.est);
-    [corrRez.ctxstr{k},r2Rez.ctxstr{k}] = trjDecodeEvalByTrialType(tmpState, s.dat.statePCtxStr{k}.est);
+    %% evaluate decoding with correlation and r-squred 
+    [corrRez.ctx{k},r2Rez.ctx{k}] =  trjDecodeEvalByTrialType(tmpState, s.dat.stateRCtx{k}.est); 
+    [corrRez.str{k},r2Rez.str{k}] = trjDecodeEvalByTrialType(tmpState, s.dat.stateRStr{k}.est); 
+    [corrRez.ctxstr{k},r2Rez.ctxstr{k}] = trjDecodeEvalByTrialType(tmpState, s.dat.stateRCtxStr{k}.est); 
 end
 clearvars k
 
@@ -101,12 +93,8 @@ save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPosVel_pull_',saveName)),'s'
         s1 = cell2mat(reshape(state,[],1)')'; % state mat
         s2 = cell2mat(reshape(stateEst,[],1)')'; % stateEst mat
         
-        if size(s1,1)==size(s2,1) && size(s1,2)==size(s2,2)
-            r2 = @(a,b) ones(1,size(a,2))-nansum((a-b).^2)./nansum((a-repmat(nanmean(a,1), size(a,1), 1)).^2); % r-squared = 1-SSres/SStot;
-            r2overall = @(a,b) 1-sum(nansum((a-b).^2))./sum(nansum((a-repmat(nanmean(a,1), size(a,1), 1)).^2)); % r-squared = 1-SSres/SStot;
-            r2Rez.all = r2(s1,s2); % r^2 across all trials
-            r2Rez.overall = r2overall(s1,s2);
-        end
+        r2 = @(a,b) ones(1,size(a,2))-nansum((a-b).^2)./nansum((a-repmat(nanmean(a,1), size(a,1), 1)).^2); % r-squared = 1-SSres/SStot;
+        r2Rez.all = r2(s1,s2); % r^2 across all trials
         
         corrRez.all = corr(s1,s2,'Rows','complete'); % corr without smoothing
         corrRez.all_sm = corr(smooth2a(s1,3,0),smooth2a(s2,3,0),'Rows','complete'); % corr with smoothing across time bins (smoothing seems to hurt usually)

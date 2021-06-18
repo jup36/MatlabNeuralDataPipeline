@@ -6,20 +6,14 @@
         for rr = 1:size(refState,1)
             for cl = 1:size(refState,2)
                 if valTrId(rr,cl)
-                    if sum(isnan([estState{rr,cl,:}]))>0
-                        representState{rr,cl} = nan(size(tmpState,1),size(tmpState,1));
-                        representStateCut{rr,cl} = nan(size(tmpState,1),min(size(tmpState,2),50));
-                        representIntState{rr,cl} = nan(size(tmpState,1),50); % original estimated trajectory with interpolation
-                    else
-                        distToRef = squeeze(cell2mat(cellfun(@(a) sum(sum(sqrt((a-refState{rr,cl}).^2))),estState(rr,cl,:),'un',0))); % average across ctx resampled trials
-                        representState{rr,cl} = estState{rr,cl,find(distToRef==min(distToRef),1,'first')};
-                        tmpState = representState{rr,cl};
-                        tmpCutState = nan(nKv,50);
-                        if size(tmpState,2)>=5
-                            tmpCutState(:,1:min(size(tmpState,2),50)) = tmpState(:,1:min(size(tmpState,2),50));
-                            representStateCut{rr,cl} = tmpCutState;
-                            representIntState{rr,cl} = intm(tmpState,50); % original estimated trajectory with interpolation
-                        end
+                    distToRef = squeeze(cell2mat(cellfun(@(a) sum(sum(sqrt((a-refState{rr,cl}).^2))),estState(rr,cl,:),'un',0))); % average across ctx resampled trials
+                    representState{rr,cl} = estState{rr,cl,find(distToRef==min(distToRef),1,'first')};
+                    tmpState = representState{rr,cl};
+                    tmpCutState = nan(nKv,50);
+                    if size(tmpState,2)>=5
+                        tmpCutState(:,1:min(size(tmpState,2),50)) = tmpState(:,1:min(size(tmpState,2),50));
+                        representStateCut{rr,cl} = tmpCutState;
+                        representIntState{rr,cl} = intm(tmpState,50); % original estimated trajectory with interpolation                   
                     end
                 end
             end

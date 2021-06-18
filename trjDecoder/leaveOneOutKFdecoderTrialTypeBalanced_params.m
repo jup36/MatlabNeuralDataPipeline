@@ -1,9 +1,14 @@
-function  [ctxRez, strRez, ctxstrRez] = leaveOneOutKFdecoderTrialTypeBalanced(stateD,ctxD,strD,laserI,resample)
-%stateD = s.dat.stateR;
+function  [ctxRez, strRez, ctxstrRez, params] = leaveOneOutKFdecoderTrialTypeBalanced_params(stateD,ctxD,strD,laserI,resample,ctxI_bsc,strI_bsc)
+%stateD = tmpState;
 %ctxD = s.dat.spkCtxR; 
 %strD = s.dat.spkStrR;
 %laserI = s.dat.laserIdxR; 
 %resample = 20; 
+%ctxI_bsc = s.ctxI; 
+%strI_bsc = s.strI; 
+
+ctxI_bscN = find(ctxI_bsc); 
+strI_bscN = find(strI_bsc); 
 
 valTrI = cell2mat(cellfun(@(a) ~isempty(a), ctxD, 'un', 0)); % valid trials
 stmTrI = cell2mat(cellfun(@(a) sum(a)>=1, laserI, 'un', 0)); % stim trials
@@ -147,6 +152,20 @@ for i = 1:resample %resample % repeat resampling trials
                 C_ctxstrVal = C_ctxstr(valCellICtxStr,:);
                 R_ctxstrVal = R_ctxstr(valCellICtxStr,valCellICtxStr);
                 
+                tempC_ctx = nan(length(ctxI_bsc),size(C_ctxVal,2)); 
+                tempC_ctx(ctxI_bscN(ctxI(valCellICtx)),:) = C_ctxVal; 
+                params.C_ctxVal{r,c,i} = tempC_ctx; 
+                
+                tempC_str = nan(length(strI_bsc),size(C_strVal,2)); 
+                tempC_str(strI_bscN(strI(valCellIStr)),:) = C_strVal; 
+                params.C_strVal{r,c,i} = tempC_str; 
+                
+                tempC_CtxStr = nan(length(ctxI_bsc),size(C_ctxstrVal,2)); 
+                tempC_CtxStrI = [ctxI_bscN(ctxI); strI_bscN(strI)]; 
+                tempC_CtxStrI(valCellICtxStr); 
+                tempC_CtxStr(tempC_CtxStrI(valCellICtxStr),:)=C_ctxstrVal; 
+                params.C_ctxstrVal{r,c,i} = tempC_CtxStr; 
+                                
                 for b = 1:curTrLength % # of timebins
                     % One-step prediction by ctx and str data separately
                     mu_ctx = A*mu_ctx; % A is the coefficient matrix for the state model that maps the previous states to current states
@@ -205,9 +224,7 @@ for i = 1:resample %resample % repeat resampling trials
 end
 clearvars r c
 
-estStateNanCtx=sum(cell2mat(cellfun(@(a) sum(isnan(a)),estStateCtxMean,'un',0)),3)==0;
-[ctxRez.est,ctxRez.estCut,ctxRez.estInt] = getRepresentativeStateEst(stateD,estStateCtxMean,valTrI&estStateNanCtx);
-estStateNanStr=sum(cell2mat(cellfun(@(a) sum(isnan(a)),estStateCtMean,'un',0)),3)==0;
+[ctxRez.est,ctxRez.estCut,ctxRez.estInt] = getRepresentativeStateEst(stateD,estStateCtxMean,valTrI);
 [strRez.est,strRez.estCut,strRez.estInt] = getRepresentativeStateEst(stateD,estStateStrMean,valTrI);
 [ctxstrRez.est,ctxstrRez.estCut,ctxstrRez.estInt] = getRepresentativeStateEst(stateD,estStateCtxStrMean,valTrI);
 
@@ -216,28 +233,19 @@ estStateNanStr=sum(cell2mat(cellfun(@(a) sum(isnan(a)),estStateCtMean,'un',0)),3
         %refState = stateD;
         %estState = estStateCtxMean;
         %valTrId = valTrI;
-        estStateNan=sum(cell2mat(cellfun(@(a) sum(isnan(a)),estState,'un',0)),3)==0;
-        valTrId = valTrId&estStateNan;
-        
         nKv = mode(cell2mat(cellfun(@(a) size(a,1),refState(valTrId),'un',0)));
         for rr = 1:size(refState,1)
             for cl = 1:size(refState,2)
                 if valTrId(rr,cl)
-                    %if sum(isnan([estState{rr,cl,:}]))>0
-                     %   representState{rr,cl} = nan(size(tmpState,1),size(tmpState,1));
-                     %   representStateCut{rr,cl} = nan(size(tmpState,1),min(size(tmpState,2),50));
-                     %   representIntState{rr,cl} = nan(size(tmpState,1),50); % original estimated trajectory with interpolation
-                     %else
-                        distToRef = squeeze(cell2mat(cellfun(@(a) sum(sum(sqrt((a-refState{rr,cl}).^2))),estState(rr,cl,:),'un',0))); % average across ctx resampled trials
-                        representState{rr,cl} = estState{rr,cl,find(distToRef==min(distToRef),1,'first')};
-                        tmpState = representState{rr,cl};
-                        tmpCutState = nan(nKv,50);
-                        if size(tmpState,2)>=5
-                            tmpCutState(:,1:min(size(tmpState,2),50)) = tmpState(:,1:min(size(tmpState,2),50));
-                            representStateCut{rr,cl} = tmpCutState;
-                            representIntState{rr,cl} = intm(tmpState,50); % original estimated trajectory with interpolation
-                        end
-                    %end
+                    distToRef = squeeze(cell2mat(cellfun(@(a) sum(sum(sqrt((a-refState{rr,cl}).^2))),estState(rr,cl,:),'un',0))); % average across ctx resampled trials
+                    representState{rr,cl} = estState{rr,cl,find(distToRef==min(distToRef),1,'first')};
+                    tmpState = representState{rr,cl};
+                    tmpCutState = nan(nKv,50);
+                    if size(tmpState,2)>=5
+                        tmpCutState(:,1:min(size(tmpState,2),50)) = tmpState(:,1:min(size(tmpState,2),50));
+                        representStateCut{rr,cl} = tmpCutState;
+                        representIntState{rr,cl} = intm(tmpState,50); % original estimated trajectory with interpolation                   
+                    end
                 end
             end
         end

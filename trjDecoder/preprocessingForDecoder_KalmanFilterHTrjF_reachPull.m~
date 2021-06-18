@@ -50,8 +50,6 @@ strI = depth>2100; % striatum index
 
 s.ctxI = ctxI; 
 s.strI = strI; 
-s.ctxI_bsc = find(ctxI); 
-s.strI_bsc = find(strI); 
 
 % preprocessing of hand trajectories
 for t = 1:length(ts)
@@ -165,7 +163,8 @@ for t = 1:length(ts)
                 s.dat.spkCtxStrP{r,c} = binSpkRCtxStr(:,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5));    
             end
             s.dat.trialEvt{r,c} = t;
-            s.dat.trialJkvt{r,c} = tsJkvtTrs{t};            
+            s.dat.trialJkvt{r,c} = tsJkvtTrs{t};
+            
         end
         % get the laserStart and laserStop point and laser index, if exists
         if isfield(jkvt,'stimLaserOn')
@@ -179,15 +178,11 @@ for t = 1:length(ts)
                 s.dat.laserOffTime{r,c} = s.time(t).tLaserStop-t1R; % when did laser went off relative to the reach start
                 
                 if isfield(jkvt(vfI).movKins,'pullStart') && isfield(jkvt(vfI).movKins,'pullStop')
-                    s.dat.laserIdx{r,c} = sum(reshape(t1RtElaserI(1:timeBin(end-1)), binSize, []))>=1;
-                    s.dat.laserIdxR{r,c} = s.dat.laserIdx{r,c}(:,1:tmpPullStart-1);
-                    s.dat.laserIdxP{r,c} = s.dat.laserIdx{r,c}(:,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5));
+                      s.dat.laserIdx{r,c} = sum(reshape(t1RtElaserI(1:timeBin(end-1)), binSize, []))>=1;
+                      s.dat.laserIdxR{r,c} = s.dat.laserIdx{r,c}(:,1:tmpPullStart-1); 
+                      s.dat.laserIdxP{r,c} = s.dat.laserIdx{r,c}(:,tmpPullStart:min(size(tmpState,2),tmpPullEnd+5)); 
                 end
             end
-        else
-            s.dat.laserIdx{r,c} = 0;
-            s.dat.laserIdxR{r,c} = 0;
-            s.dat.laserIdxP{r,c} = 0;         
         end
     end
     fprintf('processed event# %d\n', t)  

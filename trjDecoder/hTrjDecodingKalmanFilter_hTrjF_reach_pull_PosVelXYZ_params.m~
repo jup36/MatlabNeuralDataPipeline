@@ -1,4 +1,4 @@
-function hTrjDecodingKalmanFilter_hTrjF_reach_pull_PosVelXYZ_v1(filePath, saveName)
+function hTrjDecodingKalmanFilter_hTrjF_reach_pull_PosVelXYZ_params(filePath, saveName)
 %This decodes kinematics of mouse 3-d hand movement trajectories (X,Y,Z)
 % using cross-validated (leave-a-trial-out) Kalman filter decoding.
 %filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles';
@@ -6,7 +6,7 @@ cd(filePath)
 kfDir = dir('preprocessKFdecodeHTrjCtxStr_reachpull_hTrjF_20ms*');
 load(fullfile(kfDir.folder,kfDir.name),'s')
 
-resample = 50;
+resample = 25;
 valTrI = cell2mat(cellfun(@(a) ~isempty(a), s.dat.spkCtxR, 'un', 0));
 
 %% REACH select kinematic variables to fit (e.g. hand position or hand velocity - fitting them both together doesn't seem to be a good idea for some reason(?))
@@ -24,13 +24,9 @@ for k = 1:8 % MAIN LOOP (fit X,Y,Z sperately and XYZ altogether)
     medP1 = nanmedian(cell2mat(cellfun(@(a) a(:,1), tmpState0(valTrI)','un',0)),2);
     tmpState(valTrI) = cellfun(@(a) a-repmat(medP1,1,size(a,2)),tmpState0(valTrI),'un',0);      
     %% leave-a-trial-out decoding using Kalman Filter (heavy-lifting part)
-    %[s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoder(tmpState, s.dat.spkCtxR, s.dat.spkStrR, s.dat.laserIdxR, 10); 
-    [s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoderTrialTypeBalanced(tmpState, s.dat.spkCtxR, s.dat.spkStrR, s.dat.laserIdxR, resample); 
+    [s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k},s.dat.params{k}] = leaveOneOutKFdecoderTrialTypeBalanced_params(tmpState, s.dat.spkCtxR, s.dat.spkStrR, s.dat.laserIdxR, resample, s.ctxI, s.strI); 
     
-    %% evaluate decoding with correlation and r-squred 
-    [corrRez.ctx{k},r2Rez.ctx{k}] =  trjDecodeEvalByTrialType(tmpState, s.dat.stateRCtx{k}.est); 
-    [corrRez.str{k},r2Rez.str{k}] = trjDecodeEvalByTrialType(tmpState, s.dat.stateRStr{k}.est); 
-    [corrRez.ctxstr{k},r2Rez.ctxstr{k}] = trjDecodeEvalByTrialType(tmpState, s.dat.stateRCtxStr{k}.est); 
+/
 end
 clearvars k
 
@@ -41,7 +37,7 @@ save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPosVel_reach_',saveName)),'s
 %% PULL
 valTrI = cell2mat(cellfun(@(a) ~isempty(a), s.dat.spkCtxP, 'un', 0));
 
-%% REACH select kinematic variables to fit (e.g. hand position or hand velocity - fitting them both together doesn't seem to be a good idea for some reason(?))
+%% PULL select kinematic variables to fit (e.g. hand position or hand velocity - fitting them both together doesn't seem to be a good idea for some reason(?))
 tmpState0 = cell(size(s.dat.stateP,1),size(s.dat.stateP,2)); 
 tmpState = cell(size(s.dat.stateP,1),size(s.dat.stateP,2)); 
 for k = 1:8 % MAIN LOOP (fit X,Y,Z sperately and XYZ altogether) 
@@ -57,7 +53,7 @@ for k = 1:8 % MAIN LOOP (fit X,Y,Z sperately and XYZ altogether)
     tmpState(valTrI) = cellfun(@(a) a-repmat(medP1,1,size(a,2)),tmpState0(valTrI),'un',0);      
     %% leave-a-trial-out decoding using Kalman Filter (heavy-lifting part)
     %[s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoder(tmpState, s.dat.spkCtxP, s.dat.spkStrP, s.dat.laserIdxP, 10); 
-    [s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoderTrialTypeBalanced(tmpState, s.dat.spkCtxP, s.dat.spkStrP, s.dat.laserIdxP, resample); 
+    [s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k},s.dat.params{k}] = leaveOneOutKFdecoderTrialTypeBalanced_params(tmpState, s.dat.spkCtxP, s.dat.spkStrP, s.dat.laserIdxP, resample, s.ctxI, s.strI); 
     
     %% evaluate decoding with correlation and r-squred 
     [corrRez.ctx{k},r2Rez.ctx{k}] =  trjDecodeEvalByTrialType(tmpState, s.dat.stateRCtx{k}.est); 
@@ -85,7 +81,7 @@ save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPosVel_pull_',saveName)),'s'
     end
 
     function [corrRez,r2Rez] = trjDecodeEvalByTrialType(state, stateEst)
-        %Computes pearson correlation and r-squared metrics between actual and
+        %Computes pearson correlation and r-square metrics between actual and
         % estimated states, each input should be trial-by-trialType cell, whose cell
         % element should be variables-by-timeBin.
         % state = s.dat.stateP; % actual state
