@@ -12,7 +12,7 @@ function [bTj, bTjStimLaser, bTjPStimLaser, lTj] = stimReachKinematicsInDetailFo
 
 %% get behavioral data 'BehVariables.mat'
 load(fullfile(filePath,'BehVariables.mat'),'ts','reach0','positionData','lick')
-load(fullfile('/Volumes/Beefcake/Junchol_Data/oldJoystickCalib/jsCalibData.mat'),'mmConv*'); % voltage to mm conversion coefficients from the calibration data
+load(fullfile('/Volumes/8TB/Junchol_Data/oldJoystickCalib/jsCalibData.mat'),'mmConv*'); % voltage to mm conversion coefficients from the calibration data
 
 % conversion from voltage to mm
 reach0mm = reach0.*mmConvR0;
@@ -76,7 +76,7 @@ for t = 1:length(reachXYrwd) % increment trials, take the trial-by-trial positio
         timeWin = ts.reward(t)+bTS.rwdBinE1ms; % the time window, e.g. -3 to 2 sec relative to the behavioral timestamp
         bTj(valNoStimRwdTCnt).reachPos = smooth(binAvg1msSpkCountMat(reachXYrwd{t},50,50),3)'; % get decimated behavioral trjectories on the same timescale of the neural trjectories
         bTj(valNoStimRwdTCnt).reachPosReachWin = bTj(valNoStimRwdTCnt).reachPos(bTS.rwdReachBins);   
-        bTj(valNoStimRwdTCnt).reachVel = smooth(diff([bTj(valNoStimRwdTCnt).reachPos(1) bTj(valNoStimRwdTCnt).reachPos]),3)'.*(1000); % get reach velocities (from reach0mm)
+        bTj(valNoStimRwdTCnt).reachVel = smooth(diff([bTj(valNoStimRwdTCnt).reachPos(1) bTj(valNoStimRwdTCnt).reachPos]),3)'.*(1000/50); % get reach velocities (from reach0mm)
         bTj(valNoStimRwdTCnt).reachVelReachWin = bTj(valNoStimRwdTCnt).reachVel(bTS.rwdReachBins); % get reach velocities (from reach0mm)
         bTj(valNoStimRwdTCnt).maxReachPos = max(bTj(valNoStimRwdTCnt).reachPosReachWin); % max reach position within the time window of interest
         bTj(valNoStimRwdTCnt).maxReachVel = max(bTj(valNoStimRwdTCnt).reachVelReachWin); % max reach velocity within the time window of interest

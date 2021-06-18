@@ -54,7 +54,7 @@ plot(strX,smooth2a(str_load_depth_normBin,0,2)./max(smooth2a(str_load_depth_norm
 plot(strX,smooth2a(str_mix_depth_normBin,0,2)./max(smooth2a(str_mix_depth_normBin,0,2)))
 axis tight
 set(gca,'tickDir','out')
-print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure','dPrm_encodingType_normProportion_Str'),'-dpdf','-painters')
+print(fullfile('/Volumes/8tb/Junchol_Data/JS2p0/collectData/collectFigure','dPrm_encodingType_normProportion_Str'),'-dpdf','-painters')
 
 % plot encoding type proportion per each encoding type 
 figure; hold on; 

@@ -16,7 +16,7 @@ p = parse_input_psth_Cg(filePath, fileInfo, probeDepth, varargin ); % parse inpu
 %p = parse_input_psth_Cg(filePath,'WR40_082019', 1304, {'probeAngle',10,'numbSiteProbe',64,'psthPlotFlag',false,'reachWin',[2e3 3e3],'rewardWin',[3e3 2e3],'tagLaserWin',[5e3 5e3]}) % when running line-by-line
 %p = parse_input_psth_Cg(filePath,'WR37_022719',2124,{'probeAngle',10,'numbSiteProbe',64,'psthPlotFlag',false,'reachWin',[2e3 3e3],'rewardWin',[3e3 2e3],'tagLaserWin',[5e3 5e3]}) % when running line-by-line
 %p = parse_input_psth_Cg(filePath,'WR37_022619',2140,{'probeAngle',10,'numbSiteProbe',64,'psthPlotFlag',false,'reachWin',[2e3 3e3],'rewardWin',[3e3 2e3],'tagLaserWin',[5e3 5e3]}) % when running line-by-line
-%p = parse_input_psth_Cg(filePath,'WR37_022119', 1486, {'probeAngle',10,'numbSiteProbe',64, 'laserUsed', false}); 
+%p = parse_input_psth_Cg(filePath, 
 
 %% Load files 
 cd(p.Results.filePath)   % change directory to the data folder
