@@ -45,7 +45,7 @@ for b = unique(blNumb)
             jsXY = cell2mat(reshape(cellfun(@(a) smooth2a(intm(a(1:2,:),100),0,3), jsXyzC, 'un', 0),[1,1,length(jsXyzC)]));
             jsXY1 = nanmean([cell2mat({jkvt(trials).jsTreachPosT}),cell2mat({jkvt(trials).jsTreachPosB})],2);
             jsXY1 = jsXY1(1:2,1);
-            if ismember(b,[1,2,5,6]); % left blocks
+            if ismember(b,[1,2,5,6]) % left blocks
                 colorTheme = 'wblue';
             else ismember(b,[3,4,7,8]); % right blocks
                 colorTheme = 'wred';

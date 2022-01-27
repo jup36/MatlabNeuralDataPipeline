@@ -1,25 +1,26 @@
-function behaviorTimestampsJsWrapper(filePath, varargin)
+
+function behaviorTimestampsJsWrapper_learning(filePath, varargin)
 %This is a wrapper function to run behaviorTimestampsJs.
 
-defaultPath = 'D:\Junchol_Data';
+defaultPath = 'D:\Junchol_Data\JS2p0_learning';
 
 if iscell(filePath)
     if isempty(filePath)
-       filePath = {uigetdir(defaultPath)};         
+        filePath = {uigetdir(defaultPath)};
     end
 else
-    error('Input a cell array with a filePath(s) or an empty cell array!'); 
+    error('Input a cell array with a filePath(s) or an empty cell array!');
 end
 
-for f = 1:length(filePath) 
+for f = 1:length(filePath)
     if ~isempty(dir(fullfile(filePath{f})))
-        currentPath = fullfile(filePath{f}); 
+        currentPath = fullfile(filePath{f});
     else
-        error('Input a proper file path'); 
+        error('Input a proper file path');
     end
-    p = parse_input_Js(currentPath, varargin); 
-    % p = parse_input_Js(filePath, {'trialTimeout',20000,'laserUsed',true,'plaserUsed', true, 'tagLaserUsed', false, 'reReadBin',false, 'numbNeuralProbe', 0}); 
-    behaviorTimestampsJs(p);
+    p = parse_input_Js(currentPath, varargin);
+    % p = parse_input_Js(filePath, {'trialTimeout',20000,'laserUsed',false,'plaserUsed', false, 'tagLaserUsed', false, 'reReadBin',false, 'numbNeuralProbe', 0});
+    behaviorTimestampsJs_learning(p);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -28,7 +29,7 @@ end
 
     function p = parse_input_Js( filePath, vargs )
         % parse input, and extract name-value pairs
-        default_reReadBin = false; % by default do not re-read the raw bin file, if done already 
+        default_reReadBin = false; % by default do not re-read the raw bin file, if done already
         default_numbNeuralProbe = 0;  % specify how many NIboard probes were used (e.g. zero if no NI neural probe was used)
         default_numbChEachProbe = 64; % specify how many channels are on the probe
         default_trStartCh = 33; % ch# for trial start
@@ -40,6 +41,8 @@ end
         default_laserCh   = 38; % ch# for laser triggers
         default_plaserCh  = 40; % ch# for pseudo laser triggers
         default_lickCh    = 1;  % ch# for lick detect (unattenuated channel)
+        default_syncCh    = 2;  % ch# for 1-s sync pulses
+        
         default_sgfiltFramelen = 101; % frame length for the sgolayfilt
         default_trialTimeout = 10000; % trial timeout duration
         default_pushThreshold = 50; % pushThreshold
@@ -50,11 +53,11 @@ end
         default_tagLaserUsed = false; % laser tagging trials run in the current experiment
         default_rewardDelay = 1000; % the reward TTL pulse is delivered right away not reflecting the delay, so add this to correct for it
         
-        default_meanMass = [10 20 30 40 50 60 70 80 90 100; 2.95 3.52 4.10 4.67 5.25 5.82 6.40 6.97 7.55 8.12]; % torque(%) mass(g) mapping 
+        default_meanMass = [10 20 30 40 50 60 70 80 90 100; 2.95 3.52 4.10 4.67 5.25 5.82 6.40 6.97 7.55 8.12]; % torque(%) mass(g) mapping
         
         p = inputParser; % create parser object
         addRequired(p,'filePath');
-        addParameter(p,'reReadBin',default_reReadBin); 
+        addParameter(p,'reReadBin',default_reReadBin);
         addParameter(p,'numbNeuralProbe',default_numbNeuralProbe);
         addParameter(p,'numbChEachProbe',default_numbChEachProbe);
         addParameter(p,'trStartCh',default_trStartCh);
@@ -64,11 +67,12 @@ end
         addParameter(p,'encodeACh',default_encodeACh);
         addParameter(p,'encodeBCh',default_encodeBCh);
         addParameter(p,'laserCh',default_laserCh);
-        addParameter(p,'plaserCh',default_plaserCh); 
+        addParameter(p,'plaserCh',default_plaserCh);
+        addParameter(p,'syncCh',default_syncCh);
         addParameter(p,'laserUsed',default_laserUsed);
         addParameter(p,'plaserUsed',default_plaserUsed);
-        addParameter(p,'tagLaserUsed',default_tagLaserUsed); 
-        addParameter(p,'numbTagLaser',default_numbTagLaser); 
+        addParameter(p,'tagLaserUsed',default_tagLaserUsed);
+        addParameter(p,'numbTagLaser',default_numbTagLaser);
         addParameter(p,'lickCh',default_lickCh);
         addParameter(p,'sgfiltFramelen',default_sgfiltFramelen);
         addParameter(p,'trialTimeout',default_trialTimeout);
