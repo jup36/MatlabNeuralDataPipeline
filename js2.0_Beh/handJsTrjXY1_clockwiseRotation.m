@@ -1,17 +1,34 @@
 %% Helper functions
-function handJsTrjXY1_clockwiseRotation(filePath, theta_in_deg)
+function handJsTrjXY1_clockwiseRotation(filePath, fileName, theta_in_deg)
 
-%filePath = fullfile('D:\Junchol_Data\JS2p0\WR40_081919\Matfiles','js2p0_tbytSpkHandJsTrjBin_WR40_081919.mat');
-load(fullfile(filePath), 'ss')
+% filePath = 'D:\Junchol_Data\JS2p0\WR40_081919\Matfiles';
+% fileName = 'js2p0_tbytSpkHandJsTrjBin_WR40_081919';
+% theta_in_deg = -18; 
+load(fullfile(filePath, fileName), 'ss')
 valTrs = cell2mat(cellfun(@(a) ~isempty(a), {ss(:).hTrjB}, 'un', 0));
+valTrs = find(valTrs); % valid rewarded trials
 %rwdTrI = [jkvt(:).rewarded];
 
-valTrs = find(valTrs); % valid rewarded trials
+%valTrs_js = cell2mat(cellfun(@(a) ~isempty(a), {ss(:).jTrjB}, 'un', 0));
+%valTrs_js = find(valTrs_js); % valid rewarded trials
 
 % get hand and joystick XY trajectories of select trials
 hXY_C = cellfun(@(a) -a(1:2,:), {ss(valTrs).hTrjB}, 'un', 0);
 hXY1med = nanmedian(cell2mat({ss(valTrs).hInitPos}),2);
 hXY1med = -hXY1med(1:2,:);
+
+for j = unique([ss(:).blNumber]) 
+    blockI = [ss(:).blNumber] == j; 
+    js_init = [ss(blockI).jsXYbot];
+    js_init_C = num2cell(repmat(js_init(:,1), 1, sum(blockI)),1); 
+    [ss(blockI).jsXYbot] = js_init_C{:};  
+end
+
+for t = valTrs
+    if isempty(ss(t).jTrjB)
+        ss(t).jTrjB = ss(t).jsXYbot; 
+    end   
+end
 
 jXY_C = cellfun(@(a) -a(1:2,:), {ss(valTrs).jTrjB}, 'un', 0);
 jXY1_C = cellfun(@(a) -a(1:2,:), {ss(valTrs).jsXYbot}, 'un', 0);
@@ -45,8 +62,9 @@ for j = 1:length(valTrs)
     ss(valTrs(j)).jXY1_n_r = jXY1_n_r{j}; % recentered, rotated 2d joystick initial position
     ss(valTrs(j)).hXY_to_p1 = hXY_to_p1{j}; % recentered, rotated 2d hand trajectory upto pull start
     ss(valTrs(j)).min_hXY_dist_to_jXY1 = min(hXY_dist_to_j1{j}); % minimum distance to the joystick initial position
+    ss(valTrs(j)).rchAngDeg = computeReachAngle(hXY_n_r(j), jXY1_n_r{j}); 
 end
 
-save(filePath, 'ss', '-append')
+save(fullfile(filePath, fileName), 'ss', '-append')
 
 end

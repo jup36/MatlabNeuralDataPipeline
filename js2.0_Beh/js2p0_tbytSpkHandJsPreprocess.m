@@ -179,7 +179,7 @@ for t = 1:size(jkvt,2)
             end
         end
     end
-    fprintf('processed trial %d\n', t) % report unit progression
+    fprintf('processed trial %d\n', t) % report trial progression
 end
 
 % transfer block information from jkvt to ss

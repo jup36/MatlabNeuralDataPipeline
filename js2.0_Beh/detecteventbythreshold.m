@@ -36,28 +36,30 @@ addRiseTS = [];
 addFallTS = [];
 longPulseCnt = 0; 
 if p.Results.correctLongPulse
-    if length(valFallTS)==length(valRiseTS)
-        pulseInterval = mode(valFallTS-valRiseTS(1:length(valFallTS))); % normal pulse width
-        for ts = 1:length(valRiseTS)
-            if ~isempty(find(valFallTS>valRiseTS(ts),1))
-                if valFallTS(find(valFallTS>valRiseTS(ts),1))-valRiseTS(ts)>pulseInterval*2 % this is a long pulse
-                    longPulseCnt = longPulseCnt+1;
-                    addFallTS(longPulseCnt) = valRiseTS(ts)+pulseInterval; % add a fall 
-                    addRiseTS(longPulseCnt) = valFallTS(find(valFallTS>valRiseTS(ts),1))-pulseInterval; % add a rise
-                    
-                else
-                end
-            else
-            end
-        end
-        corrRiseTS = sort([valRiseTS, addRiseTS]);
-        corrFallTS = sort([valFallTS, addFallTS]); 
+    if length(valFallTS)==length(valRiseTS)-1 && sum(valFallTS - valRiseTS(1:end-1) > 0) == length(valFallTS)
+        valRiseTS = valRiseTS(1:end-1);
     elseif length(valFallTS)~=length(valRiseTS)
         error('The # of pulse rises and falls do not match!')
     end
+    pulseInterval = mode(valFallTS-valRiseTS(1:length(valFallTS))); % normal pulse width
+    for ts = 1:length(valRiseTS)
+        if ~isempty(find(valFallTS>valRiseTS(ts),1))
+            if valFallTS(find(valFallTS>valRiseTS(ts),1))-valRiseTS(ts)>pulseInterval*2 % this is a long pulse
+                longPulseCnt = longPulseCnt+1;
+                addFallTS(longPulseCnt) = valRiseTS(ts)+pulseInterval; % add a fall
+                addRiseTS(longPulseCnt) = valFallTS(find(valFallTS>valRiseTS(ts),1))-pulseInterval; % add a rise
+                
+            else
+            end
+        else
+        end
+    end
+    corrRiseTS = sort([valRiseTS, addRiseTS]);
+    corrFallTS = sort([valFallTS, addFallTS]);
+    
 else
-    corrRiseTS= valRiseTS; 
-    corrFallTS= valFallTS; 
+    corrRiseTS= valRiseTS;
+    corrFallTS= valFallTS;
 end
 
 % sanity check plot

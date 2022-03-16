@@ -42,14 +42,20 @@ else
 end
     
 %% get frame dimensions
-fronIdx = find(cell2mat(cellfun(@isstruct, fVideoInfo,'Un',0))==1,1,'first'); % get the 1st valid fron video file
-sideIdx = find(cell2mat(cellfun(@isstruct, sVideoInfo,'Un',0))==1,1,'first'); % get the 1st valid side video file
+%fronIdx = find(cell2mat(cellfun(@isstruct, fVideoInfo,'Un',0))==1,1,'first'); % get the 1st valid fron video file
+%sideIdx = find(cell2mat(cellfun(@isstruct, sVideoInfo,'Un',0))==1,1,'first'); % get the 1st valid side video file
 
-[~,vFolderName] = fileparts(hTrjPath);
-fVid = VideoReader(fullfile(filePath,vFolderName,fVideoInfo{fronIdx}.name)); % read the 1st front video to get frame info
-sVid = VideoReader(fullfile(filePath,vFolderName,sVideoInfo{sideIdx}.name)); % read the 1st side video to get frame info
-wd = fVid.Width;  % frame width
-ht = fVid.Height; % frame height
+%[~,vFolderName] = fileparts(hTrjPath);
+%fVid = VideoReader(fullfile(filePath,vFolderName,fVideoInfo{fronIdx}.name)); % read the 1st front video to get frame info
+%sVid = VideoReader(fullfile(filePath,vFolderName,sVideoInfo{sideIdx}.name)); % read the 1st side video to get frame info
+
+val_video_count = 1; 
+while ~isstruct(fVideoInfo{val_video_count})
+    val_video_count = val_video_count + 1; 
+end
+
+wd = fVideoInfo{val_video_count}.width;  % frame width
+ht = fVideoInfo{val_video_count}.height; % frame height
 
 %% Read pixel values of each body part from CSV files
 fronCnt = 0; % count front cam files

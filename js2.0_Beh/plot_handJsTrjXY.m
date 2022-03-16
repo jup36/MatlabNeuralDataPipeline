@@ -1,12 +1,12 @@
 %% Helper functions
-function [val_trials] = plot_handJsTrjXY(filePath, varargin)
+function [val_trials] = plot_handJsTrjXY(filePath, fileName, varargin)
 
 %filePath = fullfile('D:\Junchol_Data\JS2p0\WR40_081919\Matfiles','js2p0_tbytSpkHandJsTrjBin_WR40_081919.mat'); 
-load(fullfile(filePath), 'ss', 'jkvt')
+load(fullfile(filePath, fileName), 'ss', 'jkvt')
 
-%p = parse_input_plot_handJsTrjXY(filePath, varargin); 
-p = parse_input_plot_handJsTrjXY(filePath, {'draw_blocks', [1, 3], 'draw_trials', [30], ... 
-    'rewarded_only', true, 'draw_only_to_pullstart', true, 'draw_trials_per_block', 10}); 
+p = parse_input_plot_handJsTrjXY(filePath, fileName, varargin); 
+%p = parse_input_plot_handJsTrjXY(filePath, {'draw_blocks', [1, 3], 'draw_trials', [30], ... 
+%    'rewarded_only', true, 'draw_only_to_pullstart', true, 'draw_trials_per_block', 10}); 
 
 %% define trials to draw
 % pick by blocks
@@ -45,7 +45,7 @@ end
 %% draw
 figure; hold on;
 % draw joystick initial positions
-for b = 1:length(blocks)
+for b = blocks % 1:length(blocks)
     jXY1_block = median(cell2mat(jXY1(b==val_blocks)), 2); 
     scatter(jXY1_block(1), jXY1_block(2), 200, 'MarkerEdgeColor', 'none','MarkerFaceColor','k','MarkerFaceAlpha',.7) % draw starting point hTrj
 
@@ -71,9 +71,11 @@ for b = 1:length(blocks)
     % select hand trajectories to draw
     if ~isempty(p.Results.draw_trials_per_block) 
        if sum(val_blocks==b)> p.Results.draw_trials_per_block  
-          block_dist_to_jXY1 = [ss(val_trials(val_blocks==b)).min_hXY_dist_to_jXY1];
-          [~,distI] = sort(block_dist_to_jXY1); 
-          hXY_b = hXY_block(distI(1:p.Results.draw_trials_per_block)); 
+          block_dist_to_jXY1 = {ss(val_trials(val_blocks==b)).min_hXY_dist_to_jXY1}; %[ss(val_trials(val_blocks==b)).min_hXY_dist_to_jXY1];
+          block_dist_to_jXY1_NaNs = cell2mat(cellfun(@isempty, block_dist_to_jXY1, 'un', 0)); 
+          [block_dist_to_jXY1{block_dist_to_jXY1_NaNs}] = deal(NaN);
+          [~,distI] = sort(cell2mat(block_dist_to_jXY1)); 
+          hXY_b = hXY_block(distI(1:min(p.Results.draw_trials_per_block, sum(~block_dist_to_jXY1_NaNs)))); 
        elseif sum(val_blocks==b) <= p.Results.draw_trials_per_block  
           hXY_b = hXY_block; 
        end
@@ -82,77 +84,44 @@ for b = 1:length(blocks)
     end
     
     for j = 1:length(hXY_b) % draw trial by trial 
-        trj = hXY_b{j}; 
-        scatter(trj(1,1), trj(2,1), 50, 'MarkerEdgeColor', 'none','MarkerFaceColor',c,'MarkerFaceAlpha',.4) % draw starting point hTrj
-        scatter(trj(1,end), trj(2,end), 50, 'MarkerEdgeColor', 'none', 'MarkerFaceColor',c,'MarkerFaceAlpha',.7) % draw last point hTrj
-        plot(trj(1,:), trj(2,:), 'color', c, 'lineWidth', width)
+        if ~isempty(hXY_b{j})
+            trj = hXY_b{j}; 
+            scatter(trj(1,1), trj(2,1), 50, 'MarkerEdgeColor', 'none','MarkerFaceColor',c,'MarkerFaceAlpha',.4) % draw starting point hTrj
+            scatter(trj(1,end), trj(2,end), 50, 'MarkerEdgeColor', 'none', 'MarkerFaceColor',c,'MarkerFaceAlpha',.7) % draw last point hTrj
+            plot(trj(1,:), trj(2,:), 'color', c, 'lineWidth', width)
+        end
     end
 end
 
-% draw trial by trial trajectories
-for t = 1:length(val_trials) % trials to draw (just draw them all)    
-    % draw initial and endpoint hand positions
-    if ismember(val_blocks(t), [1,2,5,6])
-       c = [0, 0, 1]; % target on the LEFT
-    else
-       c = [1, 0, 0]; % target on the RIGHT
-    end
-    
-    scatter(xR(1), yR(1), 50, 'MarkerEdgeColor', 'none','MarkerFaceColor',c,'MarkerFaceAlpha',.4) % draw starting point hTrj
-    scatter(xR(end), yR(end), 50, 'MarkerEdgeColor', 'none', 'MarkerFaceColor',c,'MarkerFaceAlpha',.7) % draw last point hTrj
-    plot(xR,yR,'color',c(j,:),'lineWidth',2)
-    %patch([x nan],[y nan],[1:length(y) nan],'FaceColor','none','EdgeColor','interp','lineWidth',2)
-    %colormap(c)
-    
-    % FOR JOYSTICK ALSO JUST DRAW FROM THE CLOSEST POINT FROM THE KNOWN jXY
-    if j<=size(jXY,3)
-        jx = jXY(1,jp1(j):end,j);
-        jy = jXY(2,jp1(j):end,j);
-        jxy = [jx;jy];
-        jxyr = cwRot2d*jxy; 
-        
-        plot([jxyr(1,1) jxyr(1,end)], [jxyr(2,1) jxyr(2,end)],'k','lineWidth',2)
-    end
-end
-xlim([-12 6])
-xticks(-15:5:10)
-ylim([-5 15])
-yticks(-5:5:15)
-pbaspect([1 1 1])
-set(gca,'tickDir','out')
-colormap(c); colorbar
-
-print(fullfile(figSavePath,figSaveName),'-dpdf','-bestfit','-painters')
 hold off;
-    
+mName = fileName(strfind(fileName,'WR'):end); 
+print(fullfile(filePath, 'Figure', strcat('plot_handJsTrjXY_', mName)), '-dpdf', '-bestfit', '-painters')    
     
 end
-
-
-
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % NESTED HELPER FUNCTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%
-    function p = parse_input_plot_handJsTrjXY(filePath, vargs)
-        % parse input, and extract name-value pairs
-        default_draw_blocks = []; % 
-        default_draw_trials = []; %
-        default_numb_to_draw = 10; 
-        default_rewarded_only = true; 
-        default_draw_only_to_pullstart = false;
-        default_draw_trials_per_block = []; 
-        
-        p = inputParser; % create parser object
-        addRequired(p,'filePath');
-        addParameter(p,'draw_blocks', default_draw_blocks); 
-        addParameter(p,'draw_trials', default_draw_trials); 
-        addParameter(p,'numb_to_draw', default_numb_to_draw); 
-        addParameter(p,'rewarded_only', default_rewarded_only); 
-        addParameter(p,'draw_only_to_pullstart', default_draw_only_to_pullstart)
-        addParameter(p,'draw_trials_per_block', default_draw_trials_per_block)
-        
-        parse(p, filePath, vargs{:})
-    end
+function p = parse_input_plot_handJsTrjXY(filePath, fileName, vargs)
+% parse input, and extract name-value pairs
+default_draw_blocks = []; %
+default_draw_trials = []; %
+default_numb_to_draw = 10;
+default_rewarded_only = true;
+default_draw_only_to_pullstart = false;
+default_draw_trials_per_block = [];
+
+p = inputParser; % create parser object
+addRequired(p,'filePath');
+addRequired(p,'fileName'); 
+addParameter(p,'draw_blocks', default_draw_blocks);
+addParameter(p,'draw_trials', default_draw_trials);
+addParameter(p,'numb_to_draw', default_numb_to_draw);
+addParameter(p,'rewarded_only', default_rewarded_only);
+addParameter(p,'draw_only_to_pullstart', default_draw_only_to_pullstart)
+addParameter(p,'draw_trials_per_block', default_draw_trials_per_block)
+
+parse(p, filePath, fileName, vargs{:})
+end
 
