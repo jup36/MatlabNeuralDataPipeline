@@ -49,14 +49,18 @@ trI.pmI = cell2mat(cellfun(@(a) strcmpi(a,'pm'),{jkvt(:).trialType},'un',0)); % 
 for t = 1:length(jkvt)
     % detect pull start/stop of a successful trials
     if trI.spI(t) && ~isempty(jkvt(t).movKins.pullStart) && ~isempty(jkvt(t).movKins.pullStop)
-        jkvt(t).pullStarts = jkvt(t).trJsReady + jkvt(t).movKins.pullStart; 
-        jkvt(t).pullStops  = jkvt(t).trJsReady + jkvt(t).movKins.pullStop; 
-        % detect reach start (hand lift) of each successful trial 
-        tmphTrjRstartT = jkvt(t).vFrameTime(jkvt(t).hTrjRstart); 
-        jkvt(t).rStartToPull = tmphTrjRstartT(find(tmphTrjRstartT<jkvt(t).pullStarts,1,'last')); 
-        % detect reach stop 
-        tmphTrjRstopT = jkvt(t).vFrameTime(jkvt(t).hTrjRstop(jkvt(t).hTrjRstop<length(jkvt(t).vFrameTime))); 
-        jkvt(t).rStopToPull = tmphTrjRstopT(find(tmphTrjRstopT>jkvt(t).pullStarts,1,'last')); 
+        jkvt(t).pullStarts = jkvt(t).trJsReady + jkvt(t).movKins.pullStart;
+        jkvt(t).pullStops  = jkvt(t).trJsReady + jkvt(t).movKins.pullStop;
+        % detect reach start (hand lift) of each successful trial
+        if ~isnan(jkvt(t).vFrameTime)
+            tmphTrjRstartT = jkvt(t).vFrameTime(jkvt(t).hTrjRstart);
+            
+            jkvt(t).rStartToPull = tmphTrjRstartT(find(tmphTrjRstartT<jkvt(t).pullStarts,1,'last'));
+            % detect reach stop
+            tmphTrjRstopT = jkvt(t).vFrameTime(jkvt(t).hTrjRstop(jkvt(t).hTrjRstop<length(jkvt(t).vFrameTime)));
+            jkvt(t).rStopToPull = tmphTrjRstopT(find(tmphTrjRstopT>jkvt(t).pullStarts,1,'last'));
+            
+        end
     end
 end
 clearvars t
@@ -86,7 +90,7 @@ for t = 1:size(jkvt,2)
             ss(t).rEnd = jkvt(t).trEnd;
         end
     else % not a success trial
-        if ~isempty(jkvt(t).hTrjRstart) && ~isempty(jkvt(t).hTrjRstop) && length(jkvt(t).hTrjRstart)==length(jkvt(t).hTrjRstop) % if there's a detected reachStart align to that
+        if ~isempty(jkvt(t).hTrjRstart) && ~isempty(jkvt(t).hTrjRstop) && length(jkvt(t).hTrjRstart)==length(jkvt(t).hTrjRstop) && ~any(isnan(jkvt(t).vFrameTime)) % if there's a detected reachStart align to that
             ss(t).timeAlign = jkvt(t).vFrameTime(jkvt(t).hTrjRstart(end));
             ss(t).evtAlign  = 'rStart';
             ss(t).rEnd = jkvt(t).vFrameTime(min(jkvt(t).hTrjRstop(end),length(jkvt(t).vFrameTime))); % reachStop
@@ -147,9 +151,9 @@ for t = 1:size(jkvt,2)
                 ss(t).tPullStop = pullStop;
                 ss(t).spkPullIdx = pullStart<=ss(t).spkTimeBins & ss(t).spkTimeBins<=pullStop;
                 ss(t).spkRchIdx  = ss(t).timeAlign<=ss(t).spkTimeBins & ss(t).spkTimeBins<=ss(t).rEnd;
-                ss(t).rchSpeed1ms = sqrt(sum(hVel1(:,max(1,abs(spkBin(1))-100):length(t1n:pullStart)).^2,1)); % cm/s speed (not velocity) during reach phase
+                ss(t).rchSpeed1ms = sqrt(sum(hVel1(:,max(1,abs(spkBin(1))-100):min(length(hVel1),length(t1n:pullStart))).^2,1)); % cm/s speed (not velocity) during reach phase
                 ss(t).maxRchSpeed = max(ss(t).rchSpeed1ms,[],2); % cm/s max speed during reach phase
-                ss(t).maxRchSpeedXYZ = max(abs(hVel1(:,max(1,abs(spkBin(1))-100):length(t1n:pullStart))),[],2); % max speed during reach phase on X,Y,Z separately
+                ss(t).maxRchSpeedXYZ = max(abs(hVel1(:,max(1,abs(spkBin(1))-100):min(length(hVel1),length(t1n:pullStart)))),[],2); % max speed during reach phase on X,Y,Z separately
                 hTrjBfullP1_1ms = inthTrj(:,intX<=pullStart);
                 ss(t).hTrjBfullP1 = hTrjBfullP1_1ms(:,1:binSize:size(hTrjBfullP1_1ms,2));
             end

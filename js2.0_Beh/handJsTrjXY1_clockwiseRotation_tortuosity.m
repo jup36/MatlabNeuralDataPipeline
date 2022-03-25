@@ -1,13 +1,12 @@
 %% Helper functions
-function handJsTrjXY1_clockwiseRotation(filePath, fileName, theta_in_deg)
+function handJsTrjXY1_clockwiseRotation_tortuosity(filePath, theta_in_deg)
 
-% filePath = 'D:\Junchol_Data\JS2p0\WR40_081919\Matfiles';
-% fileName = 'js2p0_tbytSpkHandJsTrjBin_WR40_081919';
-% theta_in_deg = -18; 
-load(fullfile(filePath, fileName), 'ss')
+cd(filePath)
+file = dir('**/*js2p0_tbytSpkHandJsTrjBin_*.mat');
+load(fullfile(file.folder, file.name), 'ss')
+
 valTrs = cell2mat(cellfun(@(a) ~isempty(a), {ss(:).hTrjB}, 'un', 0));
 valTrs = find(valTrs); % valid rewarded trials
-rwdTrI = [jkvt(:).rewarded];
 
 %valTrs_js = cell2mat(cellfun(@(a) ~isempty(a), {ss(:).jTrjB}, 'un', 0));
 %valTrs_js = find(valTrs_js); % valid rewarded trials
@@ -76,6 +75,21 @@ for j = 1:length(valTrs)
     end
 end
 
-save(fullfile(filePath, fileName), 'ss', '-append')
+save(fullfile(file.folder, file.name), 'ss', '-append')
 
 end
+
+function reachAngle = computeReachAngle( hTrjC, jsXYpos )
+%Angle is calculated relative to the straight line projected from the
+% initial hand position.  
+    distToJs = cellfun(@(a) sum((a-repmat(jsXYpos,1,size(a,2))).^2,1), hTrjC, 'un', 0);  % compute the distance from the jsXY
+    sign = [1,-1]; 
+    for j = 1:length(distToJs)
+        [~,tmpMinI] = min(distToJs{j});
+        u=hTrjC{j}(:,tmpMinI)-hTrjC{j}(:,1); % reach vector
+        %v=[hTrjC{j}(1,tmpMinI);hTrjC{j}(2,1)]-hTrjC{j}(:,1); % reference vector
+        v=[hTrjC{j}(1,1);hTrjC{j}(2,tmpMinI)]-hTrjC{j}(:,1); % reference vector
+        reachAngle(j) =  sign((u(1)>0)+1) * angleTwoVectors(u,v); % get the angle between reach and reference vectors      
+    end
+end
+    

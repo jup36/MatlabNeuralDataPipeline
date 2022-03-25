@@ -21,27 +21,59 @@ p = parse_input_psth_Cg(filePath, fileInfo, probeDepth, varargin ); % parse inpu
 %% Load files 
 cd(p.Results.filePath)   % change directory to the data folder
 
-behFile = dir(fullfile(p.Results.filePath,'evtIndices.mat')); % look for 'BehVariablesJs.mat' file    
-
-if length(behFile)>1 || isempty(behFile)    
-    error('File could not be found or multiple BehVariables.mat files exist!');
+% get behavioral data
+behFile = dir(fullfile(p.Results.filePath,'BehVariablesJs.mat')); 
+if length(behFile)>1 || isempty(behFile)
+    disp('Select BehVariablesJs.mat!')
+    [behFileSelect,behPathSelect] = uigetfile('*.mat',p.Results.filePath);
+    evt = load(fullfile(behPathSelect,behFileSelect),'evtIdx1k');
+    evt = evt.('evtIdx1k'); 
+    clearvars evtIdx1k
 else
-    load(behFile.name, 'evtIdx1k') % load behavioral timestamps 
+    evt = load(fullfile(behFile.folder,behFile.name),'evtIdx1k');
+    evt = evt.('evtIdx1k'); 
+    clearvars evtIdx1k
 end
+
+jkvtFile = dir(fullfile(p.Results.filePath,'jsTime1k_KinematicsTrajectories.mat')); 
+if length(jkvtFile)>1 || isempty(jkvtFile)
+    disp('Select jsTime1k_KinematicsTrajectories.mat!')
+    [jkvtFileSelect,jkvtPathSelect] = uigetfile('.mat',p.Results.filePath);
+    jkvt = load(fullfile(jkvtPathSelect,jkvtFileSelect),'jkvt');
+    jkvt = jkvt.('jkvt'); 
+else
+    jkvt = load(fullfile(jkvtFile.folder,jkvtFile.name),'jkvt');
+    jkvt = jkvt.('jkvt'); 
+end
+
+% get meta 
+disp('Select the meta file!!')
+[metaFileSel,metaPathSel] = uigetfile('*.meta',p.Results.filePath); 
+meta = ReadMeta(metaFileSel, metaPathSel); % read out the meta file
+
+
+
+% behFile = dir(fullfile(p.Results.filePath,'evtIndices.mat')); % look for 'BehVariablesJs.mat' file    
+% 
+% if length(behFile)>1 || isempty(behFile)    
+%     error('File could not be found or multiple BehVariables.mat files exist!');
+% else
+%     load(behFile.name, 'evtIdx1k') % load behavioral timestamps 
+% end
 
 geometry = getHH3geom; % get the geometry of the imec3opt3 probe
-
-if contains(p.Results.probeType,'im','IgnoreCase',true)
-    meta = getmetaImec; % get meta file using the helper function getmeta
-elseif contains(p.Results.probeType,'ni','IgnoreCase',true)
-    meta = getmetaNidq;  
-end
+% 
+% if contains(p.Results.probeType,'im','IgnoreCase',true)
+%     meta = getmetaImec; % get meta file using the helper function getmeta
+% elseif contains(p.Results.probeType,'ni','IgnoreCase',true)
+%     meta = getmetaNidq;  
+% end
 
 % get jkvt
-disp('Select a matfile containing jkvt!')
-[jkvtFileSelect,jkvtPathSelect] = uigetfile('*.mat',p.Results.filePath);
-jkvt = load(fullfile(jkvtPathSelect,jkvtFileSelect),'jkvt');
-jkvt = jkvt.('jkvt');
+% disp('Select a matfile containing jkvt!')
+% [jkvtFileSelect,jkvtPathSelect] = uigetfile('*.mat',p.Results.filePath);
+% jkvt = load(fullfile(jkvtPathSelect,jkvtFileSelect),'jkvt');
+% jkvt = jkvt.('jkvt');
 
 %% kilosort-phy
 spike_times = double(readNPY(fullfile(p.Results.filePath, 'spike_times.npy'))); % timestamp (in sample #) of all spikes, (n_spike, 1)

@@ -43,7 +43,6 @@ for j = 1:length(hXyC) % trials
             hXYinit{1,j} = nanmedian(hXY(:,1:max(nBaseBins-3,1)),2); % initial hand position
             % get tortuosity = distance (path length) / displacement (endpoints)
             if size(hXYutP1{1,j},2)>nBaseBins
-                %reachTrj = hXYutP1{1,j}(:,1:end);
                 reachTrj = hXYutP1{1,j}(:,max(1,nBaseBins-3):end); % tightly (right before the reachStart) around the reach portion of the trajectory
             else
                 reachTrj = hXYutP1{1,j}(:,1:end);

@@ -54,6 +54,7 @@ phyPath = dir(fullfile(p.Results.filePath,'*/*spike_times.npy'));
 if isempty(phyPath)
     disp('Select a folder containing spike sorting results with Phy!!')
     phyPath = uigetdir(p.Results.filePath); 
+    phyPath = dir(fullfile(phyPath,'spike_times.npy'));
 elseif size(phyPath,1)>1
     phyPath = phyPath(cellfun(@(a) contains(a,p.Results.probeType(1:2),'IgnoreCase',true), {phyPath(:).folder})); 
 end
@@ -126,30 +127,32 @@ else
     sTcr = zeros(1,length([jkvt(:).trEnd])); % just put zeros if unavailable 
 end
 
-maxST = max(spike_times)/(str2double(meta.imSampRate)/1000); 
+maxST = max(spike_times)/(str2double(meta.imSampRate)/1000);
 spkTimes = struct; % the structure to contain spike times
 for u = 1:length(unitNumber) % increment valid clusters (units)
-    spkIdx = unitNumber(u);  %S_clu.cviSpk_clu{u}; % spikeIDs of the current cluster 
-    templateIdx = mode(spike_template(spike_clusters==spkIdx))+1; % template Id
-    if strcmp(meta.typeThis, 'imec')
-        spkTimes(u).spkTimes = spike_times(spike_clusters==spkIdx)/(str2double(meta.imSampRate)/1000); % divided by the sampling rate: 30kHz (str2num(meta.imSampRate)/1000)
-        [~,~,trBin] = histcounts(spkTimes(u).spkTimes, [1 jkvt(:).trEnd maxST+1]); 
-        spkTimes(u).spkTimesCr = spkTimes(u).spkTimes-sTcr(min(trBin,length(sTcr)))'; 
-        spkTimes(u).spkTimesCr = max(1, spkTimes(u).spkTimesCr); 
-    elseif strcmp(meta.typeThis, 'nidq')
-        spkTimes(u).spkTimes = spike_times(spike_clusters==spkIdx)/(str2double(meta.niSampRate)/1000); % divided by the sampling rate: 25kHz (str2num(meta.niSampRate)/1000)
+    spkIdx = unitNumber(u);  %S_clu.cviSpk_clu{u}; % spikeIDs of the current cluster
+    if sum(spike_clusters==spkIdx)>0
+        templateIdx = mode(spike_template(spike_clusters==spkIdx))+1; % template Id
+        if strcmp(meta.typeThis, 'imec')
+            spkTimes(u).spkTimes = spike_times(spike_clusters==spkIdx)/(str2double(meta.imSampRate)/1000); % divided by the sampling rate: 30kHz (str2num(meta.imSampRate)/1000)
+            [~,~,trBin] = histcounts(spkTimes(u).spkTimes, [1 jkvt(:).trEnd maxST+1]);
+            spkTimes(u).spkTimesCr = spkTimes(u).spkTimes-sTcr(min(trBin,length(sTcr)))';
+            spkTimes(u).spkTimesCr = max(1, spkTimes(u).spkTimesCr);
+        elseif strcmp(meta.typeThis, 'nidq')
+            spkTimes(u).spkTimes = spike_times(spike_clusters==spkIdx)/(str2double(meta.niSampRate)/1000); % divided by the sampling rate: 25kHz (str2num(meta.niSampRate)/1000)
+        end
+        
+        spkTimes(u).origClusId  = spkIdx; % original cluster ID back in kilosort/phy
+        spkTimes(u).maxSite     = actualSiteTemplate(templateIdx);  % assign the current cluster to a site of the probe
+        spkTimes(u).geometry(1) = geometry(spkTimes(u).maxSite,1); % horizontal geometry
+        spkTimes(u).geometry(2) = p.Results.probeDepth(whichProbe(spkTimes(u).maxSite))-geometry(spkTimes(u).maxSite,2); % vertical geometry
+        spkTimes(u).geometry(2) = spkTimes(u).geometry(2).*dvCosConvert; % corrected dv (original dv multiplied by cosine(probe angle))
+        spkTimes(u).isStr = spkTimes(u).geometry(2)>2000;  % logical for striatum
+        spkTimes(u).template = template(templateIdx,:,mainSiteTemplate(templateIdx)); % the spike template for each cluster
+        spkTimes(u).templateId = templateIdx;
     end
-    
-    spkTimes(u).origClusId  = spkIdx; % original cluster ID back in kilosort/phy
-    spkTimes(u).maxSite     = actualSiteTemplate(templateIdx);  % assign the current cluster to a site of the probe
-    spkTimes(u).geometry(1) = geometry(spkTimes(u).maxSite,1); % horizontal geometry
-    spkTimes(u).geometry(2) = p.Results.probeDepth(whichProbe(spkTimes(u).maxSite))-geometry(spkTimes(u).maxSite,2); % vertical geometry
-    spkTimes(u).geometry(2) = spkTimes(u).geometry(2).*dvCosConvert; % corrected dv (original dv multiplied by cosine(probe angle))
-    spkTimes(u).isStr = spkTimes(u).geometry(2)>2000;  % logical for striatum 
-    spkTimes(u).template = template(templateIdx,:,mainSiteTemplate(templateIdx)); % the spike template for each cluster
-    spkTimes(u).templateId = templateIdx; 
 end
-clearvars u 
+clearvars u
 
 if isfield(spkTimes,'spkTimesCr')
   spkTimes = rmfield(spkTimes,'spkTimes'); % drop the uncorrected time points

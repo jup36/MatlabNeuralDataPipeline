@@ -1,10 +1,10 @@
 function [S] = JsVideoFileOrganizer(filePath)
 %This function inspects the trial-by-trial front and side videos, and
-% assign them to corresponding trials. The output is a structure named 'jsTime1k_KV'.  
+% assign them to corresponding trials. The output is a structure named 'jsTime1k_KV'.
 % This function has been updated in september/2019 to add a field named
 % 'vUseFrameIdx', which is a logical important to determine which frames
 % from the video comprise the hand trajectory of the current trial. This is
-% especially critical when using a video file for multiple trials (e.g. S:\Junchol_Data\JS2.0\WR40_081419\jsTime1k_Kinematics_VideoFiles.mat\jsTime1k_KV(17).vUseFrameIdx). 
+% especially critical when using a video file for multiple trials (e.g. S:\Junchol_Data\JS2.0\WR40_081419\jsTime1k_Kinematics_VideoFiles.mat\jsTime1k_KV(17).vUseFrameIdx).
 
 cd(filePath)
 if exist('jsTime1k_K','var')==1
@@ -18,7 +18,7 @@ S = rmfield(S,{'baseJsTrajmm','baseSmJsVel','basePeriodicAbsVelSum'}); % rmfield
 
 pathBehVar = dir('**/*BehVariablesJs.mat');
 load(fullfile(pathBehVar(1).folder,pathBehVar(1).name), 'evtIdx1k', 'p')
-trStartIdx = evtIdx1k.trStartIdx; 
+trStartIdx = evtIdx1k.trStartIdx;
 %load(fullfile(filePath,'evtIndices.mat'), 'trStartIdx', 'trEndIdx')
 
 behFilePath = dir(fullfile(filePath,'20*-*')); % dir where the trial-by-trial behavioral csv files are saved
@@ -133,7 +133,7 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                         tempVS.name = vSideFiles(tempVSideI).name;
                     end
                     
-                    if tempVF.totalDuration>1 && tempVS.totalDuration>1
+                    if tempVF.totalDuration>1 && tempVS.totalDuration>1 && tempVS.rate == tempVF.rate
                         [tempFrameDur,tempFrameDurI] = min([tempVF.totalDuration, tempPulseTrainLength]);
                         if tempFrameDurI==1
                         elseif tempFrameDurI==2
@@ -224,7 +224,7 @@ if ~isempty(vFronFiles)&&~isempty(vSideFiles)
                     tempVS.path = fullfile(vSideFiles(tempVSideI).folder, vSideFiles(tempVSideI).name);
                     tempVS.name = vSideFiles(tempVSideI).name;
                     
-                    if tempVF.totalDuration>1 && tempVS.totalDuration>1
+                    if tempVF.totalDuration>1 && tempVS.totalDuration>1 && tempVS.rate == tempVF.rate
                         [tempFrameDur,tempFrameDurI] = min([tempVF.totalDuration, tempPulseTrainLength]);
                         if tempFrameDurI==1
                         elseif tempFrameDurI==2
