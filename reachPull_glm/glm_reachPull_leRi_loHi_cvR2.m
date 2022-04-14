@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> master
 %% 'glm_reachPull_leRi_loHi_cvR2.m' fits glm (linear poisson model) with 5-fold cross-validation, 
 % which fits the neuronal spike rate with a set of discrete and continuous
 % movement and task variables. 
@@ -266,10 +262,6 @@ for f = 1:5 % 5-fold cross-validation for decoding
             [pVel_mSpkR_100ms, pVel_sSpkR_100ms, pVel_bin_100ms] = func.group_stat(pullVel_100ms, spike_100ms, pullVel_100msEdge); % get the mean and sem spike rates per binned reach velocity
             pVel_logSpkRate_100ms = log(pVel_mSpkR_100ms / spike_rate);
             
-<<<<<<< HEAD
-=======
-            
->>>>>>> master
             %% 5. Parameter fitting
             rStart_base = MOVE_func(time_tr); % base for movement covariates
             reward_base = TASK_func(time_tr); % base for reward covariates
@@ -355,13 +347,12 @@ for f = 1:5 % 5-fold cross-validation for decoding
         end
     end
 end
-    
-<<<<<<< HEAD
+
+
 %save(fullfile(filePath,strcat('glm_cvR2_dR2_',saveName)),'rez','tV','p')
-=======
 %save(fullfile(filePath, strcat('glm_cvR2_dR2_',saveName),'rez','tV','p')
     
->>>>>>> master
+
     %% individual unit psth aligned to a task event
     % % sort trials
     % tq = round([jkvt.pull_torque]./10); % torque

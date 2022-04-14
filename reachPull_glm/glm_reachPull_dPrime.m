@@ -9,7 +9,7 @@
 cd(filePath)
 spkDir = dir('binSpkCountSTRCTX*');
 load(fullfile(spkDir(1).folder, spkDir(1).name),'spkTimesCell','jkvt')
-load(fullfile('/Volumes/Beefcake/Junchol_Data/JS2p0/collectData','a2dColorMap.mat'),'colormap2D') % 2d colorMap for the scatter plot
+load(fullfile('D:\Junchol_Data\JS2p0\collectData','a2dColorMap.mat'),'colormap2D') % 2d colorMap for the scatter plot
 %S=rStartToPull;
 
 %% 1. Task parameters

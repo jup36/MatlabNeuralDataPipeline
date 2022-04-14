@@ -29,10 +29,12 @@ projMatY = [-1  0   1 q2 1  0 -1 -q2];
 
 projMat  = [projMatX; projMatY];
 timeX = -1000:20:1000; 
-timeXI = timeX>=0;% & timeX<500; 
+timeXI = timeX>=0; % & timeX<1000; 
+
+distf = @(a, b) sqrt(a^2 + b^2); 
 
 %% plot all cells from both regions
-figure(1); hold on;
+figure(11); hold on;
 xlim([-2 2]);
 ylim([-2 2]);
 plot([-2 2], [0 0],'k')
@@ -42,53 +44,65 @@ pbaspect([1 1 1])
 
 counter = 0;
 for f = 1:length(filePath)
+    cd(filePath{f})
     spkDir_STRCTX = dir('**/*binSpkCountSTRCTX*.mat');
-    dPRM_Dir = dir('**/*binSpkCountSTRCTX*.mat');
+    dPRM_Dir = dir('**/*glm_dPrime_WR*.mat');
     
-    if 
-    
-    
-    dPrmDir = dir(fullfile(filePath{f}, strcat('glm_dPrime_*')));
-    load(fullfile(dPrmDir.folder,dPrmDir.name),'dPrmC')
-    spkDir = dir(fullfile(filePath{f}, 'binSpkCountSTRCTX*'));
-    load(fullfile(spkDir(1).folder, spkDir(1).name),'spkTimesCell')
-    isStr = cell2mat(spkTimesCell(5,:));
-    depth = cell2mat(cellfun(@(a) a(2), spkTimesCell(4,:), 'un', 0));
-    assert(length(isStr)==length(dPrmC))
-    %% get the maximal d' of each cell and draw
-    for i_cell = 1:length(dPrmC)
-        thisCellId = strcat(saveName{f},sprintf('_Cell#%d',i_cell));
-        if ~isempty(dPrmC{i_cell})
-            counter = counter+1;
-            s = dPrmC{i_cell}; % structure for this cell
-            dPrmRez(counter).cellId = thisCellId; % cellId with fileName and cell# as in the spkTimesCell of binSpkCountSTRCTX*
-            dPrmRez(counter).isStr = isStr(i_cell); % isStr
-            dPrmRez(counter).depth = depth(i_cell); % recording depth
-            dPrmRez(counter).s = s; % original structure
-            % find the maximal discriminative encoding (d') point
-            s.trjDistZero(s.dist2d_cdf_p>=0.05,1)=NaN; % drop non-significant points
-            s.trjDistZero(~timeXI,1)=NaN; % to exclude points before reachStart
-            [~,dPrm_sig_maxDistI] = max(s.trjDistZero);
-            if sum(~isnan(s.trjDistZero))>=1
-                dPrmRez(counter).sigMaxCoord = s.trj2d(dPrm_sig_maxDistI,:); % the maximal d' point on the 2-d d' space
-                [dPrmRez(counter).sigMaxCoord_2dProj(1,1),dPrmRez(counter).sigMaxCoord_2dProj(1,2)] = max(dPrmRez(counter).sigMaxCoord*projMat);
+    if ~isempty(spkDir_STRCTX) && ~isempty(dPRM_Dir)
+        wr = strfind(filePath{f}, 'WR');
+        saveName = filePath{f}(wr:wr+10);
+        %dPrmDir = dir(fullfile(filePath{f}, strcat('glm_dPrime_*')));
+        load(fullfile(dPRM_Dir.folder, dPRM_Dir.name),'dPrmC')
+        %spkDir = dir(fullfile(filePath{f}, 'binSpkCountSTRCTX*'));
+        load(fullfile(spkDir_STRCTX(1).folder, spkDir_STRCTX(1).name),'spkTimesCell')
+        isStr = cell2mat(spkTimesCell(5,:));
+        depth = cell2mat(cellfun(@(a) a(2), spkTimesCell(4,:), 'un', 0));
+        assert(length(isStr)==length(dPrmC))
+        %% get the maximal d' of each cell and draw
+        for i_cell = 1:length(dPrmC)
+            thisCellId = strcat(saveName,sprintf('_Cell#%d',i_cell));
+            if ~isempty(dPrmC{i_cell})
+                counter = counter+1;
+                s = dPrmC{i_cell}; % structure for this cell
+                dPrmRez(counter).cellId = thisCellId; % cellId with fileName and cell# as in the spkTimesCell of binSpkCountSTRCTX*
+                dPrmRez(counter).isStr = isStr(i_cell); % isStr
+                dPrmRez(counter).depth = depth(i_cell); % recording depth
+                dPrmRez(counter).s = s; % original structure
+                % find the maximal discriminative encoding (d') point
+                sigI = s.trjDistZero; 
+                sigI(s.dist2d_cdf_p>=0.05,1)=NaN; % drop non-significant points
+                sigI(~timeXI,1)=NaN; % to exclude points before reachStart
+                [~,dPrm_maxDistI] = max(s.trjDistZero);
+                % maxCoord         
+                dPrmRez(counter).maxCoord = s.trj2d(dPrm_maxDistI,:); % the maximal d' point on the 2-d d' space
+                [dPrmRez(counter).maxCoord_2dProj(1,1),dPrmRez(counter).maxCoord_2dProj(1,2)] = max(dPrmRez(counter).maxCoord*projMat);
+                % meanCoord
+                dPrmRez(counter).meanCoord = nanmean(s.trj2d(timeXI,:),1); % the maximal d' point on the 2-d d' space
+                [dPrmRez(counter).meanCoord_2dProj(1,1),dPrmRez(counter).meanCoord_2dProj(1,2)] = max(dPrmRez(counter).meanCoord*projMat);
+                
                 % assign color for scatter
-                currPt = dPrmRez(counter).sigMaxCoord;
+                %currPt = dPrmRez(counter).meanCoord;
+                currPt =  dPrmRez(counter).maxCoord;
                 [~,XI] = min(abs(currPt(1)-rangeColor));
                 [~,YI] = min(abs(currPt(2)-rangeColor));
-                thisColor = [colormap2D(XI, YI, 1), colormap2D(XI, YI, 2), colormap2D(XI, YI, 3)];  
-                scatter(currPt(1),currPt(2),70, 'MarkerEdgeColor', [.25 .25 .25], 'MarkerFaceColor', thisColor, 'LineWidth', .5,  'MarkerFaceAlpha',.5)
-            else
-                dPrmRez(counter).sigMaxCoord = [NaN,NaN];
-                dPrmRez(counter).sigMaxCoord_2dProj = [NaN,NaN];
-            end   
+                thisColor = [colormap2D(XI, YI, 1), colormap2D(XI, YI, 2), colormap2D(XI, YI, 3)];
+                %scatter(currPt(1),currPt(2),70, 'MarkerEdgeColor', [.25 .25 .25], 'MarkerFaceColor', thisColor, 'LineWidth', .5,  'MarkerFaceAlpha',.5)
+                %if sum(~isnan(s.trjDistZero))>=1
+                if sum(~isnan(sigI))>=1
+                    dPrmRez(counter).bivar_sig = true;
+                    scatter(currPt(1),currPt(2),70, 'MarkerEdgeColor', [.25 .25 .25], 'MarkerFaceColor', thisColor, 'LineWidth', .5,  'MarkerFaceAlpha',.5)
+
+                else
+                    dPrmRez(counter).bivar_sig = false;
+                end
+            end
+            fprintf('processed cell # %d\n', i_cell) % report unit progression
         end
-        fprintf('processed cell # %d\n', i_cell) % report unit progression
+        fprintf('processed file # %d\n', f) % report unit progression
     end
-    fprintf('processed file # %d\n', f) % report unit progression
 end
-%print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure','dPrime_CtxStr'),'-dpdf','-painters')
-%save(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData','dPrime_CtxStr_collectRez'),'dPrmRez')
+%print(fullfile('D:\Junchol_Data\JS2p0\collectData\collectFigure','dPrime_CtxStr'),'-dpdf','-painters')
+%save(fullfile('D:\Junchol_Data\JS2p0\collectData','dPrime_CtxStr_collectRez'),'dPrmRez')
 
 %% draw cortex and striatum d' distribution separately
 isStrMat = cell2mat({dPrmRez(:).isStr})';
@@ -104,8 +118,8 @@ plot([0 0], [-2 2],'k')
 set(gca,'tickDir','out')
 pbaspect([1 1 1])
 for cc = 1:length(dPrmRezCtx)
-    if sum(isnan(dPrmRezCtx(cc).sigMaxCoord))==0
-        currPt = dPrmRezCtx(cc).sigMaxCoord;
+    if sum(isnan(dPrmRezCtx(cc).meanCoord))==0 % sum(isnan(dPrmRezCtx(cc).maxCoord))==0
+        currPt = dPrmRezCtx(cc).meanCoord;
         [~,XI] = min(abs(currPt(1)-rangeColor));
         [~,YI] = min(abs(currPt(2)-rangeColor));
         thisColor = [colormap2D(XI, YI, 1), colormap2D(XI, YI, 2), colormap2D(XI, YI, 3)];
@@ -113,7 +127,7 @@ for cc = 1:length(dPrmRezCtx)
     end 
 end
 hold off; 
-print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure','dPrime_Ctx_scatter'),'-dpdf','-painters')
+print(fullfile('D:\Junchol_Data\JS2p0\collectData\collectFigure','dPrime_Ctx_scatter'),'-dpdf','-painters')
 
 % draw cortex d' snapshots at different time points 
 for tp = 1:5:100
@@ -138,7 +152,7 @@ for tp = 1:5:100
         end
     end
     hText1 = text(0.90,-1.75,strcat(sprintf('%d',timeX(tp)),'ms'),'FontSize',18); 
-    print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure/dPrm_snapShot',strcat('dPrime_Ctx_scatter_snapShots_ipsi',sprintf('%d',timeX(tp)),'ms')),'-dpdf','-painters')
+    print(fullfile('D:\Junchol_Data\JS2p0\collectData\collectFigure\dPrm_snapShot',strcat('dPrime_Ctx_scatter_snapShots_ipsi',sprintf('%d',timeX(tp)),'ms')),'-dpdf','-painters')
     close all
 end
 hold off;
@@ -152,8 +166,8 @@ plot([0 0], [-2 2],'k')
 set(gca,'tickDir','out')
 pbaspect([1 1 1])
 for cc = 1:length(dPrmRezStr)
-    if sum(isnan(dPrmRezStr(cc).sigMaxCoord))==0
-        currPt = dPrmRezStr(cc).sigMaxCoord;
+    if sum(isnan(dPrmRezStr(cc).meanCoord))==0
+        currPt = dPrmRezStr(cc).meanCoord;
         [~,XI] = min(abs(currPt(1)-rangeColor));
         [~,YI] = min(abs(currPt(2)-rangeColor));
         thisColor = [colormap2D(XI, YI, 1), colormap2D(XI, YI, 2), colormap2D(XI, YI, 3)];
@@ -161,9 +175,9 @@ for cc = 1:length(dPrmRezStr)
     end 
 end
 hold off; 
-print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure','dPrime_Str_scatter'),'-dpdf','-painters')
+print(fullfile('D:\Junchol_Data\JS2p0\collectData\collectFigure','dPrime_Str_scatter'),'-dpdf','-painters')
 
-% draw cortex d' snapshots at different time points 
+% draw striatum d' snapshots at different time points 
 for tp = 1:5:100
     figure(200); hold on;
     xlim([-2 2]);
@@ -186,18 +200,18 @@ for tp = 1:5:100
         end
     end
     hText1 = text(0.90,-1.75,strcat(sprintf('%d',timeX(tp)),'ms'),'FontSize',18); 
-    print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure/dPrm_snapShot',strcat('dPrime_Str_scatter_snapShots_ipsi',sprintf('%d',timeX(tp)),'ms')),'-dpdf','-painters')
+    print(fullfile('D:\Junchol_Data\JS2p0\collectData\collectFigure/dPrm_snapShot',strcat('dPrime_Str_scatter_snapShots_ipsi',sprintf('%d',timeX(tp)),'ms')),'-dpdf','-painters')
     close all
 end
 hold off;
 
 %% sort/organize representative cells of each encoding type, and draw d'-type proportion pie chart
-sigMax_2dPrj = cell2mat({dPrmRez(:).sigMaxCoord_2dProj}');
-sigMax_2dPrj(:,3) = 1:size(sigMax_2dPrj,1); 
+max_2dPrj = cell2mat({dPrmRez(:).maxCoord_2dProj}');
+max_2dPrj(:,3) = 1:size(max_2dPrj,1); 
 isStr_collect = cell2mat({dPrmRez(:).isStr}'); 
 
-%dPrm_types = unique(sigMax_2dPrj(~isnan(sigMax_2dPrj(:,2)),2)); 
-dPrm_types = sigMax_2dPrj(:,2); 
+%dPrm_types = unique(max_2dPrj(~isnan(max_2dPrj(:,2)),2)); 
+dPrm_types = max_2dPrj(:,2); 
 ttNumbCell = sum(~isnan(dPrm_types)); 
 ttNumbStr = sum(isStr_collect & ~isnan(dPrm_types)); 
 ttNumbCtx = sum(~isStr_collect & ~isnan(dPrm_types)); 
@@ -213,7 +227,7 @@ pbaspect([1 1 1])
 for tt = 1:8 % trial types counter-clockwise from left-low
     ttI = dPrm_types==tt; % current trial type logic
     if sum(ttI)>=1
-        dPrmTtC{1,tt} = sortrows(sigMax_2dPrj(dPrm_types==tt,:),-1);        
+        dPrmTtC{1,tt} = sortrows(max_2dPrj(dPrm_types==tt,:),-1);        
         propol = ceil(sum(ttI)./ttNumbCell*30000);
         currPt = projMat(:,tt); 
         [~,trj2dXI] = min(abs(currPt(1)-rangeColor));
@@ -223,7 +237,7 @@ for tt = 1:8 % trial types counter-clockwise from left-low
     end
 end
 hold off
-print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure','dPrime_CtxStr_proportionPie'),'-dpdf','-painters')
+print(fullfile('D:\Junchol_Data\JS2p0\collectData\collectFigure','dPrime_CtxStr_proportionPie'),'-dpdf','-painters')
 dPrmType_CtxStr_distribution = cell2mat(cellfun(@(a) size(a,1), dPrmTtC, 'un', 0))./ttNumbCell; 
 
 figure(5); hold on;
@@ -238,7 +252,7 @@ pbaspect([1 1 1])
 for tt = 1:8 % trial types counter-clockwise from left-low
     ttI = dPrm_types==tt & isStr_collect==0; % current trial type logic
     if sum(ttI)>=1
-        dPrmTtC_ctx{1,tt} = sortrows(sigMax_2dPrj(ttI,:),-1);        
+        dPrmTtC_ctx{1,tt} = sortrows(max_2dPrj(ttI,:),-1);        
         propol = ceil(sum(ttI)./ttNumbCtx*30000);
         currPt = projMat(:,tt); 
         [~,trj2dXI] = min(abs(currPt(1)-rangeColor));
@@ -248,7 +262,7 @@ for tt = 1:8 % trial types counter-clockwise from left-low
     end
 end
 hold off
-print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure','dPrime_Ctx_proportionPie'),'-dpdf','-painters')
+print(fullfile('D:\Junchol_Data\JS2p0\collectData\collectFigure','dPrime_Ctx_proportionPie'),'-dpdf','-painters')
 dPrmType_Ctx_distribution = cell2mat(cellfun(@(a) size(a,1), dPrmTtC_ctx, 'un', 0))./ttNumbCtx; 
 
 
@@ -263,7 +277,7 @@ pbaspect([1 1 1])
 for tt = 1:8 % trial types counter-clockwise from left-low
     ttI = dPrm_types==tt & isStr_collect==1; % current trial type logic
     if sum(ttI)>=1
-        dPrmTtC_str{1,tt} = sortrows(sigMax_2dPrj(ttI,:),-1);        
+        dPrmTtC_str{1,tt} = sortrows(max_2dPrj(ttI,:),-1);        
         propol = ceil(sum(ttI)./ttNumbStr*30000);
         currPt = projMat(:,tt); 
         [~,trj2dXI] = min(abs(currPt(1)-rangeColor));
@@ -273,7 +287,7 @@ for tt = 1:8 % trial types counter-clockwise from left-low
     end
 end
 hold off
-print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure','dPrime_Str_proportionPie'),'-dpdf','-painters')
+print(fullfile('D:\Junchol_Data\JS2p0\collectData\collectFigure','dPrime_Str_proportionPie'),'-dpdf','-painters')
 dPrmType_Str_distribution = cell2mat(cellfun(@(a) size(a,1), dPrmTtC_str, 'un', 0))./ttNumbStr; 
 
 %save(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData','dPrime_CtxStr_collectRez'),'dPrmTtC_str','dPrmTtC_ctx','dPrmTtC','-append')
@@ -330,7 +344,7 @@ for tt = 1:8
             %end    
         end
     end
-    print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure',strcat('dPrime_2dTrj_',sprintf('trialType#%d',tt))),'-dpdf','-painters')
+    print(fullfile('D:\Junchol_Data\JS2p0\collectData\collectFigure',strcat('dPrime_2dTrj_',sprintf('trialType#%d',tt))),'-dpdf','-painters')
     close all
 end 
 
@@ -386,7 +400,7 @@ end
 
 
 for cc = 1:length(dPrmRez)
-    tType = dPrmRez(cc).sigMaxCoord_2dProj(2); 
+    tType = dPrmRez(cc).maxCoord_2dProj(2); 
     
     if ~isempty(dPrmRez(cc).s) && ~isnan(tType)
        dPrmTrjCell{cc,tType} = (dPrmRez(cc).s.trj2d*projMat(:,tType))'; 
@@ -419,7 +433,7 @@ plot(mean(mdPrm_str([2,6],:)))
 plot(mean(mdPrm_str([1,3,5,7],:)))
 axis tight
 set(gca,'tickDir','out')
-print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure','dPrm_neuronType_Str'),'-dpdf','-painters')
+print(fullfile('D:\Junchol_Data\JS2p0\collectData\collectFigure','dPrm_neuronType_Str'),'-dpdf','-painters')
 
 %%
 for tt = 1:8
@@ -440,5 +454,5 @@ plot(mean(mdPrm_ctx([2,6],:)))
 plot(mean(mdPrm_ctx([1,3,5,7],:)))
 axis tight
 set(gca,'tickDir','out')
-print(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData/collectFigure','dPrm_neuronType_Ctx'),'-dpdf','-painters')
+print(fullfile('D:\Junchol_Data\JS2p0\collectData\collectFigure','dPrm_neuronType_Ctx'),'-dpdf','-painters')
 

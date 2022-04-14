@@ -41,8 +41,8 @@ for f = 1:length(fileName) % increment files
     S.nanTrials  = []; % trial x units
     S.valFrCellId  = []; % valid cell id (cells passing the FR cut)
     
-    valFrCellCnt = 0; % valid cell count
     
+    valFrCellCnt = 0; % valid cell count
     for u = 1:length(S.SpkCountMatZ) % increment units
         S.binSpkZ(u,:)  = binAvg1msSpkCountMat( S.SpkCountMatZ{u}, p.Results.binSizeZ, p.Results.binSizeZ ); % bin/average the SpkCountMatZ - unit x bin (50 ms) z score
         %S.binSpkZ(u,:)  = decimate(S.SpkCountMatZ{u},p.Results.dcFactor); % decimate the SpkCountMatZ - unit x bin (50 ms) z score
@@ -170,6 +170,7 @@ for f = 1:length(fileName)
         pcLoadingLabel{i} = strcat('pc',num2str(pcLoadings(i)));
     end
     hold off; pbaspect([1 1 1]); clearvars i
+    xlim([41, 80])
     legend(pcLoadingLabel);
     print( fullfile(filePath, 'Figure', [fileName{f},'_trialAvgPsthPCs',varName]),'-dpdf','-bestfit','-painters')
     
