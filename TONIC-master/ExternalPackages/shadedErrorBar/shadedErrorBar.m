@@ -1,4 +1,4 @@
-function shadedErrorBar(x,y,errBar,lineProps,transparent)
+function H=shadedErrorBar(x,y,errBar,lineProps,transparent)
 % function H=shadedErrorBar(x,y,errBar,lineProps,transparent)
 %
 % Purpose 

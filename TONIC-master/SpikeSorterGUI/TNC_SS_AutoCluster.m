@@ -1,1 +1,0 @@
-function [newClustIds] = TNC_SS_AutoCluster(handles)

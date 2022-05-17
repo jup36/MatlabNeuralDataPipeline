@@ -34,14 +34,13 @@ switch lower(type)
         
     case 'wblack'
         incr = 1./numValues;
-        increaser = (1-incr:-incr:0)'; %(0:incr:1-incr)';
+        increaser = (0:incr:1-incr)';
         tmp  = [ increaser, increaser, increaser ];
         mapName = tmp;
         
     case 'wred'
         incr = 1./numValues;
-        increaser = (1-incr:-incr:0)';
-        %increaser = (0:incr:1-incr)';
+        increaser = (0:incr:1-incr)';
         tmp  = [ ones(numValues,1), increaser, increaser ];
         mapName = tmp;
         
