@@ -22,7 +22,7 @@ tagStimOn = find(p.Results.tagWinEdges==p.Results.tagOnTime);   % tagStim-On (st
 
 gaussianKernel = TNC_CreateGaussian(2*25,2,2*50,1); % get a gaussian kernel for convolution (mean,std,width)
 
-for u = 1:length(S.cueNoLaser.SpkCountMatZ) % increment units
+for u = 1:length(S.tagLaser1s.SpkCountMatZ) % increment units
     
     stimE.meanCueNoLaser(u,1) = nanmean(S.cueNoLaser.SpkCountMatZ{u}(1,cueOn:cueOn+p.Results.reachDur));    % mean FR during reach period
     stimE.maxCueNoLaser(u,1)  = nanmax(S.cueNoLaser.SpkCountMatZ{u}(1,cueOn:cueOn+p.Results.reachDur));     % max  FR during reach period
@@ -32,14 +32,11 @@ for u = 1:length(S.cueNoLaser.SpkCountMatZ) % increment units
         stimE.maxLaserCue2s(u,1)  = nanmax(S.laserCue2s.SpkCountMatZ{u}(1,cueOn:cueOn+p.Results.reachDur));  % max  FR during stimlaser period
     end
     
-    if isfield(S,'laserOnly2s') && isfield(S,'tagLaser1s')
+    if isfield(S,'laserOnly2s')
         tagStmSpkCntMat = cell2mat(getSpkCntMatFromSpkTimes( [S.tagLaser1s.SpkTimes{u}; S.laserOnly2s.SpkTimes{u}], S.tagLaser1s.params)); % get the current unit's spikeCountMat (trial-by-1msBin)
-    elseif ~isfield(S,'laserOnly2s') && isfield(S,'tagLaser1s')
+    else
         tagStmSpkCntMat = cell2mat(getSpkCntMatFromSpkTimes( S.tagLaser1s.SpkTimes{u}, S.tagLaser1s.params)); % get the current unit's spikeCountMat (trial-by-1msBin)
-    elseif isfield(S,'laserOnly2s') && ~isfield(S,'tagLaser1s')
-        tagStmSpkCntMat = cell2mat(getSpkCntMatFromSpkTimes( S.laserOnly2s.SpkTimes{u}, S.laserOnly2s.params)); % get the current unit's spikeCountMat (trial-by-1msBin)
     end
-    
     stimE.sumTagStmOn(u,1)    = sum(sum(tagStmSpkCntMat(:,tagStimOn+50:tagStimOn+p.Results.tagDur))); % total spike counts during tag stim on 
     stimE.sumPreTagStmOn(u,1) = sum(sum(tagStmSpkCntMat(:,tagStimOn-p.Results.tagDur:tagStimOn))); % total spike counts before tag stim on
     
@@ -121,8 +118,8 @@ if  isfield(S,'laserCue2s')
     laserVSreach=sortrows(laserVSreach,1);
     stimE.laserVSreach = laserVSreach;
 end
-sites  = cell2mat(S.laserOnly2s.Site); % site IDs
-geoms  = cell2mat(S.laserOnly2s.geometry); % electrode x-y positions
+sites  = cell2mat(S.tagLaser1s.Site); % site IDs
+geoms  = cell2mat(S.tagLaser1s.geometry); % electrode x-y positions
 depths = geoms(:,2); % depth from the pial surface
 
 % plot sumTagStmOn-sumPreTagStmOn 
