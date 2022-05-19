@@ -21,7 +21,7 @@ binX = linspace(0,sum(psthWin),round(sum(psthWin)/binSize)+1);      % bin for sp
 
 % gaussian kernel to be convolved with the psths
 gaussianSigma    = 1;  % gaussian std
-[gaussianKernel] = TNC_CreateGaussian(gaussianSigma.*15,gaussianSigma,gaussianSigma.*30,1); % TNC_CreateGaussian(Mu,Sigma,Time,dT)
+[gaussianKernel] = TNC_CreateGaussian(gaussianSigma.*10,gaussianSigma,gaussianSigma.*20,1); % TNC_CreateGaussian(Mu,Sigma,Time,dT)
 
 for fd = 1:length(foldDatCell) % increment folds
     
@@ -34,7 +34,9 @@ for fd = 1:length(foldDatCell) % increment folds
     for t = 1:length(thisSpikeTimesCell) % increment trials
         
         thisSpikeTrain1ms = zeros(1,sum(psthWin));
-        thisSpikeTrain1ms(thisSpikeTimesCell{t,1}) = 1;
+        if sum(~isnan(thisSpikeTimesCell{t,1}))>0
+            thisSpikeTrain1ms(thisSpikeTimesCell{t,1}) = 1;
+        end
         thisSpikeTrainCell{t,1} = bin1msSpkCountMat( thisSpikeTrain1ms, 50, 50, 'align', 'center' );        
         %thisSpikeTrainCell{t,1} = histcounts(thisSpikeTimesCell{t,1},binX); % count spikes across bins
         thisSpikeTrainCell{t,1} = conv(thisSpikeTrainCell{t,1}.*(1000/binSize),gaussianKernel,'same');  % conversion to Hz
@@ -74,13 +76,16 @@ end
 % g(1,2).set_title('stat_bin()');
 
 % mean +- sem (or other measures of variability)
-xAxis=linspace(0,sum(psthWin),round(sum(psthWin)/binSize))-psthWin(1);
-g(1,2)=gramm('x',xAxis,'y',spikeTrain,'color',c);
+xAxis=round(linspace(0,sum(psthWin),round(sum(psthWin)/binSize))-psthWin(1));
+xAxisC = cell(length(spikeTrain),1); 
+xAxisC = cellfun(@(a) xAxis, xAxisC, 'Un',0);  
+g(1,2)=gramm('x',xAxisC,'y',spikeTrain,'color',c);
 g(1,2).stat_summary('type','sem','setylim',true); % setylim true to scale the plot by the summarized data (not by the underlying data points)
 g(1,2).set_names('x','Time (ms)','y','FR (Hz)');
 
 if ~isequal(psthWin, manualX)
     g(1,2).axe_property('xlim',[psthWin(1)-manualX(1) psthWin(1)-manualX(1)+sum(manualX)]-psthWin(1)); % manual xlim
+    %g(1,2).axe_property('ylim',[4 14]);
     %g(1,2).set_title('stat_summary()');
 end
 
