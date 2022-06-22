@@ -1,0 +1,97 @@
+function [features] = TNC_SSPL_EventQuantME(wfsStruct, pcaStruct, timestamps,...
+                                       winL, shankSize)
+% FUNCTION DETAILS: 
+% _________________________________________________________________________
+% PART OF THE TONIC PACKAGE
+%   developed by JOSHUA DUDMAN
+%   begun at COLUMBIA UNIVERSITY, continuing at HHMI / JFRC
+% 
+% BUG REPORTING: dudman.web@gmail.com
+% CONTRIBUTIONS: people.janelia.org/dudmanj/html/projects.html
+% _________________________________________________________________________
+% INPUTS:
+
+
+% FOR MULTISHANK PROBES JUST SCALAR CALCULATIONS SHOULD BE SUFFICIENT
+    numSamps = size(wfsStruct(1).values,2);
+    for j=1:1:size(wfsStruct,2)
+%       disp(['In TNC_EventQuantME: j=' num2str(j) ' size(wfsStruct(j).values)=' num2str(size(wfsStruct(j).values))]);
+        features.minV(:,j)   = mean(single(wfsStruct(j).values(:,winL:winL+2)),2);
+        features.maxV(:,j)   = max(single(wfsStruct(j).values(:,winL-14:winL+14)),[],2);
+        features.energy(:,j) = sum(single(wfsStruct(j).values).^2,2);
+            [vals, inds] = sort(single(wfsStruct(j).values),2);
+        features.mint(:,j)   = inds(:,1)';
+%         sclFeats(j,1) = min(single(rawEvents.wfs(j).values(1,15:17)));                             % min value
+%         sclFeats(j,2) = max(single(rawEvents.wfs(j).values(1,:)));                             % max value
+%         theta(j,1)  = atan2(sclFeats(j,1),sclFeats(j,2));
+%         rho(j,1)    = sqrt(sclFeats(j,1).^2 + sclFeats(j,2).^2);
+        features.theta(1,j)  = atan2(min(features.minV(:,j)) , max(features.maxV(:,j)));
+            [values,indices] = sort(features.minV(:,j));
+        features.rho(1,j)    = dot(features.minV(indices(1:4),j),features.maxV(indices(1:4),j));
+    end
+ 
+    if isempty(pcaStruct)
+        [pca] = TNC_CreatePCATemplate(features);
+    else
+        pca = pcaStruct;
+    end
+
+    features.pca = pca;
+    
+% PROJECT IN TO LOW DIMENSIONS
+
+    for j=1:1:size(wfsStruct,2)
+        tmpProj(j,:) = features.minV(:,j)' * pca.template;
+    end
+
+    for p = 1:size(tmpProj,2)
+        [h,pVal,ksstat,cv] = kstest(tmpProj(:,p),[],0.01,'unequal');
+        mmStat(p) = ksstat;
+    end
+
+    features.lowd = tmpProj;
+    
+    features.params = [timestamps, features.minV', features.maxV', features.mint', features.lowd , features.theta' , features.rho' ];
+
+    features.paramNames = cell(1,1+3*shankSize); 
+    features.paramNames{1} = 'ts';
+    for i=1:shankSize
+        features.paramNames{1+i            } = strcat('min', num2str(i));
+        features.paramNames{1+i+shankSize  } = strcat('max', num2str(i));
+        features.paramNames{1+i+shankSize*2} = strcat('mint', num2str(i)); 
+        features.paramNames{1+i+shankSize*3} = strcat('cpc', num2str(i)); 
+    end
+    features.paramNames{numel(features.paramNames)+1} = 'theta';
+    features.paramNames{numel(features.paramNames)+1} = 'rho';
+
+end
+
+%_________________________________________________________________________
+%
+% HELPER FUNCTION
+%_________________________________________________________________________
+
+
+function [pca] = TNC_CreatePCATemplate(tmp)
+
+    numSpks = size(tmp.minV,2);
+    numChan = size(tmp.minV,1);
+    
+    if numSpks>10000
+        [pca.u,pca.s,pca.v] = svd(tmp.minV(:,1:10000)');        
+    else
+        [pca.u,pca.s,pca.v] = svd(tmp.minV');
+    end
+    
+    numComponents = numChan;
+    template(:,1:numComponents) = pca.v(:,1:numComponents);
+    d = diag(pca.s);
+   
+%   disp(['size(d)=' num2str(size(d)) ' sum(d(1:3,1))=' num2str(sum(d(1:3,1))) ' sum(d)=' num2str(sum(d,1))]); 
+    disp(sprintf('Fraction of variance captured in first %g components: %g', 3, sum(d(1:3,1))/sum(d(:,1)) ));
+
+    pca.template = template;
+    pca.numSpks = numSpks;
+    pca.numChan = numChan;
+    
+end
