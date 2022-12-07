@@ -10,5 +10,10 @@ function reachAngle = computeReachAngle( hTrjC, jsXYpos )
         v=[hTrjC{j}(1,1);hTrjC{j}(2,tmpMinI)]-hTrjC{j}(:,1); % reference vector
         reachAngle(j) = sign((u(1)>0)+1) * angleTwoVectors(u,v); % get the angle between reach and reference vectors      
     end
+    
+function thetaInDegrees = angleTwoVectors(u,v)
+    cosTheta = max(min(dot(u,v)/(norm(u)*norm(v)),1),-1);
+    thetaInDegrees = real(acosd(cosTheta));
+end    
 end
     

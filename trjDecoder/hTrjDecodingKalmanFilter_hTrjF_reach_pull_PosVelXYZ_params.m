@@ -3,7 +3,12 @@ function hTrjDecodingKalmanFilter_hTrjF_reach_pull_PosVelXYZ_params(filePath, sa
 % using cross-validated (leave-a-trial-out) Kalman filter decoding.
 %filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles';
 cd(filePath)
-kfDir = dir('preprocessKFdecodeHTrjCtxStr_reachpull_hTrjF_20ms*');
+%kfDir = dir('preprocessKFdecodeHTrjCtxStr_reachpull_hTrjF_20ms*');
+kfDir = dir('preprocessKFdecodeHTrj_reachpull_new*');
+
+wrI = strfind(filePath, 'WR');
+m_name = filePath(wrI:wrI+10);
+
 load(fullfile(kfDir.folder,kfDir.name),'s')
 
 resample = 50; 
@@ -24,7 +29,7 @@ for k = 1:8 % MAIN LOOP (fit X,Y,Z sperately and XYZ altogether)
     medP1 = nanmedian(cell2mat(cellfun(@(a) a(:,1), tmpState0(valTrI)','un',0)),2);
     tmpState(valTrI) = cellfun(@(a) a-repmat(medP1,1,size(a,2)),tmpState0(valTrI),'un',0);
     %% leave-a-trial-out decoding using Kalman Filter (heavy-lifting part)
-    [s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k},s.dat.params{k}] = leaveOneOutKFdecoderTrialTypeBalanced_params(tmpState, s.dat.spkCtxR, s.dat.spkStrR, s.dat.laserIdxR, resample, s.ctxI, s.strI);
+    [s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k},s.dat.params{k}] = leaveOneOutKFdecoderTrialTypeBalanced_params_withCg(tmpState, s.dat.spkCtxR, s.dat.spkStrR, s.dat.laserIdxR, resample, s.ctxI, s.strI);
     
     %% evaluate decoding with correlation and r-squred
     [corrRez.ctx{k},r2Rez.ctx{k}] =  trjDecodeEvalByTrialType(tmpState, s.dat.stateRCtx{k}.est);
@@ -34,7 +39,7 @@ end
 clearvars k
 
 %% save the result
-save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPosVel_reach_',saveName)),'s','corrRez','r2Rez') % last saved after training without stim trials 5/27 Wed 9pm
+save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPosVel_reach_new_',saveName)),'s','corrRez','r2Rez') % last saved after training without stim trials 5/27 Wed 9pm
 %trjMovie([stateCtxCC_sm(:,2), stateStrCC_sm(:,2), stateCC_sm(:,2)]', figSaveDir, 'kfDecode_Ypos_CtxStrAct')
 
 %% PULL
@@ -56,7 +61,7 @@ for k = 1:8 % MAIN LOOP (fit X,Y,Z sperately and XYZ altogether)
     tmpState(valTrI) = cellfun(@(a) a-repmat(medP1,1,size(a,2)),tmpState0(valTrI),'un',0);
     %% leave-a-trial-out decoding using Kalman Filter (heavy-lifting part)
     %[s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k}] = leaveOneOutKFdecoder(tmpState, s.dat.spkCtxP, s.dat.spkStrP, s.dat.laserIdxP, 10);
-    [s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k},s.dat.params{k}] = leaveOneOutKFdecoderTrialTypeBalanced_params(tmpState, s.dat.spkCtxP, s.dat.spkStrP, s.dat.laserIdxP, resample, s.ctxI, s.strI);
+    [s.dat.stateRCtx{k},s.dat.stateRStr{k},s.dat.stateRCtxStr{k},s.dat.params{k}] = leaveOneOutKFdecoderTrialTypeBalanced_params_withCg(tmpState, s.dat.spkCtxP, s.dat.spkStrP, s.dat.laserIdxP, resample, s.ctxI, s.strI);
     
     %% evaluate decoding with correlation and r-squred
     [corrRez.ctx{k},r2Rez.ctx{k}] =  trjDecodeEvalByTrialType(tmpState, s.dat.stateRCtx{k}.est);
@@ -66,7 +71,7 @@ end
 clearvars k
 
 %% save the result
-save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPosVel_pull_',saveName)),'s','corrRez','r2Rez') % last saved after training without stim trials 5/27 Wed 9pm
+save(fullfile(filePath,strcat('rezKFdecodeHTrjCtxStrPosVel_pull_new',m_name)),'s','corrRez','r2Rez') % last saved after training without stim trials 5/27 Wed 9pm
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Helper function %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
