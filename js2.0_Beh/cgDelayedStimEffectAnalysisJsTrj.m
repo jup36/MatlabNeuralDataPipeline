@@ -1,15 +1,19 @@
 function cgDelayedStimEffectAnalysisJsTrj(filePath)
 
-%filePath = '/Volumes/RAID2/parkj/NeuralData/js2.0/WR37/022619/Matfiles';
-cd(filePath)
-S = load(fullfile(filePath,'jsTime1k_Kinematics_VideoFiles.mat'));  % load jsTime1k_KV.mat
-S = S.('jsTime1k_KV');
+if contains(filePath, 'BehVariablesJs')
+    S = load(fullfile(filePath), 'jsTime1k');  % load jsTime1k_KV.mat
+    S = S.('jsTime1k');
+elseif contains(filePath, 'jsTime1k_Kinematics_VideoFiles')
+    S = load(fullfile(filePath), 'jsTime1k_KV');  % load jsTime1k_KV.mat
+    S = S.('jsTime1k_KV');
+elseif contains(filePath, 'jsTime1k_KinematicsTrajectories')
+    S = load(fullfile(filePath), 'jkvt');  % load jsTime1k_KV.mat
+    S = S.('jkvt');
+end
 
-maxPtsToPlot = 10000; % 10s
-rewardIdx = [S.rewarded];
-trJsReady = [S.trJsReady];
 firstRwdTrial = find([S(:).rewarded]==1,1,'first'); 
-lastRwdTrial  = find([S(:).rewarded]==1,1,'last');  
+
+m_name = filePath(strfind(filePath, 'WR'):strfind(filePath, 'WR')+10); 
 
 %% plot sgJsTrajmm of stim vs non-stim trials aligned to the actual and putative stim onset times
 % All trials align to laserOn
@@ -19,15 +23,19 @@ for t = 2:length(S)
         if isnan(S(t).stimLaserOn)
             if isstruct(S(t).movKins)
                 trStartPt = S(t).trJsReady-(S(t-1).trEnd+7000); % align to the putative stim on, stim generated 4-sec after the last trial offset with the camTrigger
-                plot(trStartPt+1:trStartPt+length(S(t).movKins.sgJsTrajmm), S(t).movKins.sgJsTrajmm, 'Color',[70,240,240]./255);
-                plot(trStartPt+1, S(t).movKins.sgJsTrajmm(1), 'o', 'MarkerFaceColor', [70,240,240]./255, 'MarkerEdgeColor', 'none', 'MarkerSize', 5);
+                plot(1:trStartPt+length(S(t).movKins.sgJsTrajmm)-trStartPt, S(t).movKins.sgJsTrajmm, 'Color',[70,240,240]./255);
+                plot(trStartPt+1-trStartPt, S(t).movKins.sgJsTrajmm(1), 'o', 'MarkerFaceColor', [70,240,240]./255, 'MarkerEdgeColor', 'none', 'MarkerSize', 5);
+                %plot(trStartPt+1:trStartPt+length(S(t).movKins.sgJsTrajmm), S(t).movKins.sgJsTrajmm, 'Color',[70,240,240]./255);
+                %plot(trStartPt+1, S(t).movKins.sgJsTrajmm(1), 'o', 'MarkerFaceColor', [70,240,240]./255, 'MarkerEdgeColor', 'none', 'MarkerSize', 5);
             end
         elseif ~isnan(S(t).stimLaserOn)
             if isstruct(S(t).movKins)
               if S(t).trJsReady>S(t).stimLaserOn
                 trStartPt = S(t).trJsReady-S(t).stimLaserOn; % S(t).trJsReady-(S(t-1).trEnd+7000); % align to the putative stim on, stim generated 4-sec after the last trial offset with the camTrigger
-                plot(trStartPt+1:trStartPt+length(S(t).movKins.sgJsTrajmm), S(t).movKins.sgJsTrajmm, 'Color',[240,50,230]./255);
-                plot(trStartPt+1, S(t).movKins.sgJsTrajmm(1), 'o', 'MarkerFaceColor', [240,50,230]./255, 'MarkerEdgeColor', 'none', 'MarkerSize', 5);
+                plot(1:length(S(t).movKins.sgJsTrajmm), S(t).movKins.sgJsTrajmm, 'Color',[240,50,230]./255);
+                plot(1, S(t).movKins.sgJsTrajmm(1), 'o', 'MarkerFaceColor', [240,50,230]./255, 'MarkerEdgeColor', 'none', 'MarkerSize', 5);   
+                %plot(trStartPt+1:trStartPt+length(S(t).movKins.sgJsTrajmm), S(t).movKins.sgJsTrajmm, 'Color',[240,50,230]./255);
+                %plot(trStartPt+1, S(t).movKins.sgJsTrajmm(1), 'o', 'MarkerFaceColor', [240,50,230]./255, 'MarkerEdgeColor', 'none', 'MarkerSize', 5);
               end
             end
         end
@@ -37,7 +45,7 @@ clearvars t trStartPt
 hold off;
 xlim([-1000 10000]); xlabel('Time relative to actual/putative stim onset')
 ylim([-20 20]); ylabel('Joystick position (mm)')
-print(fullfile(filePath,'Figure','JsTrajStimVsNoStim-AllTrials_alignToLaser'), '-dpdf','-painters','-bestfit')
+print(fullfile(fileparts(filePath),'Figure','JsTrajStimVsNoStim-AllTrials_alignToLaser'), '-dpdf','-painters','-bestfit')
 
 % All trials align to trJsReady
 figure; hold on;
@@ -60,7 +68,7 @@ clearvars t trStartPt
 hold off;
 xlim([-1000 10000]); xlabel('Time relative to actual/putative stim onset')
 ylim([-20 20]); ylabel('Joystick position (mm)')
-print(fullfile(filePath,'Figure','JsTrajStimVsNoStim-AllTrials_alignToTrJsReady'), '-dpdf','-painters','-bestfit')
+print(fullfile(fileparts(filePath),'Figure','JsTrajStimVsNoStim-AllTrials_alignToTrJsReady'), '-dpdf','-painters','-bestfit')
 
 % Successful trials only align to LaserOn
 hold on;
@@ -82,7 +90,7 @@ end
 clearvars t trStartPt
 xlim([-1000 10000]); xlabel('Time relative to actual/putative stim onset(ms)')
 ylim([-20 5]); ylabel('Joystick position (mm)')
-print(fullfile(filePath,'Figure','JsTrajStimVsNoStim-SuccessTrials_alignToLaser'), '-dpdf','-painters','-bestfit')
+print(fullfile(fileparts(filePath),'Figure','JsTrajStimVsNoStim-SuccessTrials_alignToLaser'), '-dpdf','-painters','-bestfit')
 hold off;
 
 % Successful trials only align to LaserOn
@@ -103,7 +111,7 @@ end
 clearvars t trStartPt
 xlim([-1000 10000]); xlabel('Time relative to actual/putative stim onset(ms)')
 ylim([-20 5]); ylabel('Joystick position (mm)')
-print(fullfile(filePath,'Figure','JsTrajStimVsNoStim-SuccessTrials_alignToTrJsReady'), '-dpdf','-painters','-bestfit')
+print(fullfile(fileparts(filePath),'Figure','JsTrajStimVsNoStim-SuccessTrials_alignToTrJsReady'), '-dpdf','-painters','-bestfit')
 hold off;
 
 %% Reach probability P(reachOn|Time), Expected Js position E(JsPosition|Time)
@@ -152,7 +160,16 @@ g(1,2).set_title('P(reachOn|Time)');
 figure('Position',[100 100 800 550]);
 g.draw();
 %set(gcf,'renderer','painters')
-print(fullfile(filePath,'Figure','reachProb_expectedJsPos'), '-dpdf','-bestfit','-painters')
+print(fullfile(fileparts(filePath),'Figure','reachProb_expectedJsPos'), '-dpdf','-bestfit','-painters')
+
+stimI = cell2mat(cellfun(@(a) strcmpi(a, 'stim'), stimTrIdx, 'un', 0)); 
+jsReachOn_stim = cell2mat(jsReachOn(stimI)');
+jsReachOn_prob_stim = sum(sum(jsReachOn_stim(:, 1:1000), 2) > 0)/size(jsReachOn_stim, 1); 
+
+jsReachOn_noStim = cell2mat(jsReachOn(~stimI)'); 
+jsReachOn_prob_noStim = sum(sum(jsReachOn_noStim(:, 1:1000), 2) > 0)/size(jsReachOn_noStim, 1); 
+
+save(fullfile(fileparts(filePath), strcat('stim_effect_rez_', m_name)), 'jsPosE', 'stimTrIdx', 'jsReachOn', 'jsReachOn_prob_stim', 'jsReachOn_prob_noStim')
 
 end
 

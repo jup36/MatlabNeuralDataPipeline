@@ -17,8 +17,31 @@ function js2p0_tbytSpkHandJsPreprocess(filePath,saveName)
 %filePath = '/Volumes/Beefcake/Junchol_Data/JS2p0/WR40_082019/Matfiles';
 cd(filePath)
 % neural and behavioral data
-spkDir = dir('binSpkCountSTRCTX*');
-load(fullfile(spkDir(1).folder, spkDir(1).name),'spkTimesCell','jkvt')
+spkDir_CtxStr = dir('binSpkCountSTRCTX*');
+spkDir_Cg = dir('binSpkCountCg*');
+
+if ~isempty(spkDir_CtxStr)
+    load(fullfile(spkDir_CtxStr(1).folder, spkDir_CtxStr(1).name),'spkTimesCell','jkvt')
+    spkTimesCell_CtxStr = spkTimesCell; clearvars spkTimesCell
+    % cortex/striatum index
+    depth = cell2mat(cellfun(@(a) a(2), spkTimesCell_CtxStr(4,:),'un',0))'; % depth from pial surface
+    ctxI = depth<1900; % cortex index
+    spkTimesCellCTX = spkTimesCell_CtxStr(:,ctxI);
+    depthCtx = depth(ctxI);
+    strI = depth>2100; % striatum index
+    spkTimesCellSTR = spkTimesCell_CtxStr(:,strI);
+    depthStr = depth(strI);
+end
+    
+if ~isempty(spkDir_Cg) 
+    load(fullfile(spkDir_Cg(1).folder, spkDir_Cg(1).name),'spkTimesCell')
+    if ~exist('jkvt', 'var')
+        load(fullfile(spkDir_Cg(1).folder, spkDir_Cg(1).name), 'jkvt')
+    end
+    
+    spkTimesCellCg = spkTimesCell; clearvars spkTimesCell
+    depthCg = cell2mat(cellfun(@(a) a(2), spkTimesCellCg(4,:),'un',0))'; % depth from pial surface
+end
 
 %% align hand trajectories to neural data
 vfT = {jkvt(:).vFrameTime}'; % video frame time
@@ -27,15 +50,6 @@ hTrj = {jkvt(:).hTrjF}'; % hand trajectory
 sm_kernel = TNC_CreateGaussian(250,30,500,20); % a kernel for smoothing (mu, sigma, time, dT)
 binSize = 20; % 20 ms
 spkBin = -1000:2000;
-
-% cortex/striatum index
-depth = cell2mat(cellfun(@(a) a(2), spkTimesCell(4,:),'un',0))'; % depth from pial surface
-ctxI = depth<1900; % cortex index
-spkTimesCellCTX = spkTimesCell(:,ctxI);
-depthCtx = depth(ctxI); 
-strI = depth>2100; % striatum index
-spkTimesCellSTR = spkTimesCell(:,strI);
-depthStr = depth(strI); 
 
 %% parse trial/block information
 % pull torque & reach position combinations
@@ -95,9 +109,16 @@ for t = 1:size(jkvt,2)
     % get spike time bins and binned spike count matrices 
     ss(t).spkTimeBins = ss(t).timeAlign + (spkBin(1):binSize:spkBin(end-1));
     spkTime1msBins = ss(t).timeAlign + (spkBin(1):spkBin(end-1));
-    ss(t).unitTimeBCtx = psthBINcellPerTrial( spkTimesCellCTX, ss(t).timeAlign, 20, [abs(spkBin(1)) abs(spkBin(end))]); % binned spikeCounts aligned to this trial
-    ss(t).unitTimeBStr = psthBINcellPerTrial( spkTimesCellSTR, ss(t).timeAlign, 20, [abs(spkBin(1)) abs(spkBin(end))]); % binned spikeCounts aligned to this trial
- 
+    
+    if exist('spkTimesCellCTX')==1
+       ss(t).unitTimeBCtx = psthBINcellPerTrial( spkTimesCellCTX, ss(t).timeAlign, 20, [abs(spkBin(1)) abs(spkBin(end))]); % binned spikeCounts aligned to this trial
+    end
+    if exist('spkTimesCellSTR')==1
+       ss(t).unitTimeBStr = psthBINcellPerTrial( spkTimesCellSTR, ss(t).timeAlign, 20, [abs(spkBin(1)) abs(spkBin(end))]); % binned spikeCounts aligned to this trial
+    end
+    if exist('spkTimesCellCg')==1
+       ss(t).unitTimeBCg = psthBINcellPerTrial( spkTimesCellCg, ss(t).timeAlign, 20, [abs(spkBin(1)) abs(spkBin(end))]); % binned spikeCounts aligned to this trial
+    end
     %% get interpolated/binned hand position, velocity and force measured from the joystick encoder (all traj aligned to t1n e.g., -1000ms from rStart)
     if ~isempty(hTrj{t}) && ~isempty(ss(t).timeAlign) % if hTrj available
         spikeT = spkBin+ss(t).timeAlign; % 1-ms spike time bins
@@ -168,6 +189,9 @@ for t = 1:size(jkvt,2)
             ss(t).jsXYbot = jkvt(t).jsTreachPosB(1:2); % joystick bottom
             % compute the reach angle on the horizontal X-Y plane 
             ss(t).rchAngDeg = computeReachAngle({ss(t).hTrjB(1:2,:)}, ss(t).jsXYbot);  
+            
+            
+            
         end
         
         %% stim trial info
@@ -179,7 +203,7 @@ for t = 1:size(jkvt,2)
             end
         end
     end
-    fprintf('processed trial %d\n', t) % report unit progression
+    fprintf('processed trial %d\n', t) % report trial progression
 end
 
 % transfer block information from jkvt to ss
@@ -187,7 +211,7 @@ end
 [ss(:).blType] = deal(jkvt(:).blType); 
 [ss(:).blShiftLogic] = deal(jkvt(:).blShiftLogic); 
     
-save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'ss','jkvt','trI','spkTimesCell','depthCtx','depthStr')
+save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'ss','jkvt','trI','spkTimesCell*','depth*')
 % save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'depthCtx','depthStr','-append')
 % save(fullfile('/Users/parkj/Dropbox (HHMI)/j2p0_dataShare/js2p0_tbytSpkHandJsTrjBin_WR40_081919.mat'),'depthCtx','depthStr','-append')
 %load(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'ss','jkvt','trI','spkTimesCell')
@@ -249,19 +273,24 @@ end
 % get interpolated hand trajectory
 function [intV,xq] = interpsm(x,v)
 xq = x(1):x(end); % new timescale
-inthTrjF = @(a) interp1(x,a,xq); % interpolation function
+inthTrj = @(a) interp1(x,a,xq); % interpolation function
 vC = mat2cell(v,[ 1 1 1 ], size(v,2)); % convert to cell
-intVC = cellfun(@(a) inthTrjF(a), vC, 'un', 0); % interpolated hTrj cell
-intVCf = cellfun(@(a) sgolayfilt(a,3,201), intVC, 'un', 0); % filtered hTjr cell
-intV = cell2mat(intVCf);
-end
+intVC = cellfun(@(a) inthTrj(a), vC, 'un', 0); % interpolated hTrj cell
 
-% extrapolation of hand trajectories, if needed
-function [extV] = extm(x,xq,v,extMethod)
-exthTrj = @(a) interp1(x,a,xq,extMethod,'extrap'); % extrapolation function
-vC = mat2cell(v,[ 1 1 1 ], size(v,2)); % convert to cell
-extVC = cellfun(@(a) exthTrj(a), vC, 'un', 0); % extrapolated hTrj cell
-extV = cell2mat(extVC); % extrapolated hTrj
+lengthIntVC = unique(cellfun(@length, intVC)); 
+
+% to use sg filter get sgfiltFramelen
+if lengthIntVC >= 201
+    sgfiltFramelen = 101;
+elseif lengthIntVC < 201
+    if mod(lengthIntVC,2)==0
+        sgfiltFramelen = lengthIntVC-1; % the frame length for sg filter needs to be an odd number
+    else
+        sgfiltFramelen = lengthIntVC;
+    end
+end
+intVCf = cellfun(@(a) sgolayfilt(a,3,sgfiltFramelen), intVC, 'un', 0); % filtered hTjr cell
+intV = cell2mat(intVCf);
 end
 
 % compute reach angle
@@ -310,6 +339,13 @@ addParameter(p,'fillin',default_fillin);
 parse(p,A,timeA,timeRef,vargs{:})
 end
 
+end
+
+function [extV] = extm(x,xq,v,extMethod)
+exthTrj = @(a) interp1(x,a,xq,extMethod,'extrap'); % extrapolation function
+vC = mat2cell(v,[ 1 1 1 ], size(v,2)); % convert to cell
+extVC = cellfun(@(a) exthTrj(a), vC, 'un', 0); % extrapolated hTrj cell
+extV = cell2mat(extVC); % extrapolated hTrj
 end
 
 end

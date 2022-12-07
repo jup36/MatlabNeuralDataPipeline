@@ -161,7 +161,7 @@ if ~isempty(spkDir) || ~isempty(spkDir_Cg)
         if ~exist(fullfile(filePath,'Matfiles'),'dir')
             mkdir(fullfile(filePath,'Matfiles'))
         end
-        save(fullfile(filePath, 'Matfiles', strcat('glm_dPrime_Cg_vec_norm_',saveName)),'dPrmC_Cg','tV','p')
+        %save(fullfile(filePath, 'Matfiles', strcat('glm_dPrime_Cg_vec_norm_',saveName)),'dPrmC_Cg','tV','p')
     end 
 end
 end

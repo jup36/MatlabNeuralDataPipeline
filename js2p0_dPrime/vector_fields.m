@@ -1,6 +1,6 @@
 function [vf, vf_weighted] = vector_fields(dPrm, normalization_factor)
 % dPrm: dPrm structure
-load(fullfile('D:\Junchol_Data\JS2p0\collectData','a2dColorMap.mat'),'colormap2D') % 2d colorMap for the scatter plot
+load(fullfile('/Volumes/dudmanlab/junchol/js2p0/collectData','a2dColorMap.mat'),'colormap2D') % 2d colorMap for the scatter plot
 numColors = size(colormap2D,1);
 rangeColor = linspace(-2,2,numColors);
 

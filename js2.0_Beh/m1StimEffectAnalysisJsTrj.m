@@ -1,4 +1,4 @@
-function cgStimEffectAnalysisJsTrj(filePath)
+function m1StimEffectAnalysisJsTrj(filePath)
 
 if contains(filePath, 'BehVariablesJs')
     S = load(fullfile(filePath), 'jsTime1k');  % load jsTime1k_KV.mat
