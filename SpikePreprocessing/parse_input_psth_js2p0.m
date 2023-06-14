@@ -1,4 +1,4 @@
-function p = parse_input_psth_js2p0( filePath, fileInfo, probeDepth, vargs ) % note that a nested function must use vargs not varargin when varargin was used for the main function
+function p = parse_input_psth_js2p0( filePath, fileInfo, probeDepth, varargin ) % note that a nested function must use vargs not varargin when varargin was used for the main function
 %parse input, and extract name-value pairs for the main function
 % 'PSTH_rasters'
 
@@ -24,5 +24,5 @@ addParameter(p,'tagLaserWin', default_tagLaserWin)
 addParameter(p,'probeType', default_probeType)
 addParameter(p,'laserUsed', default_laserUsed)
 
-parse(p,filePath, fileInfo, probeDepth, vargs{:})
+parse(p,filePath, fileInfo, probeDepth, varargin{:})
 end
