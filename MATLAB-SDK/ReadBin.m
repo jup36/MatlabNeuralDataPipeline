@@ -22,3 +22,4 @@ function dataArray = ReadBin(samp0, nSamp, meta, binName, path)
     dataArray = fread(fid, sizeA, 'int16=>double'); % readout the binfile with the form of the input changed from int16 to double
     fclose(fid); 
 end % ReadBin
+

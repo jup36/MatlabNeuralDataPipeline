@@ -7,7 +7,7 @@ function [jsState, jsStateDt] = readStepperEncoder(pinAstate, pinBstate)
 % For more information about quadrature encoded signals, https://www.pjrc.com/teensy/td_libs_Encoder.html
 % For more information about the encoder, http://koyoele.in/Product/Incremental-Rotary-Encoder/TRD-MX1000AD
 
-jsDistCoeff = 2*pi*90/4000; % joystick distance conversion coefficient, the encoder generates 1000 pulses per revolution, thus if rise/fall being detected, 4000 occurrences per revolution. The length of the joystick is 90mm  
+%jsDistCoeff = 2*pi*90/4000; % joystick distance conversion coefficient, the encoder generates 1000 pulses per revolution, thus if rise/fall being detected, 4000 occurrences per revolution. The length of the joystick is 90mm  
 
 pinArise = find(diff([pinAstate(1), pinAstate])==1);
 pinArise(2,:) = 1;  % pin A rise
