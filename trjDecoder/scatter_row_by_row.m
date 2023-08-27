@@ -4,7 +4,7 @@ figure; hold on;
 for r = 1:size(collect_mat, 1) 
     x = rand(1, size(collect_mat, 2)).*0.1-0.05 + [1:size(collect_mat, 2)]; 
     plot(x, collect_mat(r, :), 'k:')
-    scatter(x, collect_mat(r, :), 50)
+    scatter(x, collect_mat(r, :), 50, 'filled')
 end
 clearvars r
 

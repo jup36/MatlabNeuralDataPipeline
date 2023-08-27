@@ -9,6 +9,16 @@ function behaviorTimestampsPP(p)
 
 cd(p.Results.filePath)
 
+parts = strsplit(p.Results.filePath, filesep);
+parent_path = strjoin(parts(1:end-1), filesep);
+
+% load 'stimopts'
+stiminfo_file = dir(fullfile([parent_path, filesep, '*_stiminfo.mat'])); 
+if isempty(stiminfo_file)
+   [stiminfo_file.name, stiminfo_file.folder] = uigetfile(parent_path); 
+end
+load(fullfile(stiminfo_file.folder, stiminfo_file.name), 'stimopts')
+
 % check the folder whether there's rez file already
 if ~isempty(dir(fullfile(p.Results.filePath,'BehVariablesPP.mat'))) % if the BehVariablesPP.mat file already exists in the filePath
     answer = questdlg('BehVariablesPP.mat already exists, Would you like to replace it?','Choice','Replace','Cancel','Cancel');
@@ -91,11 +101,11 @@ else
     %digitBin = dec2bin(digit);
     %water = str2num(digitBin(:, 1)); %'str2double' doesn't work here! 
     %airpuff = str2num(digitBin(:, 2)); 
+    %figure; hold on; 
+    %plot(water); 
+    %plot(airpuff); 
     water = digit==4;   % p0.2 -> 2^2
     airpuff = digit==2; % p0.1 -> 2^1
-    figure; hold on; 
-    plot(water); 
-    plot(airpuff); 
 
     % Gain correction for analog channnels 
     cmosExp     = GainCorrectNI(cmosExp, 1, meta);      
@@ -109,12 +119,28 @@ else
     clearvars temp*
     save('gainCorrectRawTraces', 'meta', 'cmosExp', 'cmosTrig', 'speaker', 'lick', 'lick2', ...
         'bodyCam', 'faceCam', 'photoDiode', 'digit', 'water', 'airpuff')
+    fprintf('completed saving raw traces!\n');
 end
 
 %% task event detection
 if ~isempty(dir(fullfile(p.Results.filePath,'evtIndices.mat'))) && p.Results.reReadBin==false % if the gainCorrectRawTraces.mat file already exists in the filePath
     load(fullfile(p.Results.filePath,'evtIndices.mat'),'trStartIdx','trEndIdx','rwdIdx','lickIdx','evtIdx25k','evtIdx1k') % if there are gaincorrectedrawtraces already saved, just load them
 else
+    
+    % detect outcome deliveries
+    figure(100); hold on;  
+    rwdIdx = detecteventbythreshold(water, nSamp, 50, 'stdFactor', 1, 'plotRez', true, 'chunkPulses', false, 'correctLongPulse', true); % reward (water) deliveries
+    fprintf('completed water reward detection!\n');
+    punishIdx = detecteventbythreshold(airpuff, nSamp, 50, 'stdFactor', 1, 'plotRez', true, 'chunkPulses', false, 'correctLongPulse', true); % punishment (airpuff) deliveries
+    fprintf('completed airpuff punishment detection!\n');
+    hold off; 
+
+    [camTrigRiseIdx, camTrigFallIdx, camPulseTrainIdx] = detecteventbythreshold(camTrig, nSamp, 2, 'stdFactor', 1, 'plotRez',false, 'chunkPulses', true, 'chunkInterval', 2000, 'correctLongPulse', true); % camera trigger
+
+    
+
+
+
     [trStartIdx,~,~] = detecteventbythreshold(trStart, nSamp, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'correctLongPulse', true); % trial Start
     fprintf('completed trial start detection!\n');
     [trEndIdx,~,~]   = detecteventbythreshold(trEnd, nSamp, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse', true); % trial End

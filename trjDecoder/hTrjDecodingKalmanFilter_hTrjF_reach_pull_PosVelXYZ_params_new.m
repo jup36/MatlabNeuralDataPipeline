@@ -87,7 +87,7 @@ if ~isempty(kfDir)
         medP1 = nanmedian(cell2mat(cellfun(@(a) a(:,1), tmpState0(valTrI)','un',0)),2);
         tmpState(valTrI) = cellfun(@(a) a-repmat(medP1,1,size(a,2)),tmpState0(valTrI),'un',0);
         %% leave-a-trial-out decoding using Kalman Filter (heavy-lifting part)
-        rez_pull{k} = leaveOneOutKFdecoderTrialTypeBalanced_pull_withCg(tmpState, s, resample);
+        rez_pull{k} = leaveOneOutKFdecoderTrialTypeBalanced_pull_withCg(tmpState, s, resample); 
         
         %% evaluate decoding with correlation and r-squred
         if ctx_record && str_record && cg_record  % all three regions

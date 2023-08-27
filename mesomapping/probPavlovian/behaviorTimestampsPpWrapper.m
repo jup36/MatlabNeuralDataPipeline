@@ -1,6 +1,7 @@
 function behaviorTimestampsPpWrapper(filePath, varargin)
 %This is a wrapper function to run behaviorTimestampsJs.
 % e.g., p = parse_input_PP('G:\m935_06_14_23_VC_pavlovian_day4-1_g0', {}); 
+% e.g., p = parse_input_PP('/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/cj935/m935_061423/m935_06_14_23_VC_pavlovian_day4-1_g0', {}); 
 defaultPath = 'G:\'; % Data Acquisition folder
 
 if iscell(filePath)
