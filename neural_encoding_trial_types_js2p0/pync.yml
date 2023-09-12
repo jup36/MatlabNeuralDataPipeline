@@ -1,0 +1,24 @@
+# NOTE: 
+
+name: pync
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+ - python >= 3.8, <3.10  
+ - ipython
+ - scipy
+ - numpy
+ - matplotlib
+ - tqdm
+ - click
+ - pydantic
+ - pytest
+ - pytest-cov
+ - mock
+ - numba
+ - pip
+ - pyqtgraph
+ - pyqt
+ - pyfftw
+ - pip:
