@@ -4,8 +4,6 @@ function [corrRiseTS, corrFallTS, pulseTrainIdx] = detecteventbythreshold_noAbs(
 % sampFreq: sampling rate (Hz)
 % detectTimeout: detection timeout (ms)
 
-close all; 
-
 p = parse_input_detectevent( filePath, timeseries, sampFreq, detectTimeout, saveName, varargin ); % parse input
 
 %figure; hold on; plot(timeseries)
@@ -111,9 +109,8 @@ if exist(fullfile(filePath, 'Figure'), 'dir') ~= 7
 end
 
 if p.Results.plotRez
-    figure; hold on;
+    figure; hold on; 
     plot(timeseries);
-    title([saveName sprintf(' events detected with stdTS = %.1f', stdTS)])
     plot(corrFallTS,ones(1, length(corrFallTS)).*thresTS,'*r'); 
     if p.Results.findEarlyOnset 
         plot(corrRiseTS,cell2mat(earlyThres),'og');
