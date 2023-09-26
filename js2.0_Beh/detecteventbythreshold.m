@@ -8,6 +8,11 @@ p = parse_input_detectevent( timeseries, sampFreq, detectTimeout, varargin ); % 
 %p = parse_input_detectevent( timeseries, sampFreq, detectTimeout, {} ); % use this line instead when running line-by-line
 %p = parse_input_detectevent( timeseries, sampFreq, detectTimeout, {'detectLater',trStartIdx(1),'correctLongPulse',true} ); % use this line instead when running line-by-line
 
+if p.Results.filterArtifact
+    [b, a] = butter(4, p.Results.lowpassCutoff/(p.Results.sigFreq/2), 'low'); % 4th order Butterworth high-pass
+    timeseries = filter(b, a, timeseries);
+end
+
 meanTS = mean(abs(timeseries)); % mean timeseries
 stdTS  = std(abs(timeseries));  % std timeseries
 
@@ -100,6 +105,13 @@ end
         default_detectEarlier = length(timeseries); % detect events earlier than a certain timepoint to preclude late events
         default_correctLongPulse = false; % correct for the possible long pulses, especially in the trEnd
         default_manualthresTS = [];     % manual threshold
+        default_cutoffShort = false; 
+        default_short = 1;              % 1 sec 
+        default_findEarlyOnset = false; % try to detect the early onset point
+        default_earlyOnsetWindow = 0.5; % detect the early onset point within -0.5 to 0 window with 0 being the detected point  
+        default_filterArtifact = false; % use low-pass filtered signal to remove the photodiode artifact
+        default_lowpassCutoff = 5;      % 5Hz
+        default_sigFreq = 200;          % the frequency of the main signal to be detected (e.g., faceCam pulses are 200Hz) 
 
 
         p = inputParser; % create parser object
@@ -114,8 +126,16 @@ end
         addParameter(p,'detectEarlier', default_detectEarlier)
         addParameter(p,'correctLongPulse', default_correctLongPulse)
         addParameter(p,'manualthresTS', default_manualthresTS)
+        addParameter(p,'cutoffShort', default_cutoffShort)
+        addParameter(p,'short', default_short)
+        addParameter(p,'findEarlyOnset', default_findEarlyOnset)
+        addParameter(p,'earlyOnsetWindow', default_earlyOnsetWindow)
+        addParameter(p,'filterArtifact', default_filterArtifact)
+        addParameter(p,'lowpassCutoff', default_lowpassCutoff)
+        addParameter(p,'sigFreq', default_sigFreq)
+
 
         parse(p,timeseries, sampFreq, detectTimeout, vargs{:})
-    end
+end
 end
 
