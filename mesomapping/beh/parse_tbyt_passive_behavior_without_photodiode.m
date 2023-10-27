@@ -1,5 +1,5 @@
-function parse_tbyt_passive_behavior(filePath)
-% filePath = '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA008/DA008_100923';
+function parse_tbyt_passive_behavior_without_photodiode(filePath)
+% e.g., filePath = '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA006/DA006_083023';
 
 %% locate the nidq folder
 filePath_nidq = GrabFiles_sort_trials('_g', 0, {filePath});
@@ -22,7 +22,7 @@ filePath_nidq = filePath_nidq{1}; % just take the path
 
 %% Load evtInS or create one
 evtInS = timestamp_behav_events(filePath_nidq, false, 'cmosExp', 'lick', 'faceCam', 'water', 'airpuff', 'photoDiode'); % behavioral events
-%
+
 %% Load stimopts
 filePath_stim = GrabFiles_sort_trials('_stimInfo', 0, {filePath});
 if isempty(filePath_stim)
@@ -37,10 +37,9 @@ load(fullfile(filePath_stim), 'stimopts')
 
 %% Identify and sort events
 evtInS.water(:, 2) = nan(length(evtInS.water(:, 1)), 1);
-evtsNoSort = [evtInS.photoDiode; evtInS.water];   % there are two visual stimuli and water reward (3 types of events)
-evts = sortrows(evtsNoSort, 1);
-evts(:, 3) = stimopts.stim_type;
-assert(size(evts, 1)==numel(stimopts.stim_type), 'The number of recorded events and the number of events executed do not match!'); %
+evts = evtInS.water;
+evts(:, 3) = 3;
+assert(size(evts, 1)==sum(stimopts.stim_type==3), 'The number of recorded events and the number of events executed do not match!'); %
 
 % sanity check (match water events before and after sorting)
 assert(isequal(evts(evts(:, 3)==3, 1), evtInS.water(:, 1)), 'There is something wrong with event identification and sorting!')
@@ -98,33 +97,7 @@ for tt = 1:length(tbytDat)
         % airpuff
         %tbytDat(tt).airpuff = detectAirpuff(tbytDat(tt).evtOn-1, tbytDat(tt).evtOff); % airpuff
 
-        % visual stimuli trial
-    elseif tbytDat(tt).evtType == 1 || tbytDat(tt).evtType == 2 % for visual stims
-        % cmos pulses
-        tempCmosI = detectCmosPulses(tbytDat(tt).evtOn-1, tbytDat(tt).evtOff+1); % cmos pulses
-        if sum(tempCmosI)>0
-            tbytDat(tt).cmosExp = evtInS.cmosExp(tempCmosI, 1); % cmos pulses train Id
-            tempCmosTrainI = unique(evtInS.cmosExp(tempCmosI, 2));
-            tbytDat(tt).cmosExpTrainI = tempCmosTrainI;
-            tempCmosTrainPulses = evtInS.cmosExp(evtInS.cmosExp(:, 2)==tempCmosTrainI, 1);
-            tempFirstPulseInTrain = find(ismember(tempCmosTrainPulses, tbytDat(tt).cmosExp), 1, 'first');
-            tbytDat(tt).cmosExpPulsesOfTrain = {tempFirstPulseInTrain, tempFirstPulseInTrain+numel(tbytDat(tt).cmosExp)-1};
-            if length(tbytDat(tt).cmosExp) < 4*30 % 4s, 30Hz
-                tbytDat(tt).cmosExp = []; % omit insufficient number of frames
-                tbytDat(tt).cmosExpTrainI = [];
-                tbytDat(tt).cmosExpPulsesOfTrain = [];
-            end
-
-        end
-
-        % licks
-        tbytDat(tt).licks = detectLicks(tbytDat(tt).evtOn-1, tbytDat(tt).evtOff+1);
-        % faceCam
-        tbytDat(tt).faceCam = detectFaceCamPulses(tbytDat(tt).evtOn-1, tbytDat(tt).evtOff+1); % faceCam
-        % water
-        tbytDat(tt).water = detectWater(tbytDat(tt).evtOn-1, tbytDat(tt).evtOff+1); % water
-        % airpuff
-        %tbytDat(tt).airpuff = detectAirpuff(tbytDat(tt).evtOn-1, tbytDat(tt).evtOff+1); % airpuff
+        % visual stimuli trial - note that this session has an issue with photodiode. 
     end
 end
 

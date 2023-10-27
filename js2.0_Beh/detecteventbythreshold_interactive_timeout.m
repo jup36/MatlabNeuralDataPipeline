@@ -1,12 +1,19 @@
-function [corrRiseTS, corrFallTS, pulseTrainIdx] = detecteventbythreshold_interactive(filePath, timeseries, sampFreq, detectTimeout, saveName, varargin)
+function [corrRiseTS, corrFallTS, pulseTrainIdx] = detecteventbythreshold_interactive_timeout(filePath, timeseries, sampFreq, detectTimeout, saveName, varargin)
 %This function detects event markers, and output rise and fall time points relative to threshold.
 % timeseries: raw data from which events will be detected
 % sampFreq: sampling rate (Hz)
 % detectTimeout: detection timeout (ms)
 close all;
 
-p = parse_input_detectevent( filePath, timeseries, sampFreq, detectTimeout, saveName, varargin ); % parse input
+p = parse_input_detectevent_interactive_timeout( filePath, timeseries, sampFreq, detectTimeout, saveName, varargin ); % parse input
 stdFactor = p.Results.stdFactor;
+earlyCutoff = p.Results.earlyCutoff; 
+lateCutoff = p.Results.lateCutoff; 
+
+% Define your default values for the GUI (uicontrol)
+defaultStdFactor = num2str(stdFactor); % as an example
+defaultEarlyCutoff = num2str(earlyCutoff); % as an example
+defaultLateCutoff = num2str(lateCutoff); % as an example
 
 userSatisfied = false;
 
@@ -46,8 +53,8 @@ while ~userSatisfied
     valFallTS = sort(flipTS(flipFallTS(diff([0,flipFallTS])>detectInterval)),'ascend');
 
     % check to exclude any early or late timepoints
-    valRiseTS = valRiseTS(valRiseTS>p.Results.detectLater*sampFreq & valRiseTS<length(timeseries)-p.Results.detectEarlier*sampFreq);
-    valFallTS = valFallTS(valFallTS>p.Results.detectLater*sampFreq & valFallTS<length(timeseries)-p.Results.detectEarlier*sampFreq);
+    valRiseTS = valRiseTS(valRiseTS>earlyCutoff & valRiseTS<lateCutoff);
+    valFallTS = valFallTS(valFallTS>earlyCutoff & valFallTS<lateCutoff);
 
     % correct for long pulses that did not go low after a high
     addRiseTS = [];
@@ -80,7 +87,7 @@ while ~userSatisfied
     end
 
     % ensure that the corrFallTS entries are larger than corrRiseTS row-by-row
-    if length(corrRiseTS) ~= length(corrFallTS)
+    if (length(corrRiseTS) ~= length(corrFallTS)) || sum(corrFallTS-corrRiseTS<0)>=1
 
         corrFallTS_srt = nan(size(corrRiseTS, 1), size(corrRiseTS, 2));
         for jj = 1:length(corrRiseTS)
@@ -90,6 +97,10 @@ while ~userSatisfied
             end
         end
         corrFallTS = corrFallTS_srt;
+        corrValI = ~isnan(corrFallTS) & ~isnan(corrRiseTS);
+
+        corrFallTS = corrFallTS(corrValI);
+        corrRiseTS = corrRiseTS(corrValI);
 
     end
 
@@ -141,7 +152,7 @@ while ~userSatisfied
         else
             plot(corrRiseTS, ones(1, length(corrRiseTS)) .* thresTS, 'ob');
         end
-        title(saveName)
+        title([saveName sprintf(' events detected with stdFactor = %.1f', stdFactor)])
         %xlim([0 round(length(timeseries) / 3)])
         hold off;
 
@@ -149,25 +160,31 @@ while ~userSatisfied
         screenWidth = screenSize(3);
         screenHeight = screenSize(4);
 
-        uf = figure('Visible', 'on', 'Position', [screenWidth / 2 - 150, screenHeight / 2 - 150, 300, 200], ...
+        uf = figure('Visible', 'on', 'Position', [screenWidth / 2 - 150, screenHeight / 2 - 150, 300, 250], ...
             'MenuBar', 'none', 'Name', 'User Input', 'NumberTitle', 'off', 'WindowStyle', 'normal');
 
         uicontrol('Style', 'text', 'String', 'Do you accept the pulse detection result?', ...
-            'Position', [15, 150, 270, 30], 'HorizontalAlignment', 'center', 'FontName', 'Arial', 'FontSize', 12);
+            'Position', [15, 190, 270, 30], 'HorizontalAlignment', 'center', 'FontName', 'Arial', 'FontSize', 12);
 
         % "Yes" button callback using a function handle
         yesCallback = @(src,event) dealWithYesButton(src);
-        uicontrol('Style', 'pushbutton', 'String', 'Yes', 'Position', [45, 110, 100, 40], 'Callback', yesCallback);
+        uicontrol('Style', 'pushbutton', 'String', 'Yes', 'Position', [45, 155, 100, 40], 'Callback', yesCallback); % Yes Button
 
         % "No" button callback
         stdFactorLabel = uicontrol('Style', 'text', 'String', 'Input the new StdFactor:', ...
-            'Position', [15, 80, 270, 20], 'HorizontalAlignment', 'center', 'FontSize', 12, 'Visible', 'off');
-        stdFactorField = uicontrol('Style', 'edit', 'Position', [100, 60, 100, 25], 'Visible', 'off');
-        submitButton = uicontrol('Style', 'pushbutton', 'String', 'Submit', 'Position', [200, 60, 80, 25], ...
-            'Callback', @(src,event) dealWithSubmitButton(src, stdFactorField), 'Visible', 'off');
+            'Position', [15, 135, 270, 20], 'HorizontalAlignment', 'center', 'FontSize', 12, 'Visible', 'off');
+        stdFactorField = uicontrol('Style', 'edit', 'String', defaultStdFactor, 'Position', [100, 110, 100, 25], 'Visible', 'off');
+        
+        timeCutoffLabel = uicontrol('Style', 'text', 'String', 'Input the early and late cutoffs:', ...
+           'Position', [15, 80, 270, 20], 'HorizontalAlignment', 'center', 'FontSize', 12, 'Visible', 'off');
+        earlyCutoffField = uicontrol('Style', 'edit', 'String', defaultEarlyCutoff, 'Position', [50, 55, 80, 25], 'Visible', 'off'); 
+        lateCutoffField = uicontrol('Style', 'edit', 'String', defaultLateCutoff, 'Position', [180, 55, 80, 25], 'Visible', 'off');
 
-        noCallback = @(src,event) dealWithNoButton(src, stdFactorLabel, stdFactorField, submitButton);
-        uicontrol('Style', 'pushbutton', 'String', 'No', 'Position', [155, 110, 100, 40], 'Callback', noCallback);
+        submitButton = uicontrol('Style', 'pushbutton', 'String', 'Submit', 'Position', [110, 30, 80, 25], ... % Submit Button
+            'Callback', @(src,event) dealWithSubmitButton(src, stdFactorField, earlyCutoffField, lateCutoffField), 'Visible', 'off');
+
+        noCallback = @(src,event) dealWithNoButton(src, stdFactorLabel, stdFactorField, submitButton, timeCutoffLabel, earlyCutoffField, lateCutoffField); 
+        uicontrol('Style', 'pushbutton', 'String', 'No', 'Position', [155, 155, 100, 40], 'Callback', noCallback); % NO Button
 
         set(uf, 'UserData', struct('buttonPressed', 'none', 'stdFactorValue', NaN));
         uiwait(uf);
@@ -180,6 +197,9 @@ while ~userSatisfied
             end
         else
             stdFactor = userData.stdFactorValue;
+            earlyCutoff = userData.earlyCutoff; 
+            lateCutoff = userData.lateCutoff; 
+
             if ishandle(uf)
                 close(uf);
             end
@@ -192,18 +212,19 @@ while ~userSatisfied
 end % end of while loop
 
 %Save the figure to the 'Figure' directory in the specified filePath
-print(f, fullfile(filePath, 'Figure', p.Results.saveName), '-dpdf', '-vector');
+%savefig(f, fullfile(filePath, 'Figure', [p.Results.saveName '.fig']));
+print(f, fullfile(filePath, 'Figure', [p.Results.saveName '.dpdf']), '-dpdf', '-vector');
 close(f)
 
 %% nested helper function
-    function p = parse_input_detectevent(filePath, timeseries, sampFreq, detectTimeout, saveName, vargs)
+    function p = parse_input_detectevent_interactive_timeout(filePath, timeseries, sampFreq, detectTimeout, saveName, vargs)
         % parse input, and extract name-value pairs
         default_stdFactor = 1;          % std factor
         default_plotRez = false;        % boolean for plotting
         default_chunkPulses = true;     % boolean for pulse chunking to get trial-by-trial pulses
         default_chunkInterval = 1000;   % interval by which chunking pulses (in ms)
-        default_detectLater = 1;        % detect events later than a certain timepoint to prevent detection of premature events
-        default_detectEarlier = length(timeseries); % detect events earlier than a certain timepoint to preclude late events
+        default_earlyCutoff = 1;        % Note that it's data index (points) not time in seconds
+        default_lateCutoff = length(timeseries); % Note that it's data index (points) not time in seconds
         default_correctLongPulse = false; % correct for the possible long pulses, especially in the trEnd
         default_manualthresTS = [];     % manual threshold
         default_cutoffShort = false;
@@ -225,8 +246,8 @@ close(f)
         addParameter(p,'plotRez', default_plotRez)
         addParameter(p,'chunkPulses', default_chunkPulses)
         addParameter(p,'chunkInterval', default_chunkInterval)
-        addParameter(p,'detectLater', default_detectLater)
-        addParameter(p,'detectEarlier', default_detectEarlier)
+        addParameter(p,'earlyCutoff', default_earlyCutoff) % Note that it's data index (points) not time in seconds
+        addParameter(p,'lateCutoff', default_lateCutoff) % Note that it's data index (points) not time in seconds
         addParameter(p,'correctLongPulse', default_correctLongPulse)
         addParameter(p,'manualthresTS', default_manualthresTS)
         addParameter(p,'cutoffShort', default_cutoffShort)
@@ -247,19 +268,27 @@ close(f)
         uiresume(src.Parent);
     end
 
-    function dealWithNoButton(src, stdFactorLabel, stdFactorField, submitButton)
+    function dealWithNoButton(src, stdFactorLabel, stdFactorField, submitButton, timeCutoffLabel, earlyCutoffField, lateCutoffField)
         set(stdFactorLabel, 'Visible', 'on');
         set(stdFactorField, 'Visible', 'on');
         set(submitButton, 'Visible', 'on');
+        set(timeCutoffLabel, 'Visible', 'on');
+        set(earlyCutoffField, 'Visible', 'on');
+        set(lateCutoffField, 'Visible', 'on');
     end
 
-    function dealWithSubmitButton(src, stdFactorField)
+    function dealWithSubmitButton(src, stdFactorField, earlyCutoffField, lateCutoffField)
         userData = get(src.Parent, 'UserData');
         userData.buttonPressed = 'submit';
         userData.stdFactorValue = str2double(get(stdFactorField, 'String'));
+        userData.earlyCutoff = str2double(get(earlyCutoffField, 'String')); 
+        userData.lateCutoff = str2double(get(lateCutoffField, 'String'));  
         set(src.Parent, 'UserData', userData);
         uiresume(src.Parent);
     end
+
+   
+
 
 end
 
