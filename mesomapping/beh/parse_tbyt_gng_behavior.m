@@ -1,10 +1,10 @@
-function parse_tbyt_behavior(filePath)
-% e.g., filePath = '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA001/DA001_072623';
+function parse_tbyt_gng_behavior(filePath)
+% filePath = '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA003/DA003_101523';
 
 %% locate the nidq folder
 filePath_nidq = GrabFiles_sort_trials('_g', 0, {filePath});
 if isempty(filePath_nidq)
-    filePath_nidq = uigetdir(filePath, 'Select a folder');
+    filePath_nidq = uigetdir(filePath, 'Select the nidq folder');
 end
 
 if length(filePath_nidq) > 1
@@ -12,22 +12,23 @@ if length(filePath_nidq) > 1
 end
 filePath_nidq = filePath_nidq{1}; % just take the path
 
-%% Load bin file
-binFile = dir(fullfile(filePath_nidq, '*.nidq.bin')); % look for nidq.bin file
-binFileI = cell2mat(cellfun(@(a) isletter(a(1)), {binFile.name}, 'un', 0));
-binFile = binFile(binFileI);
-if length(binFile)>1 || isempty(binFile)
-    error('File could not be found or multiple nidq.bin files exist!');
-end
-binName = binFile.name;
-
-%% Parse the corresponding metafile
-meta  = ReadMeta(binName, filePath_nidq); % get the meta data (structure)
-sample_rate=str2double(meta.niSampRate);
-nSamp = floor(SampRate(meta));          % sampling rate
-
 %% Load evtInS or create one
 evtInS = timestamp_behav_events(filePath_nidq, false, 'cmosExp', 'lick', 'faceCam', 'water', 'airpuff', 'photoDiode'); % behavioral events
+
+%% Load stimopts
+filePath_stim = GrabFiles_sort_trials('_stimInfo', 0, {filePath});
+if isempty(filePath_stim)
+    filePath_stim = uigetdir(filePath, 'Select the stimInfo file!');
+end
+
+if length(filePath_stim) > 1
+    warning("More than 1 stimInfo files found! Will run with the first one!")
+end
+filePath_stim = filePath_stim{1}; % just take the path
+load(fullfile(filePath_stim), 'stimopts')
+
+%% Identify and sort events
+assert(size(evtInS.photoDiode, 1)==length(stimopts.stim_type), 'The number of recorded events and the number of events executed do not match!')
 
 %% tbytDat
 numbTr = size(evtInS.photoDiode, 1);
@@ -39,8 +40,8 @@ stimOnC = num2cell(evtInS.photoDiode(:, 1));
 stimOffC = num2cell(evtInS.photoDiode(:, 2));
 [tbytDat(1:numbTr).stimOff] = deal(stimOffC{:});
 
-% trial-by-trial peri-stim Lick (pre-cue: [-3, cue], cue: [cue, offset], post-cue: [offset, offset+3])
-tbytLickLogic = arrayfun(@(a, b) a-3 <= evtInS.lick & evtInS.lick <= b+3, [tbytDat(:).stimOn], [tbytDat(:).stimOff], 'un', 0);
+% trial-by-trial peri-stim Lick
+tbytLickLogic = arrayfun(@(a, b) a-5 <= evtInS.lick & evtInS.lick <= b+5, [tbytDat(:).stimOn], [tbytDat(:).stimOff], 'un', 0);
 tbytLick = cellfun(@(a) evtInS.lick(a), tbytLickLogic, 'un', 0);
 [tbytDat(1:numbTr).Lick] = deal(tbytLick{:});
 
