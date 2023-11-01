@@ -9,7 +9,7 @@
 cd(filePath)
 spkDir = dir('binSpkCountSTRCTX*');
 load(fullfile(spkDir(1).folder, spkDir(1).name),'spkTimesCell','jkvt')
-load(fullfile('/Volumes/8TB/Junchol_Data/JS2p0/collectData','a2dColorMap.mat'),'colormap2D') % 2d colorMap for the scatter plot
+load(fullfile('/Volumes/Extreme SSD/js2p0/collectData','a2dColorMap.mat'),'colormap2D') % 2d colorMap for the scatter plot
 %S=rStartToPull;
 
 %% 1. Task parameters
@@ -104,7 +104,7 @@ for i_cell = 1:size(spkTimesCell,2)
     end
 end
 
-save(fullfile(filePath, strcat('glm_dPrime_',saveName)),'dPrmC','tV','p')
+%save(fullfile(filePath, strcat('glm_dPrime_',saveName)),'dPrmC','tV','p')
 
 %% individual unit psth aligned to a task event
 % % sort trials
