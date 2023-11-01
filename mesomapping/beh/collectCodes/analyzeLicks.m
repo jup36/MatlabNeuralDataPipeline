@@ -4,6 +4,8 @@ filePaths = {'/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA003/DA003_1
              '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA008/DA008_101723', ... % Day4 (first NoGo)
              '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA008/DA008_101823', ... % Day5
              '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA008/DA008_101923', ... % Day6
+             '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA008/DA008_102023', ... % Day6-2
+             '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA008/DA008_102323', ... % Day6-4
              };
 
 % prepare colormaps
@@ -269,16 +271,33 @@ rewarded = cell2mat(cellfun(@(a) ~isempty(a), {tbytDat.water}, 'un', 0));
 punished = cell2mat(cellfun(@(a) ~isempty(a), {tbytDat.airpuff}, 'un', 0));
 
 % compute overall hit, miss, fa, cr rates
-drez.hitRate = sum(rewarded(:) & trRwdI(:))/sum(trRwdI); % hit rate
-drez.missRate = 1-drez.hitRate; % miss rate sum(~rewarded(:) & trRwdI(:))/sum(trRwdI);
+rawHitRate = sum(rewarded(:) & trRwdI(:))/sum(trRwdI); % raw hit rate
+drez.hitRate = adjustRate(rawHitRate, sum(trRwdI));
 
-drez.FaRate = sum(punished(:) & trPnsI(:))/sum(trPnsI); % false alarm rate
-drez.CrRate = 1-drez.FaRate; % correct rejection rate sum(~punished(:) & trPnsI(:))/sum(trPnsI);
+drez.missRate = 1 - drez.hitRate; % miss rate
 
-% d' (discriminability): The metric d' is a measure of how well an
-% observer can distinguish between two different stimuli or
-% conditions (signal vs. noise).
-drez.dprime = norminv(drez.hitRate) - norminv(drez.FaRate);
+if sum(trPnsI) > 5 % If there were No-Go trials
+    rawFaRate = sum(punished(:) & trPnsI(:))/sum(trPnsI); % raw false alarm rate
+    drez.FaRate = adjustRate(rawFaRate, sum(trPnsI));
+
+    drez.CrRate = 1 - drez.FaRate; % correct rejection rate
+
+    % d' (discriminability): The metric d' is a measure of how well an
+    % observer can distinguish between two different stimuli or
+    % conditions (signal vs. noise).
+    drez.dprime = norminv(drez.hitRate) - norminv(drez.FaRate);
+end
+
+    function adjustedRate = adjustRate(rawRate, N)
+        % Adjusts hit or false alarm rate if it's 1 or 0
+        if rawRate == 1
+            adjustedRate = (N-0.5) / N;
+        elseif rawRate == 0
+            adjustedRate = 0.5 / N;
+        else
+            adjustedRate = rawRate;
+        end
+    end
 
 end
 
@@ -802,7 +821,7 @@ if isfield(sigDrez{1}, 'dprime')
 end
 
 xlim([0.9 length(sigDrez)+0.1]);
-ylim([0 1]);
+ylim([0 2.5]);
 
 set(gca, 'TickDir', 'out');
 xlabel('Blocks');

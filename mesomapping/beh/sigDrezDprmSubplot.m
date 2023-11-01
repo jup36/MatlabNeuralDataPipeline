@@ -16,7 +16,7 @@ if isfield(sigDrez{1}, 'dprime')
 end
 
 xlim([0.9 length(sigDrez)+0.1]);
-ylim([0 1]);
+ylim([0 3]);
 
 set(gca, 'TickDir', 'out');
 xlabel('Blocks');
