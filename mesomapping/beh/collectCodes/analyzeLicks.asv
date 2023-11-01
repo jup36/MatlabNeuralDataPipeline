@@ -1,8 +1,12 @@
 
 filePaths = {'/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA003/DA003_101523', ... % Day2
              '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA008/DA008_101623', ... % Day3
-             '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA008/DA008_101723', ... % Day4
-            };
+             '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA008/DA008_101723', ... % Day4 (first NoGo)
+             '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA008/DA008_101823', ... % Day5
+             '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA008/DA008_101923', ... % Day6
+             '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA008/DA008_102023', ... % Day6-2
+             '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA008/DA008_102323', ... % Day6-4
+             };
 
 % prepare colormaps
 blueShades = generateColormap([176 226 255]./255, [0 0 128]./255, 200); % for tertiles
@@ -113,7 +117,7 @@ for f = 1:length(filePaths)
 
         % latency of the first licks
         [rez.lat] = latencyOfFirstLicks(tbytDat, var.stimopts.rewarded_stim, var.stimopts.punished_stim, var.minMaxTcue);
-        hAxL = blockMeanSubPlot('First lick latency', {rez.lat.rwdFstLatBlockMean, rez.lat.pnsFstLatBlockMean}, [2, 2, 4], cool, {'Go'});
+        hAxL = blockMeanSubPlot('First lick latency', {rez.lat.rwdFstLatBlockMean}, [2, 2, 4], cool, {'Go'});
         xlabel(hAxL, 'Block');
         ylabel(hAxL, 'Latency (s)');
     end
@@ -126,6 +130,8 @@ for f = 1:length(filePaths)
     print(hfig, fullfile(filePaths{f}, 'Figure', [header, '_LickAnalysis']), '-dpdf', '-vector');
 
     save(fullfile(filePaths{f}, 'Matfiles', [header, '_LickAnalysis']), 'rez', 'var');
+
+    fprintf('Completed file #%d\n', f); 
 
 end
 
@@ -689,28 +695,28 @@ if isfield(sigDrez{1}, 'hitRate')
     hitRate = cell2mat(cellfun(@(a) a.hitRate, sigDrez, 'UniformOutput', false));
     h(end+1) = scatter(1:length(hitRate), hitRate, 100, fullColorMap(1, :), 'filled'); % Append handle
     plot(1:length(hitRate), hitRate, 'Color', fullColorMap(1, :), 'LineStyle', ':');
-    legendEntries{end+1} = 'hitRate';
+    legendEntries{end+1} = 'Hit';
 end
 
 if isfield(sigDrez{1}, 'missRate')
     missRate = cell2mat(cellfun(@(a) a.missRate, sigDrez, 'UniformOutput', false));
     h(end+1) = scatter(1:length(missRate), missRate, 100, fullColorMap(2, :), 'filled'); % Append handle
     plot(1:length(missRate), missRate, 'Color', fullColorMap(2, :), 'LineStyle', ':');
-    legendEntries{end+1} = 'missRate';
+    legendEntries{end+1} = 'Miss';
 end
 
 if isfield(sigDrez{1}, 'FaRate')
     FaRate = cell2mat(cellfun(@(a) a.FaRate, sigDrez, 'UniformOutput', false));
     h(end+1) = scatter(1:length(FaRate), FaRate, 100, fullColorMap(3, :), 'filled'); % Append handle
     plot(1:length(FaRate), FaRate, 'Color', fullColorMap(3, :), 'LineStyle', ':');
-    legendEntries{end+1} = 'FaRate';
+    legendEntries{end+1} = 'FA';
 end
 
 if isfield(sigDrez{1}, 'CrRate')
     CrRate = cell2mat(cellfun(@(a) a.CrRate, sigDrez, 'UniformOutput', false));
     h(end+1) = scatter(1:length(CrRate), CrRate, 100, fullColorMap(4, :), 'filled'); % Append handle
     plot(1:length(CrRate), CrRate, 'Color', fullColorMap(4, :), 'LineStyle', ':');
-    legendEntries{end+1} = 'CrRate';
+    legendEntries{end+1} = 'CR';
 end
 
 xlim([0.9 length(sigDrez)+0.1]);
@@ -730,19 +736,26 @@ end
 end
 
 
-function hAx = blockMeanSubPlot(plotTitle, blockMeanC, subPlotSet, fullColorMap)
+function hAx = blockMeanSubPlot(plotTitle, blockMeanC, subPlotSet, fullColorMap, groupNames)
 % blockMeanC = {lat.rwdFstLatBlockMean; lat.pnsFstLatBlockMean};
 % Use 'cool' colormap and sample it
-%fullColormap = colormap('cool');
-cmapIndices = round(linspace(1, size(fullColorMap, 1), length(blockMeanC)));
+%cmapIndices = round(linspace(1, size(fullColorMap, 1), length(blockMeanC)));
+cmapIndices = round(linspace(1, size(fullColorMap, 1), length(groupNames)));
 cmap = fullColorMap(cmapIndices, :);
 
 hAx = subplot(subPlotSet(1), subPlotSet(2), subPlotSet(3));
 hold on;
+scatterHandles = gobjects(length(blockMeanC), 1); % preallocate a handle array for scatter plots
+
 for i = 1:length(blockMeanC)
-    scatter(1:length(blockMeanC{i}), blockMeanC{i}, 100, cmap(i, :), 'filled')
+    scatterHandles(i) = scatter(1:length(blockMeanC{i}), blockMeanC{i}, 100, cmap(i, :), 'filled');
     plot(1:length(blockMeanC{i}), blockMeanC{i}, 'Color', cmap(i, :), 'LineStyle', ':')
 end
+
+% Add the legend using the scatter plot handles and group names
+legend(scatterHandles, groupNames, 'Location', 'best'); % 'best' will place the legend at the best location to avoid overlapping with the data.
+
+
 % Determine the full range of x-values and y-values
 allLengths = cellfun(@length, blockMeanC);
 allValues = cell2mat(blockMeanC);
@@ -766,7 +779,7 @@ xTicks = 1:length(blockMeanC{i});
 yTicks = linspace(minY - yMargin, maxY + yMargin, 6);
 yTickLabels = arrayfun(@(x) sprintf('%.1f', x), yTicks, 'UniformOutput', false);
 
-set(gca, 'TickDir', 'out', 'XTick', xTicks, 'YTick', yTicks, 'YTickLabel', yTickLabels)
+set(gca, 'TickDir', 'out', 'XTick', xTicks, 'YTick', yTicks, 'YTickLabel', yTickLabels) 
 
 hold off;
 %print(h, fullfile('/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA008/DA008_101723', 'Figure', 'firstLickLatencyTertiles'), '-dpdf', '-vector');  % '-painters' ensures the output is vector graphics
@@ -791,7 +804,7 @@ if isfield(sigDrez{1}, 'dprime')
 end
 
 xlim([0.9 length(sigDrez)+0.1]);
-ylim([0 1]);
+ylim([0 2.5]);
 
 set(gca, 'TickDir', 'out');
 xlabel('Blocks');
