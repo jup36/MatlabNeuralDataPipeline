@@ -130,6 +130,7 @@ while ~userSatisfied
 
     if p.Results.findEarlyOnset
         t1 = round(p.Results.earlyOnsetWindow * sampFreq);
+        corrRiseTS = corrRiseTS(corrRiseTS>t1); 
         earlyWin = arrayfun(@(a) timeseries(a-t1:a-1), corrRiseTS, 'un', 0);
         earlyThres = cellfun(@(a) (max(a)-min(a))/2+min(a), earlyWin, 'un', 0);
         earlyThresPt = cellfun(@(a, b) find(a>=b, 1, 'first'), earlyWin, earlyThres, 'un', 0);

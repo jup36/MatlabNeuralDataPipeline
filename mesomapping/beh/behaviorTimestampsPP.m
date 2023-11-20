@@ -97,6 +97,9 @@ else
     elseif size(unique(digit),2)==2 % most likely, p0.2 -> 2^1, others -> zero
       water = digit==2;   % p0.2 -> 2^2
       airpuff=[];
+    elseif size(unique(digit),2)==4
+      water = digit==3;   %
+      airpuff = digit==5;
     end
 
 %     figure; hold on; 

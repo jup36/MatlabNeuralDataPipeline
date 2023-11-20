@@ -130,9 +130,9 @@ end
 
 %% save evtInS
 if exist(fullfile(path_raw, "evtInS"), 'file') == 2
-    save(fullfile(path_raw, "evtInS"), 'evtInS', '-append')
+    save(fullfile(path_raw, "evtInS.mat"), 'evtInS', '-append')
 else
-    save(fullfile(path_raw, "evtInS"), "evtInS")
+    save(fullfile(path_raw, "evtInS.mat"), "evtInS")
 end
 
 fprintf('completed event detection and saved events in the nidq folder!\n');
