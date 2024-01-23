@@ -28,7 +28,7 @@ function rasterPlotCell(timeStampCells, alphaValue)
 
             % Plot a line for each time point in the current trial using the line function
             for tp = 1:length(timePoints)
-                line([timePoints(tp), timePoints(tp)], [trial + currentTrialOffset - 0.7, trial + currentTrialOffset + 0.7], 'Color', [currentColor, alphaValue], 'LineWidth', 2);
+                line([timePoints(tp), timePoints(tp)], [trial + currentTrialOffset - 1, trial + currentTrialOffset + 1], 'Color', [currentColor, alphaValue], 'LineWidth', 3);
             end
         end
         
@@ -37,7 +37,7 @@ function rasterPlotCell(timeStampCells, alphaValue)
     end
 
     % Set the y-axis to display trials from top to bottom
-    set(gca, 'YDir', 'reverse');
+    set(gca, 'YDir', 'reverse', 'TickDir', 'out');
     xlim([floor(min(cell2mat(cellfun(@(x) min(cell2mat(x(:))), timeStampCells, 'UniformOutput', false)))), ceil(max(cell2mat(cellfun(@(x) max(cell2mat(x(:))), timeStampCells, 'UniformOutput', false))))]);
     ylim([0, currentTrialOffset + 1]);
     xlabel('Time');

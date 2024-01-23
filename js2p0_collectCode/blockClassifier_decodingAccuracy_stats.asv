@@ -1,0 +1,5 @@
+% decoding accuracy r
+decoding_accuracy_resample_MOp = [0.6111, 0.5357, 0.5172, 0.5714, 0.6538, 0.6190, 0.5357].*100;
+decoding_accuracy_resample_dSTR = [0.5789, 0.6071, 0.4828, 0.5172, 0.6667, 0.5714, 0.5714].*100; 
+decoding_accuracy_resample_MOs = [0.4516, 0.6667, 0.4643, 0.4062, 0.4074, 0.4762, 0.3929].*100; 
+    
