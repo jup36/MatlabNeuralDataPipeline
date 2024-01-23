@@ -22,7 +22,7 @@ numTrials = length(dataC);
 interpolatedC = cell(numTrials, 1);
 
 for t = 1:numTrials
-    if ~isempty(dataC{t})
+    if ~isempty(dataC{t}) && length(timeC{t})==length(dataC{t})
         tmphigh = interp1(timeC{t}, dataC{t}, highResTime, 'linear', 'extrap');
         interpolatedC{t, 1} = interp1(highResTime, tmphigh, sparseTime, 'nearest');
     end

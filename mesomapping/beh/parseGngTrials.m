@@ -1,7 +1,5 @@
 function tbytDat = parseGngTrials(tbytDat)
 
-%ToDo: 
-% - A function that plots lick traces
 
 chunkCutoff = 0.4; % 0.4 s licks that occur within this cutoff from one another are chunked together
 for jj = 1:length(tbytDat)
@@ -24,6 +22,11 @@ for jj = 1:length(tbytDat)
             hitChunkLicks = tbytDat(jj).LickChunk{hitChunkI};
             tbytDat(jj).hitLicks = hitChunkLicks(hitChunkLicks<=tbytDat(jj).water(1)) - refTime;
 
+            % find licks after the stim offset 
+            lickAfterStimOffI = cell2mat(cellfun(@(a) sum(a>=tbytDat(jj).stimOff)==length(a), tbytDat(jj).LickChunk, 'UniformOutput', false)); 
+            tbytDat(jj).postStimChunk = cellfun(@(a) a-refTime, tbytDat(jj).LickChunk(lickAfterStimOffI), 'UniformOutput', false);
+
+            % Consumptive licks 
             if sum(tbytDat(jj).Lick > tbytDat(jj).water(1))>0
                 % find the first lick after water delivery
                 lickAfterWater = tbytDat(jj).Lick(find(tbytDat(jj).Lick > tbytDat(jj).water(1), 1, 'first'));
