@@ -37,13 +37,25 @@ cellfun(@sum, laserPullIC)
 
 assert(size(X.concat, 1)==size(Y.concat, 1)); % they must have the same number of data points
 
-[B, B_, V] = ReducedRankRegress(Y.concat, X.concat, 5, 'RIDGEINIT', true, 'SCALE', true); 
-Yhat = [ones(size(X.concat,1),1) X.concat]*B; 
+% run RRR
+params.dims = [1:20, size(Y.concat, 2)]; % test dimensions (end: full)
+[B, B_, V] = ReducedRankRegress(Y.concat, X.concat, params.dims, 'RIDGEINIT', true, 'SCALE', true); 
+% Note: B = Bfull*V(:, 1:dim(1))*V(:, 1:dim(1))'; B_ = Bfull*V, where V = pca(Yhat). 
 
-% reshape Yhat
-YhatC = reshapeYhatToUnitTimeBCell(Yhat, Y.numbUnit, Y.numbTime, Y.numbTrial); 
+B_rs = reshape(B, size(B, 1), Y.numbUnit, length(params.dims)); % Stack weight matrices
 
+% get Yhat
+yhatC = getYhatStackedB(X.concat, B_rs); % yhat for reduced rank 
 
+% calculate R2
+r2C = cellfun(@(a) calculateR2(Y.concat, a), yhatC, 'UniformOutput', false); 
+figure; plot(cell2mat(squeeze(r2C))) % plot r2 versus # of dimensions
+
+% reshape yhatC back to neuron by timebin dims
+yhatC_rs = cellfun(@(a) reshapeYhatToUnitTimeBCell(a, Y.numbUnit, Y.numbTime, Y.numbTrial), yhatC, 'UniformOutput', false); 
+
+% reshape Y and convert to a cell
+YC = reshapeYhatToUnitTimeBCell(Y.concat, Y.numbUnit, Y.numbTime, Y.numbTrial); 
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -72,5 +84,51 @@ ts_rsArray = permute(rsArray, [2, 1, 3]);
 unitTimeBCell = mat2cell(ts_rsArray, numbUnit, numbTime, ones(1, numbTrial)); 
 
 end
+
+function R2 = calculateR2(Y, Y_hat)
+    % Y is the matrix of actual values
+    % Y_hat is the matrix of predicted values
+
+    % Ensure Y and Y_hat are the same size
+    if size(Y) ~= size(Y_hat)
+        error('Y and Y_hat must be the same size');
+    end
+
+    % Calculate the total sum of squares (SST)
+    SST = sum((Y - mean(Y, 'all')).^2, 'all');
+
+    % Calculate the residual sum of squares (SSR)
+    SSR = sum((Y - Y_hat).^2, 'all');
+
+    % Calculate R^2
+    R2 = 1 - (SSR / SST);
+end
+
+function YhatC = getYhatStackedB(X, stackedB)
+%this function computes Yhat by multiplying X with weight matrices stacked
+% over along the 3rd dimension. The stacked B is assumed to have
+% dimensions: # of source units by # of target units by # of stacked weight
+% matrices
+
+% YhatM
+YhatC = cell(1, 1, size(stackedB, 3)); 
+
+% get intercept
+if size(stackedB, 1)-size(X, 2)==0
+    intercept = []; 
+elseif size(stackedB, 1)-size(X, 2)==1
+    intercept = ones(size(X, 1), 1); 
+else
+    error("Input matrix dimensions do not make sense!")
+end
+    
+
+for jj = 1:size(stackedB, 3)
+    yhat = [intercept X]*stackedB(:, :, jj); 
+    YhatC{1, 1, jj} = yhat; 
+end
+
+end 
+
 
 
