@@ -35,6 +35,21 @@ cellfun(@sum, laserPullIC)
 [X.concat, X.numbUnit, X.numbTime, X.numbTrial] = concatUnitTimeBCell({ss(valNoStimTrId).unitTimeBCtx}); 
 [Y.concat, Y.numbUnit, Y.numbTime, Y.numbTrial] = concatUnitTimeBCell({ss(valNoStimTrId).unitTimeBStr}); 
 
+Xc = {ss(valNoStimTrId).unitTimeBCtx}; 
+Yc = {ss(valNoStimTrId).unitTimeBCtx}; 
+% run cross-validated (trial-shuffled) rrr with 10 dimensions and 10 folds 
+rrrCv = reducedRankRegressCrossVal(Xc, Yc, 10, 10, true); 
+
+
+
+
+
+
+
+
+[X.concat_stim, X.numbUnit_stim, X.numbTime_stim, X.numbTrial_stim] = concatUnitTimeBCell({ss(valStimTrId).unitTimeBCtx}); 
+[Y.concat_stim, Y.numbUnit_stim, Y.numbTime_stim, Y.numbTrial_stim] = concatUnitTimeBCell({ss(valStimTrId).unitTimeBStr}); 
+
 assert(size(X.concat, 1)==size(Y.concat, 1)); % they must have the same number of data points
 
 % run RRR
@@ -46,16 +61,25 @@ B_rs = reshape(B, size(B, 1), Y.numbUnit, length(params.dims)); % Stack weight m
 
 % get Yhat
 yhatC = getYhatStackedB(X.concat, B_rs); % yhat for reduced rank 
+yhatC_stim = getYhatStackedB(X.concat_stim, B_rs); % yhat for reduced rank in stim trials
+
 
 % calculate R2
 r2C = cellfun(@(a) calculateR2(Y.concat, a), yhatC, 'UniformOutput', false); 
 figure; plot(cell2mat(squeeze(r2C))) % plot r2 versus # of dimensions
+
+r2C_stim = cellfun(@(a) calculateR2(Y.concat_stim, a), yhatC_stim, 'UniformOutput', false); 
+figure; plot(cell2mat(squeeze(r2C_stim))) % plot r2 versus # of dimensions
 
 % reshape yhatC back to neuron by timebin dims
 yhatC_rs = cellfun(@(a) reshapeYhatToUnitTimeBCell(a, Y.numbUnit, Y.numbTime, Y.numbTrial), yhatC, 'UniformOutput', false); 
 
 % reshape Y and convert to a cell
 YC = reshapeYhatToUnitTimeBCell(Y.concat, Y.numbUnit, Y.numbTime, Y.numbTrial); 
+
+% calculate R2 trial by trial
+tbytR2 = cell2mat(cellfun(@(a, b) calculateR2(a, b),  YC, yhatC_rs{10}, 'UniformOutput', false)); 
+
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
