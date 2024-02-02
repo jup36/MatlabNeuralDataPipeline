@@ -41,7 +41,7 @@ nSamp = floor(SampRate(meta));          % sampling rate (default: 25kHz)
 output = struct;
 
 %% Main (load raw traces and perform event detection)
-if exist(fullfile(path_raw,'gainCorrectRawTraces.mat'), 'file')~=2
+if exist(fullfile(path_raw,'gainCorrectRawTraces.mat'), 'file')~=2 || redetect_logic
     p = parse_input_PP(path_raw, {});
     behaviorTimestampsPP(p);
 end

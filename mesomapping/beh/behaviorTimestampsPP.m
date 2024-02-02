@@ -91,12 +91,22 @@ else
     %digitBin = dec2bin(digit);
     %water = str2num(digitBin(:, 1)); %'str2double' doesn't work here! 
     %airpuff = str2num(digitBin(:, 2)); 
-    if size(unique(digit),2)==3 % p0.1 -> 2^1, p0.2 -> 2^2, others -> zero
-      water = digit==2;   % p0.2 -> 2^2
-      airpuff = digit==4; % p0.1 -> 2^1
-    elseif size(unique(digit),2)==2 % most likely, p0.2 -> 2^1, others -> zero
-      water = digit==2;   % p0.2 -> 2^2
+    
+    % note that the water strobe is connected to p0.2, and the airpuff
+    % strobe is connected to p0.1. As the airpuff channel comes first
+    % ordinally, it's counterintuitive that water is assigned to be '2' and
+    % the airpuff is assigned to be '4'. (That said, it happens to be the case.)  
+    digit_norm = digit - mode(digit); 
+    digit_norm(digit_norm<0)=0; % replace negative values, a rare artifact, with 0. 
+    
+    if size(unique(digit_norm),2)==3 % p0.1 -> 2^1, p0.2 -> 2^2, others -> zero
+      water = digit_norm==2;   % p0.2 -> 2^2
+      airpuff = digit_norm==4; % p0.1 -> 2^1
+    elseif size(unique(digit_norm),2)==2 % most likely, p0.2 -> 2^1, others -> zero
+      water = digit_norm==2;   % p0.2 -> 2^2
       airpuff=[];
+    else
+      error("Digit channels have an unknown input(s) or artifact(s)!"); 
     end
 
 %     figure; hold on; 

@@ -1,4 +1,4 @@
-function js2p0_tbytSpkHandJsPreprocess_50ms_for_py(filePath)
+function js2p0_tbytSpkHandJsPreprocess_50ms_stimPstim(filePath)
 %This is a preprocessing function to first demarcate trials into blocks of
 % different joystick load & position combinations using the function 'jkvtBlockParse'.
 % Then it gets trial-by-trial binned (e.g. 20-ms bin) spike count matrices aligned to
@@ -121,6 +121,14 @@ for t = 1:size(jkvt,2)
     end
 
     % get unitTimeBin aligned to stimOn (jkvt(t).stimLaserOn) or pseudoStimOn (jkvt(t).pLaserOn)
+    if ~isfield(jkvt, 'pLaserOn')
+        stimI = ~isnan([jkvt.stimLaserOn]);
+        stimOnRelToTrStart = nanmean(cell2mat(cellfun(@(a, b) a-b, {jkvt.trStart}, {jkvt.stimLaserOn}, 'UniformOutput', false))); 
+        for jj = find(~stimI)
+            jkvt(jj).pLaserOn = jkvt(jj).trStart-stimOnRelToTrStart; 
+        end
+    end
+    
     if ~isnan(jkvt(t).stimLaserOn) % stim trial
         % select trials that had laser on for at least 2 sec
         if jkvt(t).stimLaserOff - jkvt(t).stimLaserOn > 2000
@@ -243,7 +251,6 @@ end
 [ss(:).blType] = deal(jkvt(:).blType);
 [ss(:).blShiftLogic] = deal(jkvt(:).blShiftLogic);
 
-
 % variables to be saved to build trial-type classifiers
 ss_trialType = {ss.trialType};
 ss_blNumber = {ss.blNumber};
@@ -278,7 +285,7 @@ if isfield(ss, 'blNumber')
     save(fullfile(filePath, strcat('blockNums', '_', saveName)), 'ss_blNumbs')
 end
 
-save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_50ms_',saveName)),'ss','jkvt','trI','spkTimesCell*','depth*')
+save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_50ms_stimPstim_',saveName)),'ss','jkvt','trI','spkTimesCell*','depth*')
 
 % save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'depthCtx','depthStr','-append')
 % save(fullfile('/Users/parkj/Dropbox (HHMI)/j2p0_dataShare/js2p0_tbytSpkHandJsTrjBin_WR40_081919.mat'),'depthCtx','depthStr','-append')
