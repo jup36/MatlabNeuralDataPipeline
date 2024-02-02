@@ -6,6 +6,10 @@ function [rrrCv, rrrRezR2] = stimEffect_neuralTrj_cv_stim_pstim(filePath, dims, 
 % trials. The results of rrr and testing (r2) are saved and/or returned as
 % an output of this function.
 
+saveNameIdx = strfind(filePath, 'WR');
+saveName = filePath(saveNameIdx(1):saveNameIdx(1)+10);
+saveDir = fileparts(filePath);
+
 %filePath = '/Volumes/Extreme SSD/js2p0/WR40_081919/Matfiles/js2p0_tbytSpkHandJsTrjBin_50ms_WR40_081919.mat';
 load(fullfile(filePath), 'ss')
 
@@ -14,50 +18,51 @@ load(fullfile(filePath), 'ss')
 valRchTrI = cellfun(@(a) ~isempty(a), {ss.spkRchIdx});
 valPullTrI = cellfun(@(a) ~isempty(a), {ss.spkPullIdx});
 
+excludeNaNsInBothPops = @(a, b) sum(sum(isnan(full(a)), 2))==0 & sum(sum(isnan(full(b)), 2))==0; 
+
+
 % stim trials
-stimTrI = cellfun(@(a) ~isempty(a), {ss.utbCtxStimAlign});
-%valStimTrI = stimTrI & valRchTrI & valPullTrI;
-valStimTrId = find(stimTrI);
+stimTrI =  cellfun(@(a) ~isempty(a), {ss.utbCtxStimAlign}) & ...
+    cellfun(@(a, b) excludeNaNsInBothPops(a, b), {ss.utbCtxStimAlign}, {ss.utbStrStimAlign});
 
 % pStim trials (pseudoStim trials taken before reach onset)
-pStimTrI = cellfun(@(a) ~isempty(a), {ss.utbCtxPstimAlign});
-valPstimTrId = find(pStimTrI);
+pStimTrI = cellfun(@(a) ~isempty(a), {ss.utbCtxPstimAlign}) & ...
+    cellfun(@(a, b) excludeNaNsInBothPops(a, b), {ss.utbCtxPstimAlign}, {ss.utbStrPstimAlign});
 
 % noStim trials (with reach and pull)
-noStimTrI = cellfun(@(a) isempty(a), {ss.spkTimeBlaserI});
+noStimTrI = cellfun(@(a) isempty(a), {ss.spkTimeBlaserI}) & ...
+    cellfun(@(a, b)  excludeNaNsInBothPops(a, b), {ss.unitTimeBCtx}, {ss.unitTimeBStr});
+
 valNoStimTrI = noStimTrI & valRchTrI & valPullTrI;
 valNoStimTrId = find(valNoStimTrI);
-
-stbLaserIC = {ss(valStimTrI).spkTimeBlaserI}; % spikeTimeBin laser index
-stbRchIC = {ss(valStimTrI).spkRchIdx}; % spikeTimeBin reach index
-stbPullIC = {ss(valStimTrI).spkPullIdx}; % spikeTimeBin pull index
-
-% check overlap between stim and reach and pull
-%laserRchIC = cellfun(@(a, b) a & b, stbLaserIC, stbRchIC, 'UniformOutput', false);
-%cellfun(@sum, laserRchIC)
-
-%laserPullIC = cellfun(@(a, b) a & b, stbLaserIC, stbPullIC, 'UniformOutput', false);
-%cellfun(@sum, laserPullIC)
 
 %% RRR with trials without silencing
 % build X (n x p matrix containing the residual activity of the source)
 % population: M1) and Y (n x q matrix containing the residual activity of the target population: STR) matrices.
-[X.concat, X.numbUnit, X.numbTime, X.numbTrial] = concatUnitTimeBCell({ss(valNoStimTrId).unitTimeBCtx});
-[Y.concat, Y.numbUnit, Y.numbTime, Y.numbTrial] = concatUnitTimeBCell({ss(valNoStimTrId).unitTimeBStr});
+%[X.concat, X.numbUnit, X.numbTime, X.numbTrial] = concatUnitTimeBCell({ss(valNoStimTrId).unitTimeBCtx});
+%[Y.concat, Y.numbUnit, Y.numbTime, Y.numbTrial] = concatUnitTimeBCell({ss(valNoStimTrId).unitTimeBStr});
 
+% X and Y no stim trials aligned to reach start
 Xc = {ss(valNoStimTrId).unitTimeBCtx};
 Yc = {ss(valNoStimTrId).unitTimeBStr};
 
+% X and Y stim trials aligned to laser onset
 Xc_stim = {ss(stimTrI).utbCtxStimAlign};
 Yc_stim = {ss(stimTrI).utbStrStimAlign};
 
+% X and Y psuedo-stim trials aligned to pseudo-laser onset
 Xc_pStim = {ss(pStimTrI).utbCtxPstimAlign};
 Yc_pStim = {ss(pStimTrI).utbStrPstimAlign};
 
-% run cross-validated (trial-shuffled) rrr with 10 dimensions and 10 folds
-rrrCv = reducedRankRegressCrossVal(Xc, Yc, dims, folds, true);
+rrrRez_dir = dir(fullfile(saveDir, ['rrrRezCV_stimPstim_' saveName, sprintf('_Dims%d', dims), sprintf('_Folds%d', folds), '.mat'])); 
+if ~isempty(rrrRez_dir)
+    load(fullfile(rrrRez_dir.folder, rrrRez_dir.name), 'rrrCv')
+else
+    % run cross-validated (trial-shuffled) rrr on reach-aligned data with input-specified dims and folds
+    rrrCv = reducedRankRegressCrossVal(Xc, Yc, dims, folds, true);
+end
 
-% Test the RRR model on stim trial data
+% Test the RRR model on stim and pseudoStim aligned data
 for f = 1:size(rrrCv, 2)
     % stim trial test set (cortex silencing trials)
     [rrrCv(f).Xcc_stim, ~, rrrCv(f).numbTimeStim, rrrCv(f).numbTrial_stim] = concatUnitTimeBCell(Xc_stim);
@@ -81,22 +86,27 @@ for f = 1:size(rrrCv, 2)
     % calculate R2 trial by trial
     rrrCv(f).r2_stim_tbyt = cell2mat(cellfun(@(a, b) calculateR2(a, b), Yc_stim, rrrCv(f).YhatC_stim', 'UniformOutput', false));
     rrrCv(f).r2_pStim_tbyt = cell2mat(cellfun(@(a, b) calculateR2(a, b), Yc_pStim, rrrCv(f).YhatC_pStim', 'UniformOutput', false));
-
 end
 
-rrrRezR2.mR2_tbyt = mean(cell2mat(cellfun(@mean, {rrrCv.r2_tbyt}, 'UniformOutput', false)));
-rrrRezR2.mR2_tbytStim = mean(cell2mat(cellfun(@mean, {rrrCv.r2_stim_tbyt}, 'UniformOutput', false)));
+% organize R2 results 
+rrrRezR2.mR2_tbyt = nanmean(cell2mat(cellfun(@nanmean, {rrrCv.r2_tbyt}, 'UniformOutput', false)));
+rrrRezR2.mR2_tbytStim = nanmean(cell2mat(cellfun(@nanmean, {rrrCv.r2_stim_tbyt}, 'UniformOutput', false)));
+rrrRezR2.mR2_tbytPstim = nanmean(cell2mat(cellfun(@nanmean, {rrrCv.r2_pStim_tbyt}, 'UniformOutput', false)));
 
-rrrRezR2.mR2 = mean([rrrCv.r2]);
-rrrRezR2.mR2_stim = mean([rrrCv.r2_stim]);
+rrrRezR2.mR2 = nanmean([rrrCv.r2]);
+rrrRezR2.mR2_stim = nanmean([rrrCv.r2_stim]);
+rrrRezR2.mR2_pStim = nanmean([rrrCv.r2_pStim]);
+
+rrrRezR2.medR2_tbyt = nanmedian(cell2mat(cellfun(@nanmean, {rrrCv.r2_tbyt}, 'UniformOutput', false)));
+rrrRezR2.medR2_tbytStim = nanmedian(cell2mat(cellfun(@nanmean, {rrrCv.r2_stim_tbyt}, 'UniformOutput', false)));
+rrrRezR2.medR2_tbytPstim = nanmedian(cell2mat(cellfun(@nanmean, {rrrCv.r2_pStim_tbyt}, 'UniformOutput', false)));
+
+rrrRezR2.medR2 = nanmedian([rrrCv.r2]);
+rrrRezR2.medR2_stim = nanmedian([rrrCv.r2_stim]);
+rrrRezR2.medR2_pStim = nanmedian([rrrCv.r2_pStim]);
 
 %% save results
-saveNameIdx = strfind(filePath, 'WR');
-saveName = filePath(saveNameIdx(1):saveNameIdx(1)+10);
-saveDir = fileparts(filePath);
-
-save(fullfile(saveDir, ['rrrRezCV_' saveName, sprintf('_Dims%d', dims), sprintf('_Folds%d', folds)]), 'rrrCv', 'rrrRezR2')
-
+% save(fullfile(saveDir, ['rrrRezCV_stimPstim_' saveName, sprintf('_Dims%d', dims), sprintf('_Folds%d', folds)]), 'rrrCv', 'rrrRezR2')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

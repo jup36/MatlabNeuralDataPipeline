@@ -21,7 +21,7 @@ filePath_nidq = filePath_nidq{1}; % just take the path
 % end
 
 %% Load evtInS or create one
-evtInS = timestamp_behav_events(filePath_nidq, false, 'cmosExp', 'lick', 'faceCam', 'water', 'airpuff', 'photoDiode'); % behavioral events
+evtInS = timestamp_behav_events(filePath_nidq, true, 'cmosExp', 'lick', 'faceCam', 'water', 'airpuff', 'photoDiode'); % behavioral events
 %
 %% Load stimopts
 filePath_stim = GrabFiles_sort_trials('_stimInfo', 0, {filePath});

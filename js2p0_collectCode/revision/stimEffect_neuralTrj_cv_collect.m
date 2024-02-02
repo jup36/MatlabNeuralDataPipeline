@@ -9,7 +9,7 @@ filePaths = {
 mR2_tbyt = {}; 
 mR2_tbytStim = {}; 
 
-for f = 3:length(filePaths)
+for f = 1:length(filePaths)
     filePath = GrabFiles_sort_trials('js2p0_tbytSpkHandJsTrjBin_50ms_', 0, filePaths(f));
     [~, rrrRezR2] = stimEffect_neuralTrj_cv(filePath{1}, 20, 10); % args: dimensions and folds 
 
