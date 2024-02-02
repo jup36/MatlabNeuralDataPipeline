@@ -214,7 +214,7 @@ end % end of while loop
 
 %Save the figure to the 'Figure' directory in the specified filePath
 %savefig(f, fullfile(filePath, 'Figure', [p.Results.saveName '.fig']));
-print(f, fullfile(filePath, 'Figure', [p.Results.saveName '.dpdf']), '-dpdf', '-vector');
+print(f, fullfile(filePath, 'Figure', [p.Results.saveName '.dpdf']), '-dpdf', '-painters');
 close(f)
 
 %% nested helper function

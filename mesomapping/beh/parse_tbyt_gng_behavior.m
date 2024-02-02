@@ -1,25 +1,20 @@
-function parse_tbyt_gng_behavior(filePath, filePath_nidq)
+function parse_tbyt_gng_behavior(filePath)
 % filePath = '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA003/DA003_101523';
 
 %% locate the nidq folder
-%filePath_nidq = GrabFiles_sort_trials('_g', 0, {filePath});
+filePath_nidq = GrabFiles_sort_trials('_g', 0, {filePath});
+if isempty(filePath_nidq)
+    filePath_nidq = uigetdir(filePath, 'Select the nidq folder');
+end
 
-%if isempty(filePath_nidq)
-%    filePath_nidq = uigetdir(filePath, 'Select the nidq folder');
-%end
-
-%if length(filePath_nidq) > 1
-%    warning("More than 1 nidq folders found! Will run with the first one!")
-%end
-%filePath_nidq = filePath_nidq{1}; % just take the path
+if length(filePath_nidq) > 1
+    warning("More than 1 nidq folders found! Will run with the first one!")
+end
+filePath_nidq = filePath_nidq{1}; % just take the path
 
 %% Load evtInS or create one
-evtInS = timestamp_behav_events(filePath_nidq, true, 'cmosExp', 'lick', 'faceCam', 'water', 'airpuff', 'photoDiode'); % behavioral events
-
-if exist(fullfile(filePath, "Matfiles"), 'dir') == 0
-    mkdir(fullfile(filePath, "Matfiles"))
-end
-save(fullfile(filePath, 'Matfiles', 'evtInS.mat'), 'evtInS');
+%evtInS = timestamp_behav_events(filePath_nidq, false, 'cmosExp', 'lick', 'faceCam', 'water', 'airpuff', 'photoDiode'); % behavioral events
+evtInS = timestamp_behav_events(filePath_nidq, false, 'lick', 'faceCam', 'water', 'airpuff', 'photoDiode'); % behavioral events
 
 %% Load stimopts
 filePath_stim = GrabFiles_sort_trials('_stimInfo', 0, {filePath});
@@ -67,12 +62,12 @@ tbytAirpuff = cellfun(@(a) evtInS.airpuff(a), tbytAirpuffLogic, 'un', 0);
 [tbytDat(1:numbTr).airpuff] = deal(tbytAirpuff{:});
 
 % CMOS exposure
-cmosEvtC = organize_cmos_exposure_pulses(evtInS.cmosExp, 10);
-if numbTr == numel(cmosEvtC)
-    [tbytDat(1:numbTr).cmos] = deal(cmosEvtC{:});
-else
-    warning('The # of cmos exposure events does not match with the # of trials!')
-end
+% cmosEvtC = organize_cmos_exposure_pulses(evtInS.cmosExp, 10);
+% if numbTr == numel(cmosEvtC)
+%     [tbytDat(1:numbTr).cmos] = deal(cmosEvtC{:});
+% else
+%     warning('The # of cmos exposure events does not match with the # of trials!')
+% end
 
 % faceCam exposure
 faceCamEvtC = organize_cmos_exposure_pulses(evtInS.faceCam, 10);

@@ -45,6 +45,12 @@ valFallTS = sort(flipTS(flipFallTS(diff([0,flipFallTS])>detectInterval)),'ascend
 valRiseTS = valRiseTS(valRiseTS>p.Results.detectLater & valRiseTS<p.Results.detectEarlier);
 valFallTS = valFallTS(valFallTS>p.Results.detectLater & valFallTS<p.Results.detectEarlier);
 
+% Test discarding the last fall
+if length(valFallTS) > length(valRiseTS)
+    valFallTS = valFallTS(1:end-1);
+    warning('The last fall in spike analysis has just been removed')
+end
+        
 % correct for long pulses that did not go low after a high
 addRiseTS = [];
 addFallTS = [];
@@ -123,7 +129,7 @@ if p.Results.plotRez
     end 
     hold off
      % Save the figure to the 'Figure' directory in the specified filePath
-    print(fullfile(filePath, 'Figure', p.Results.saveName), '-dpdf', '-vector'); 
+    print(fullfile(filePath, 'Figure', p.Results.saveName), '-dpdf', '-painters'); 
 end
 
     %% nested helper function
