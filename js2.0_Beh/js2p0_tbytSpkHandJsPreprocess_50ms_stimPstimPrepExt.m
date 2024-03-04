@@ -1,4 +1,4 @@
-function js2p0_tbytSpkHandJsPreprocess_50ms_stimPstim(filePath)
+function js2p0_tbytSpkHandJsPreprocess_50ms_stimPstimPrepExt(filePath)
 %This is a preprocessing function to first demarcate trials into blocks of
 % different joystick load & position combinations using the function 'jkvtBlockParse'.
 % Then it gets trial-by-trial binned (e.g. 20-ms bin) spike count matrices aligned to
@@ -135,47 +135,47 @@ for t = 1:size(jkvt,2)
     % align to laserOn, pLaserOn, or reachPrep (2s reach preparatory period)
     if ~isnan(jkvt(t).stimLaserOn) % stim trial
         % select trials that had laser on for at least 2 sec
-        if jkvt(t).stimLaserOff - jkvt(t).stimLaserOn > 2000
+        if jkvt(t).stimLaserOff - jkvt(t).stimLaserOn > 3000
             if exist('spkTimesCellCTX')==1
-                ss(t).utbCtxStimAlign = psthBINcellPerTrial(spkTimesCellCTX, jkvt(t).stimLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbCtxStimAlign = psthBINcellPerTrial(spkTimesCellCTX, jkvt(t).stimLaserOn, binSize, [0 3000]); % binned spikeCounts aligned to this trial
             end
             if exist('spkTimesCellSTR')==1
-                ss(t).utbStrStimAlign = psthBINcellPerTrial(spkTimesCellSTR, jkvt(t).stimLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbStrStimAlign = psthBINcellPerTrial(spkTimesCellSTR, jkvt(t).stimLaserOn, binSize, [0 3000]); % binned spikeCounts aligned to this trial
             end
             if exist('spkTimesCellCg')==1
-                ss(t).utbCgStimAlign = psthBINcellPerTrial(spkTimesCellCg, jkvt(t).stimLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbCgStimAlign = psthBINcellPerTrial(spkTimesCellCg, jkvt(t).stimLaserOn, binSize, [0 3000]); % binned spikeCounts aligned to this trial
             end
         end
     else % control trial
         if isempty(jkvt(t).rStartToPull)
             takePstimTrI = true;
-        elseif jkvt(t).rStartToPull-jkvt(t).pLaserOn>2000 % ensure to exclude trials where reach initiated
+        elseif jkvt(t).rStartToPull-jkvt(t).pLaserOn>3000 % ensure to exclude trials where reach initiated
             takePstimTrI = true;
         end
         takePstimTrI = takePstimTrI && ~trI.toI(t); 
 
         if takePstimTrI
             if exist('spkTimesCellCTX')==1
-                ss(t).utbCtxPstimAlign = psthBINcellPerTrial(spkTimesCellCTX, jkvt(t).pLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbCtxPstimAlign = psthBINcellPerTrial(spkTimesCellCTX, jkvt(t).pLaserOn, binSize, [0 3000]); % binned spikeCounts aligned to this trial
             end
             if exist('spkTimesCellSTR')==1
-                ss(t).utbStrPstimAlign = psthBINcellPerTrial(spkTimesCellSTR, jkvt(t).pLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbStrPstimAlign = psthBINcellPerTrial(spkTimesCellSTR, jkvt(t).pLaserOn, binSize, [0 3000]); % binned spikeCounts aligned to this trial
             end
             if exist('spkTimesCellCg')==1
-                ss(t).utbCgPstimAlign = psthBINcellPerTrial(spkTimesCellCg, jkvt(t).pLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbCgPstimAlign = psthBINcellPerTrial(spkTimesCellCg, jkvt(t).pLaserOn, binSize, [0 3000]); % binned spikeCounts aligned to this trial
             end
         end
 
         if ~isempty(jkvt(t).rStartToPull) % align to pre-reach (right before reach start)
-            prepStart = jkvt(t).rStartToPull-2000; 
+            prepStart = jkvt(t).rStartToPull-3000; 
             if exist('spkTimesCellCTX')==1
-                ss(t).utbCtxPrepAlign = psthBINcellPerTrial(spkTimesCellCTX, prepStart, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbCtxPrepAlign = psthBINcellPerTrial(spkTimesCellCTX, prepStart, binSize, [0 3000]); % binned spikeCounts aligned to this trial
             end
             if exist('spkTimesCellSTR')==1
-                ss(t).utbStrPrepAlign = psthBINcellPerTrial(spkTimesCellSTR, prepStart, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbStrPrepAlign = psthBINcellPerTrial(spkTimesCellSTR, prepStart, binSize, [0 3000]); % binned spikeCounts aligned to this trial
             end
             if exist('spkTimesCellCg')==1
-                ss(t).utbCgPrepAlign = psthBINcellPerTrial(spkTimesCellCg, prepStart, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbCgPrepAlign = psthBINcellPerTrial(spkTimesCellCg, prepStart, binSize, [0 3000]); % binned spikeCounts aligned to this trial
             end
         end
 
@@ -304,7 +304,7 @@ if isfield(ss, 'blNumber')
     save(fullfile(filePath, strcat('blockNums', '_', saveName)), 'ss_blNumbs')
 end
 
-save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_50ms_stimPstimWoTo_',saveName)),'ss','jkvt','trI','spkTimesCell*','depth*')
+save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_50ms_stimPstimPrepExtWoTo_',saveName)),'ss','jkvt','trI','spkTimesCell*','depth*')
 
 % save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'depthCtx','depthStr','-append')
 % save(fullfile('/Users/parkj/Dropbox (HHMI)/j2p0_dataShare/js2p0_tbytSpkHandJsTrjBin_WR40_081919.mat'),'depthCtx','depthStr','-append')

@@ -105,8 +105,11 @@ else
     elseif size(unique(digit_norm),2)==2 % most likely, p0.2 -> 2^1, others -> zero
       water = digit_norm==2;   % p0.2 -> 2^2
       airpuff=[];
+    elseif size(unique(digit_norm),2)==1 % most likely, no digital input used
+      water = []; 
+      airpuff = []; 
     else
-      error("Digit channels have an unknown input(s) or artifact(s)!"); 
+        error("Digit channels have an unknown input(s) or artifact(s)!"); 
     end
 
 %     figure; hold on; 
@@ -123,7 +126,7 @@ else
     faceCam     = GainCorrectNI(faceCam, 1, meta);
     photoDiode  = GainCorrectNI(photoDiode, 1, meta);
     clearvars temp*
-    save('gainCorrectRawTraces', 'meta', 'cmosExp', 'cmosTrig', 'speaker', 'lick', 'lick2', ...
+    save(fullfile(p.Results.filePath, 'gainCorrectRawTraces'), 'meta', 'cmosExp', 'cmosTrig', 'speaker', 'lick', 'lick2', ...
         'bodyCam', 'faceCam', 'photoDiode', 'digit', 'water', 'airpuff')
 end
 
