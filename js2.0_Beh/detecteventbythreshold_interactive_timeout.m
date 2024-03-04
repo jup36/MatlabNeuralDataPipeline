@@ -7,8 +7,8 @@ close all;
 
 p = parse_input_detectevent_interactive_timeout( filePath, timeseries, sampFreq, detectTimeout, saveName, varargin ); % parse input
 stdFactor = p.Results.stdFactor;
-earlyCutoff = p.Results.earlyCutoff; 
-lateCutoff = p.Results.lateCutoff; 
+earlyCutoff = p.Results.earlyCutoff;
+lateCutoff = p.Results.lateCutoff;
 
 % Define your default values for the GUI (uicontrol)
 defaultStdFactor = num2str(stdFactor); % as an example
@@ -25,6 +25,15 @@ while ~userSatisfied
         [b, a] = butter(4, p.Results.lowpassCutoff/p.Results.nyquist, 'low'); % 4th order Butterworth high-pass
         filtered_timeseries = filter(b, a, timeseries);
         timeseries = timeseries-filtered_timeseries;
+    end
+
+    if p.Results.useAudioConvolution
+        timeseries_conv = convolutionSine(timeseries, p.Results.freqForConvolution, sampFreq);
+        timeseries_before_conv = timeseries;
+        timeseries_before_conv_meanSub = timeseries_before_conv-nanmean(timeseries_before_conv); % mean subtraction
+        timeseries_before_conv_scaled = timeseries_before_conv_meanSub.*(max(timeseries_conv)/max(timeseries_before_conv_meanSub));
+
+        timeseries = timeseries_conv;
     end
 
     meanTS = mean(timeseries); % mean timeseries
@@ -145,6 +154,9 @@ while ~userSatisfied
     if p.Results.plotRez
         f = figure; hold on;
         plot(timeseries);
+        if p.Results.useAudioConvolution
+            plot(timeseries_before_conv_scaled);
+        end
         plot(corrFallTS, ones(1, length(corrFallTS)) .* thresTS, '*r');
         if p.Results.findEarlyOnset
             plot(corrRiseTS, cell2mat(earlyThres), 'og');
@@ -166,6 +178,12 @@ while ~userSatisfied
         uicontrol('Style', 'text', 'String', 'Do you accept the pulse detection result?', ...
             'Position', [15, 190, 270, 30], 'HorizontalAlignment', 'center', 'FontName', 'Arial', 'FontSize', 12);
 
+        numEvents = length(corrRiseTS); 
+
+        uicontrol('Style', 'text', 'String', sprintf('%d events were detected!', numEvents), ...
+            'Position', [15, 220, 270, 30], 'HorizontalAlignment', 'center', ...
+            'FontName', 'Arial', 'FontSize', 12); % display the number of detected events
+
         % "Yes" button callback using a function handle
         yesCallback = @(src,event) dealWithYesButton(src);
         uicontrol('Style', 'pushbutton', 'String', 'Yes', 'Position', [45, 155, 100, 40], 'Callback', yesCallback); % Yes Button
@@ -174,16 +192,16 @@ while ~userSatisfied
         stdFactorLabel = uicontrol('Style', 'text', 'String', 'Input the new StdFactor:', ...
             'Position', [15, 135, 270, 20], 'HorizontalAlignment', 'center', 'FontSize', 12, 'Visible', 'off');
         stdFactorField = uicontrol('Style', 'edit', 'String', defaultStdFactor, 'Position', [100, 110, 100, 25], 'Visible', 'off');
-        
+
         timeCutoffLabel = uicontrol('Style', 'text', 'String', 'Input the early and late cutoffs:', ...
-           'Position', [15, 80, 270, 20], 'HorizontalAlignment', 'center', 'FontSize', 12, 'Visible', 'off');
-        earlyCutoffField = uicontrol('Style', 'edit', 'String', defaultEarlyCutoff, 'Position', [50, 55, 80, 25], 'Visible', 'off'); 
+            'Position', [15, 80, 270, 20], 'HorizontalAlignment', 'center', 'FontSize', 12, 'Visible', 'off');
+        earlyCutoffField = uicontrol('Style', 'edit', 'String', defaultEarlyCutoff, 'Position', [50, 55, 80, 25], 'Visible', 'off');
         lateCutoffField = uicontrol('Style', 'edit', 'String', defaultLateCutoff, 'Position', [180, 55, 80, 25], 'Visible', 'off');
 
         submitButton = uicontrol('Style', 'pushbutton', 'String', 'Submit', 'Position', [110, 30, 80, 25], ... % Submit Button
             'Callback', @(src,event) dealWithSubmitButton(src, stdFactorField, earlyCutoffField, lateCutoffField), 'Visible', 'off');
 
-        noCallback = @(src,event) dealWithNoButton(src, stdFactorLabel, stdFactorField, submitButton, timeCutoffLabel, earlyCutoffField, lateCutoffField); 
+        noCallback = @(src,event) dealWithNoButton(src, stdFactorLabel, stdFactorField, submitButton, timeCutoffLabel, earlyCutoffField, lateCutoffField);
         uicontrol('Style', 'pushbutton', 'String', 'No', 'Position', [155, 155, 100, 40], 'Callback', noCallback); % NO Button
 
         set(uf, 'UserData', struct('buttonPressed', 'none', 'stdFactorValue', NaN));
@@ -197,8 +215,8 @@ while ~userSatisfied
             end
         else
             stdFactor = userData.stdFactorValue;
-            earlyCutoff = userData.earlyCutoff; 
-            lateCutoff = userData.lateCutoff; 
+            earlyCutoff = userData.earlyCutoff;
+            lateCutoff = userData.lateCutoff;
 
             if ishandle(uf)
                 close(uf);
@@ -235,6 +253,8 @@ close(f)
         default_lowpassCutoff = 5;      % 5Hz
         default_nyquist = 100;          % the frequency of the main signal to be detected (e.g., faceCam pulses are 200Hz)
         default_removeOffTrainPulses = false; % to remove lone artifact pulses outside of the train pulses
+        default_useAudioConvolution = false; % to use convolution to facilitate precise detection of tones
+        default_freqForConvolution = [2093, 3951]; % frequency to be used for convolution and detection (these are the low frequency components of each tone)
 
         p = inputParser; % create parser object
         addRequired(p,'filePath')
@@ -258,6 +278,8 @@ close(f)
         addParameter(p,'lowpassCutoff', default_lowpassCutoff)
         addParameter(p,'nyquist', default_nyquist)
         addParameter(p,'removeOffTrainPulses', default_removeOffTrainPulses)
+        addParameter(p,'useAudioConvolution', default_useAudioConvolution)
+        addParameter(p,'freqForConvolution', default_freqForConvolution)
 
         parse(p, filePath, timeseries, sampFreq, detectTimeout, saveName, vargs{:})
     end
@@ -281,13 +303,32 @@ close(f)
         userData = get(src.Parent, 'UserData');
         userData.buttonPressed = 'submit';
         userData.stdFactorValue = str2double(get(stdFactorField, 'String'));
-        userData.earlyCutoff = str2double(get(earlyCutoffField, 'String')); 
-        userData.lateCutoff = str2double(get(lateCutoffField, 'String'));  
+        userData.earlyCutoff = str2double(get(earlyCutoffField, 'String'));
+        userData.lateCutoff = str2double(get(lateCutoffField, 'String'));
         set(src.Parent, 'UserData', userData);
         uiresume(src.Parent);
     end
 
-   
+    function [timeseries_conv, timeseries_conv_C_meanSub] = convolutionSine(timeseries_org, freqList, sampleRate)
+        %This function conducts convolution between the original timeseries ('timeseries_org')
+        % and sine waves of frequencies specified by the 'freqList'.
+        dur = 0.01; % duration of the sine waves (10 ms). Note that one must use a small window for temporal precision, the expected temporal precision with 10-ms window is about 5 ms.
+        assert(unique(dur./(1./freqList)>1)); % ensure that the dur is longer than each frequency component's full cycle, in other words, for convolution high-enough frequencies must be used for the 10-ms window
+        t = 0:1/sampleRate:dur-1/sampleRate;
+
+        timeseries_conv_C = cell(length(freqList), 1);
+        for fq = 1:length(freqList)
+            sineW = sin(2*pi*freqList(fq)*t); % build sine wave for convolution
+            timeseries_conv_C{fq, 1} = conv(timeseries_org, sineW, 'same');
+        end
+
+        timeseries_conv_C_meanSub = cellfun(@(a) a-nanmean(a), timeseries_conv_C, 'UniformOutput', false);
+
+        timeseries_conv = sum(cell2mat(timeseries_conv_C_meanSub), 1);
+
+    end
+
+
 
 
 end

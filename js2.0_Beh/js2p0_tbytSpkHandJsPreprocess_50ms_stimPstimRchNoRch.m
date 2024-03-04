@@ -1,4 +1,4 @@
-function js2p0_tbytSpkHandJsPreprocess_50ms_stimPstim(filePath)
+function js2p0_tbytSpkHandJsPreprocess_50ms_stimPstimRchNoRch(filePath)
 %This is a preprocessing function to first demarcate trials into blocks of
 % different joystick load & position combinations using the function 'jkvtBlockParse'.
 % Then it gets trial-by-trial binned (e.g. 20-ms bin) spike count matrices aligned to
@@ -14,7 +14,7 @@ function js2p0_tbytSpkHandJsPreprocess_50ms_stimPstim(filePath)
 
 %% 1. Load data
 %clc; clearvars; close all;
-%filePath = '/Volumes/Extreme SSD/js2p0/WR40_081919/Matfiles';
+%filePath = '/Volumes/Extreme SSD/js2p0/WR40_082019/Matfiles';
 cd(filePath)
 % neural and behavioral data
 spkDir_CtxStr = dir('binSpkCountSTRCTX*');
@@ -42,6 +42,12 @@ if ~isempty(spkDir_Cg)
     spkTimesCellCg = spkTimesCell; clearvars spkTimesCell
     depthCg = cell2mat(cellfun(@(a) a(2), spkTimesCellCg(4,:),'un',0))'; % depth from pial surface
 end
+
+% estimate laser duration
+stimDur = cellfun(@(a, b) a-b, {jkvt.stimLaserOff}, {jkvt.stimLaserOn}, 'UniformOutput', false);
+rStartToPullI = cellfun(@(a) ~isempty(a), {jkvt.rStartToPull});
+stimDur(rStartToPullI) = deal({NaN});
+mStimDur = nanmean(cell2mat(stimDur));
 
 %% align hand trajectories to neural data
 vfT = {jkvt(:).vFrameTime}'; % video frame time
@@ -135,50 +141,65 @@ for t = 1:size(jkvt,2)
     % align to laserOn, pLaserOn, or reachPrep (2s reach preparatory period)
     if ~isnan(jkvt(t).stimLaserOn) % stim trial
         % select trials that had laser on for at least 2 sec
-        if jkvt(t).stimLaserOff - jkvt(t).stimLaserOn > 2000
+        if ~isempty(jkvt(t).rStartToPull) && jkvt(t).stimLaserOff - jkvt(t).stimLaserOn < mStimDur   % breakthrough trials
+            if jkvt(t).stimLaserOff - jkvt(t).stimLaserOn > 1000 % if there was at least 1-s stim duration
+                checkStimBin = @(a) a>jkvt(t).stimLaserOn-jkvt(t).trJsReady && a+binSize < jkvt(t).stimLaserOff-jkvt(t).trJsReady;
+                ss(t).utbStimBins = arrayfun(@(a) checkStimBin(a), -1000:binSize:1000-binSize);
+                if exist('spkTimesCellCTX')==1
+                    ss(t).utbCtxStimRch = psthBINcellPerTrial(spkTimesCellCTX, jkvt(t).rStartToPull, binSize, [1000 1000]); % binned spikeCounts aligned to this trial
+                end
+                if exist('spkTimesCellSTR')==1
+                    ss(t).utbStrStimRch = psthBINcellPerTrial(spkTimesCellSTR, jkvt(t).rStartToPull, binSize, [1000 1000]); % binned spikeCounts aligned to this trial
+                end
+                if exist('spkTimesCellCg')==1
+                    ss(t).utbCgStimRch = psthBINcellPerTrial(spkTimesCellCg, jkvt(t).rStartToPull, binSize, [1000 1000]); % binned spikeCounts aligned to this trial
+                end
+            end
+        elseif jkvt(t).stimLaserOff - jkvt(t).stimLaserOn > 2000
             if exist('spkTimesCellCTX')==1
-                ss(t).utbCtxStimAlign = psthBINcellPerTrial(spkTimesCellCTX, jkvt(t).stimLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbCtxStimNoRch = psthBINcellPerTrial(spkTimesCellCTX, jkvt(t).stimLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
             end
             if exist('spkTimesCellSTR')==1
-                ss(t).utbStrStimAlign = psthBINcellPerTrial(spkTimesCellSTR, jkvt(t).stimLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbStrStimNoRch = psthBINcellPerTrial(spkTimesCellSTR, jkvt(t).stimLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
             end
             if exist('spkTimesCellCg')==1
-                ss(t).utbCgStimAlign = psthBINcellPerTrial(spkTimesCellCg, jkvt(t).stimLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbCgStimNoRch = psthBINcellPerTrial(spkTimesCellCg, jkvt(t).stimLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
             end
         end
     else % control trial
         if isempty(jkvt(t).rStartToPull)
-            takePstimTrI = true;
-        elseif jkvt(t).rStartToPull-jkvt(t).pLaserOn>2000 % ensure to exclude trials where reach initiated
-            takePstimTrI = true;
-        end
-        takePstimTrI = takePstimTrI && ~trI.toI(t); 
-
-        if takePstimTrI
             if exist('spkTimesCellCTX')==1
-                ss(t).utbCtxPstimAlign = psthBINcellPerTrial(spkTimesCellCTX, jkvt(t).pLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbCtxPstimNoRch = psthBINcellPerTrial(spkTimesCellCTX, jkvt(t).pLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
             end
             if exist('spkTimesCellSTR')==1
-                ss(t).utbStrPstimAlign = psthBINcellPerTrial(spkTimesCellSTR, jkvt(t).pLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbStrPstimNoRch = psthBINcellPerTrial(spkTimesCellSTR, jkvt(t).pLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
             end
             if exist('spkTimesCellCg')==1
-                ss(t).utbCgPstimAlign = psthBINcellPerTrial(spkTimesCellCg, jkvt(t).pLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbCgPstimNoRch = psthBINcellPerTrial(spkTimesCellCg, jkvt(t).pLaserOn, binSize, [0 2000]); % binned spikeCounts aligned to this trial
             end
         end
 
         if ~isempty(jkvt(t).rStartToPull) % align to pre-reach (right before reach start)
-            prepStart = jkvt(t).rStartToPull-2000; 
+            %prepStart = jkvt(t).rStartToPull-2000;
             if exist('spkTimesCellCTX')==1
-                ss(t).utbCtxPrepAlign = psthBINcellPerTrial(spkTimesCellCTX, prepStart, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbCtxPstimRch = psthBINcellPerTrial(spkTimesCellCTX, jkvt(t).rStartToPull, binSize, [1000 1000]); % binned spikeCounts aligned to this trial
             end
             if exist('spkTimesCellSTR')==1
-                ss(t).utbStrPrepAlign = psthBINcellPerTrial(spkTimesCellSTR, prepStart, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbStrPstimRch = psthBINcellPerTrial(spkTimesCellSTR, jkvt(t).rStartToPull, binSize, [1000 1000]); % binned spikeCounts aligned to this trial
             end
             if exist('spkTimesCellCg')==1
-                ss(t).utbCgPrepAlign = psthBINcellPerTrial(spkTimesCellCg, prepStart, binSize, [0 2000]); % binned spikeCounts aligned to this trial
+                ss(t).utbCgPstimRch = psthBINcellPerTrial(spkTimesCellCg, jkvt(t).rStartToPull, binSize, [1000 1000]); % binned spikeCounts aligned to this trial
             end
         end
+    end
 
+    %% stim trial info
+    if isfield(jkvt,'stimLaserOn')
+        if ~isnan(jkvt(t).stimLaserOn) && ~isnan(jkvt(t).stimLaserOff)
+            ss(t).tLaserStart = jkvt(t).stimLaserOn;
+            ss(t).tLaserStop = jkvt(t).stimLaserOff;
+            ss(t).spkTimeBlaserI = ss(t).tLaserStart<=ss(t).spkTimeBins & ss(t).spkTimeBins<=ss(t).tLaserStop;
+        end
     end
 
     %% get interpolated/binned hand position, velocity and force measured from the joystick encoder (all traj aligned to t1n e.g., -1000ms from rStart)
@@ -252,15 +273,6 @@ for t = 1:size(jkvt,2)
             % compute the reach angle on the horizontal X-Y plane
             ss(t).rchAngDeg = computeReachAngle({ss(t).hTrjB(1:2,:)}, ss(t).jsXYbot);
         end
-
-        %% stim trial info
-        if isfield(jkvt,'stimLaserOn')
-            if ~isnan(jkvt(t).stimLaserOn) && ~isnan(jkvt(t).stimLaserOff)
-                ss(t).tLaserStart = jkvt(t).stimLaserOn;
-                ss(t).tLaserStop = jkvt(t).stimLaserOff;
-                ss(t).spkTimeBlaserI = ss(t).tLaserStart<=ss(t).spkTimeBins & ss(t).spkTimeBins<=ss(t).tLaserStop;
-            end
-        end
     end
     fprintf('processed trial %d\n', t) % report trial progression
 end
@@ -275,44 +287,17 @@ ss_trialType = {ss.trialType};
 ss_blNumber = {ss.blNumber};
 jkvt_rewarded = {jkvt.rewarded};
 
-
 saveName = filePath(end-19:end-9);
 
-% Save relevant variable for classification analysis
-if isfield(ss, 'unitTimeBCtx')
-    ss_unitTimeBCtx = {ss.unitTimeBCtx};
-    save(fullfile(filePath, strcat('unitTimeBCtx', '_', saveName)), 'ss_unitTimeBCtx')
-end
-
-if isfield(ss, 'unitTimeBStr')
-    ss_unitTimeBStr = {ss.unitTimeBStr};
-    save(fullfile(filePath, strcat('unitTimeBStr', '_', saveName)), 'ss_unitTimeBStr')
-end
-
-if isfield(ss, 'unitTimeBCg')
-    ss_unitTimeBCg = {ss.unitTimeBCg};
-    save(fullfile(filePath, strcat('unitTimeBCg', '_', saveName)), 'ss_unitTimeBCg')
-end
-
-if isfield(ss, 'trialType')
-    ss_trialType = {ss.trialType};
-    save(fullfile(filePath, strcat('trialType', '_', saveName)), 'ss_trialType')
-end
-
-if isfield(ss, 'blNumber')
-    ss_blNumbs = {ss.blNumber};
-    save(fullfile(filePath, strcat('blockNums', '_', saveName)), 'ss_blNumbs')
-end
-
-save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_50ms_stimPstimWoTo_',saveName)),'ss','jkvt','trI','spkTimesCell*','depth*')
+save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_50ms_stimPstimRchNoRch_',saveName)),'ss','jkvt','trI','spkTimesCell*','depth*')
 
 % save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'depthCtx','depthStr','-append')
 % save(fullfile('/Users/parkj/Dropbox (HHMI)/j2p0_dataShare/js2p0_tbytSpkHandJsTrjBin_WR40_081919.mat'),'depthCtx','depthStr','-append')
 %load(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'ss','jkvt','trI','spkTimesCell')
 
-%% %%%%%%%%%%%%%%%%%%%
-%%% Helper function %%
-%%%%%%%%%%%%%%%%%%%%%%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Helper function %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % parse trial/block information
     function jkvt = jkvtBlockParse(jkvt)
         tqd = diff([jkvt(1).pull_torque, jkvt(:).pull_torque]'); % torque change

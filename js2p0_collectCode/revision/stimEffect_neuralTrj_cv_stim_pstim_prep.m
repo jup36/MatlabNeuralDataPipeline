@@ -1,4 +1,4 @@
-function [rrrCv, rrrRezR2] = stimEffect_neuralTrj_cv_stim_pstim(filePath, dims, folds)
+function [rrrCv, rrrRezR2] = stimEffect_neuralTrj_cv_stim_pstim_prep(filePath, dims, folds)
 %This function is to run the reduced rank regression (RRR) with cross-validation,
 % which trains the RRR model that predicts the target (e.g., str) neural population activity
 % based on the source neural population activity (e.g., ctx) with cross validation.
@@ -24,9 +24,13 @@ excludeNaNsInBothPops = @(a, b) sum(sum(isnan(full(a)), 2))==0 & sum(sum(isnan(f
 stimTrI =  cellfun(@(a) ~isempty(a), {ss.utbCtxStimAlign}) & ...
     cellfun(@(a, b) excludeNaNsInBothPops(a, b), {ss.utbCtxStimAlign}, {ss.utbStrStimAlign});
 
-% pStim trials (pseudoStim trials taken before reach onset)
+% pStim trials (pseudoStim trials taken before reach onset aligned to the timing at which stim would've delivered)
 pStimTrI = cellfun(@(a) ~isempty(a), {ss.utbCtxPstimAlign}) & ...
     cellfun(@(a, b) excludeNaNsInBothPops(a, b), {ss.utbCtxPstimAlign}, {ss.utbStrPstimAlign});
+
+% prep trials
+prepTrI = cellfun(@(a) ~isempty(a), {ss.utbCtxPrepAlign}) & ...
+    cellfun(@(a, b) excludeNaNsInBothPops(a, b), {ss.utbCtxPrepAlign}, {ss.utbStrPrepAlign});
 
 % noStim trials (with reach and pull)
 noStimTrI = cellfun(@(a) isempty(a), {ss.spkTimeBlaserI}) & ...
@@ -53,6 +57,10 @@ Yc_stim = {ss(stimTrI).utbStrStimAlign};
 Xc_pStim = {ss(pStimTrI).utbCtxPstimAlign};
 Yc_pStim = {ss(pStimTrI).utbStrPstimAlign};
 
+% X and Y prep trials aligned to prep period (2 s period right before rStart)
+Xc_prep = {ss(prepTrI).utbCtxPrepAlign};
+Yc_prep = {ss(prepTrI).utbStrPrepAlign};
+
 rrrRez_dir = dir(fullfile(saveDir, ['rrrRezCV_stimPstim_' saveName, sprintf('_Dims%d', dims), sprintf('_Folds%d', folds), '.mat']));
 if ~isempty(rrrRez_dir)
     load(fullfile(rrrRez_dir.folder, rrrRez_dir.name), 'rrrCv')
@@ -67,9 +75,13 @@ for f = 1:size(rrrCv, 2)
     [rrrCv(f).Xcc_stim, ~, rrrCv(f).numbTimeStim, rrrCv(f).numbTrial_stim] = concatUnitTimeBCell(Xc_stim);
     rrrCv(f).Ycc_stim = concatUnitTimeBCell(Yc_stim);
 
-    % pseudo-stim trial teset set
+    % pseudo-stim trial test set
     [rrrCv(f).Xcc_pStim, ~, rrrCv(f).numbTimePstim, rrrCv(f).numbTrial_pStim] = concatUnitTimeBCell(Xc_pStim);
     rrrCv(f).Ycc_pStim = concatUnitTimeBCell(Yc_pStim);
+
+    % prep trial test set
+    [rrrCv(f).Xcc_prep, ~, rrrCv(f).numbTimePrep, rrrCv(f).numbTrial_prep] = concatUnitTimeBCell(Xc_prep);
+    rrrCv(f).Ycc_prep = concatUnitTimeBCell(Yc_prep);
 
     % get Yhat_stim (stim trials)
     rrrCv(f).Yhat_stim = cell2mat(getYhatStackedBwithInterceptUpdate(rrrCv(f).Xcc_stim, rrrCv(f).Ycc_stim, rrrCv(f).B)); % yhat for reduced rank
@@ -79,33 +91,45 @@ for f = 1:size(rrrCv, 2)
     rrrCv(f).Yhat_pStim = cell2mat(getYhatStackedBwithInterceptUpdate(rrrCv(f).Xcc_pStim, rrrCv(f).Ycc_pStim, rrrCv(f).B)); % yhat for reduced rank
     rrrCv(f).YhatC_pStim = reshapeYhatToUnitTimeBCell(rrrCv(f).Yhat_pStim, rrrCv(f).numbUnitY, rrrCv(f).numbTimePstim, rrrCv(f).numbTrial_pStim);
 
+    % get Yhat_prep (prep trialse)
+    rrrCv(f).Yhat_prep = cell2mat(getYhatStackedBwithInterceptUpdate(rrrCv(f).Xcc_prep, rrrCv(f).Ycc_prep, rrrCv(f).B)); % yhat for reduced rank
+    rrrCv(f).YhatC_prep = reshapeYhatToUnitTimeBCell(rrrCv(f).Yhat_prep, rrrCv(f).numbUnitY, rrrCv(f).numbTimePstim, rrrCv(f).numbTrial_prep);
+    
     % calculate R2
     rrrCv(f).r2_stim = calculateR2(rrrCv(f).Ycc_stim, rrrCv(f).Yhat_stim);
     rrrCv(f).r2_pStim = calculateR2(rrrCv(f).Ycc_pStim, rrrCv(f).Yhat_pStim);
+    rrrCv(f).r2_prep = calculateR2(rrrCv(f).Ycc_prep, rrrCv(f).Yhat_prep);
+
     % calculate R2 trial by trial
     rrrCv(f).r2_stim_tbyt = cell2mat(cellfun(@(a, b) calculateR2(a, b), Yc_stim, rrrCv(f).YhatC_stim', 'UniformOutput', false));
     rrrCv(f).r2_pStim_tbyt = cell2mat(cellfun(@(a, b) calculateR2(a, b), Yc_pStim, rrrCv(f).YhatC_pStim', 'UniformOutput', false));
+    rrrCv(f).r2_prep_tbyt = cell2mat(cellfun(@(a, b) calculateR2(a, b), Yc_prep, rrrCv(f).YhatC_prep', 'UniformOutput', false));
+
 end
 
 % organize R2 results
 rrrRezR2.mR2_tbyt = nanmean(cell2mat(cellfun(@nanmean, {rrrCv.r2_tbyt}, 'UniformOutput', false)));
 rrrRezR2.mR2_tbytStim = nanmean(cell2mat(cellfun(@nanmean, {rrrCv.r2_stim_tbyt}, 'UniformOutput', false)));
 rrrRezR2.mR2_tbytPstim = nanmean(cell2mat(cellfun(@nanmean, {rrrCv.r2_pStim_tbyt}, 'UniformOutput', false)));
+rrrRezR2.mR2_tbytPrep = nanmean(cell2mat(cellfun(@nanmean, {rrrCv.r2_prep_tbyt}, 'UniformOutput', false)));
 
 rrrRezR2.mR2 = nanmean([rrrCv.r2]);
 rrrRezR2.mR2_stim = nanmean([rrrCv.r2_stim]);
 rrrRezR2.mR2_pStim = nanmean([rrrCv.r2_pStim]);
+rrrRezR2.mR2_prep = nanmean([rrrCv.r2_prep]); 
 
-rrrRezR2.medR2_tbyt = nanmedian(cell2mat(cellfun(@nanmean, {rrrCv.r2_tbyt}, 'UniformOutput', false)));
-rrrRezR2.medR2_tbytStim = nanmedian(cell2mat(cellfun(@nanmean, {rrrCv.r2_stim_tbyt}, 'UniformOutput', false)));
-rrrRezR2.medR2_tbytPstim = nanmedian(cell2mat(cellfun(@nanmean, {rrrCv.r2_pStim_tbyt}, 'UniformOutput', false)));
+rrrRezR2.medR2_tbyt = nanmedian(cell2mat(cellfun(@nanmedian, {rrrCv.r2_tbyt}, 'UniformOutput', false)));
+rrrRezR2.medR2_tbytStim = nanmedian(cell2mat(cellfun(@nanmedian, {rrrCv.r2_stim_tbyt}, 'UniformOutput', false)));
+rrrRezR2.medR2_tbytPstim = nanmedian(cell2mat(cellfun(@nanmedian, {rrrCv.r2_pStim_tbyt}, 'UniformOutput', false)));
+rrrRezR2.medR2_tbytPrep = nanmedian(cell2mat(cellfun(@nanmedian, {rrrCv.r2_prep_tbyt}, 'UniformOutput', false)));
 
 rrrRezR2.medR2 = nanmedian([rrrCv.r2]);
 rrrRezR2.medR2_stim = nanmedian([rrrCv.r2_stim]);
 rrrRezR2.medR2_pStim = nanmedian([rrrCv.r2_pStim]);
+rrrRezR2.medR2_prep = nanmedian([rrrCv.r2_prep]);
 
 %% save results
-save(fullfile(saveDir, ['rrrRezCV_stimPstimPrepExtWoTo_' saveName, sprintf('_Dims%d', dims), sprintf('_Folds%d', folds)]), 'rrrCv', 'rrrRezR2')
+save(fullfile(saveDir, ['rrrRezCV_stimPstimPrep_' saveName, sprintf('_Dims%d', dims), sprintf('_Folds%d', folds)]), 'rrrCv', 'rrrRezR2')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

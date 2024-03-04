@@ -137,10 +137,6 @@ else
 
     [camTrigRiseIdx, camTrigFallIdx, camPulseTrainIdx] = detecteventbythreshold(camTrig, nSamp, 2, 'stdFactor', 1, 'plotRez',false, 'chunkPulses', true, 'chunkInterval', 2000, 'correctLongPulse', true); % camera trigger
 
-    
-
-
-
     [trStartIdx,~,~] = detecteventbythreshold(trStart, nSamp, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'correctLongPulse', true); % trial Start
     fprintf('completed trial start detection!\n');
     [trEndIdx,~,~]   = detecteventbythreshold(trEnd, nSamp, 50, 'stdFactor', 1, 'plotRez', false, 'chunkPulses', false, 'detectLater', trStartIdx(1), 'correctLongPulse', true); % trial End

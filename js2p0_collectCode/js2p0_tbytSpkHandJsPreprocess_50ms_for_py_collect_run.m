@@ -11,7 +11,7 @@ filePaths = {
 
 
 for f = 1:length(filePaths) 
-    [file, folder] = GrabFiles_sort_trials(filePaths{f}, 0, 'js2p0_tbytSpkHandJsTrjBin_50ms_'); 
+    [file, folder] = GrabFiles_sort_trials('js2p0_tbytSpkHandJsTrjBin_50ms_', 0, filePaths(f)); 
     
     
     

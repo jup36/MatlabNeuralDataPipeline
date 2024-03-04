@@ -1,6 +1,7 @@
-function scatter_row_by_row(collect_mat, ylimits)
+function fig = scatter_row_by_row(collect_mat, ylimits)
 
-figure; hold on; 
+fig = figure; 
+hold on; 
 for r = 1:size(collect_mat, 1) 
     x = rand(1, size(collect_mat, 2)).*0.1-0.05 + [1:size(collect_mat, 2)]; 
     plot(x, collect_mat(r, :), 'k:')

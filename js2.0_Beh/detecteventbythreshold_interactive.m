@@ -157,7 +157,14 @@ while ~userSatisfied
             'MenuBar', 'none', 'Name', 'User Input', 'NumberTitle', 'off', 'WindowStyle', 'normal');
 
         uicontrol('Style', 'text', 'String', 'Do you accept the pulse detection result?', ...
-            'Position', [15, 150, 270, 30], 'HorizontalAlignment', 'center', 'FontName', 'Arial', 'FontSize', 12);
+            'Position', [15, 140, 270, 30], 'HorizontalAlignment', 'center', 'FontName', 'Arial', 'FontSize', 12);
+
+        numEvents = length(corrRiseTS); 
+
+        uicontrol('Style', 'text', 'String', sprintf('%d events were detected!', numEvents), ...
+            'Position', [15, 170, 270, 30], 'HorizontalAlignment', 'center', ...
+            'FontName', 'Arial', 'FontSize', 12); % display the number of detected events
+
 
         % "Yes" button callback using a function handle
         yesCallback = @(src,event) dealWithYesButton(src);

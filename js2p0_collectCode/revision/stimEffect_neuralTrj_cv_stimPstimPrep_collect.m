@@ -1,4 +1,4 @@
-filePaths = {
+ filePaths = {
     '/Volumes/Extreme SSD/js2p0/WR38_052119/Matfiles', ... % Dual recording without Cg silencing (checked)
     '/Volumes/Extreme SSD/js2p0/WR38_052419/Matfiles', ... % Corticostriatal recording M1 silencing (checked)
     '/Volumes/Extreme SSD/js2p0/WR39_100219/Matfiles', ... % Dual recording with contra Cg silencing (checked)
@@ -6,55 +6,59 @@ filePaths = {
     '/Volumes/Extreme SSD/js2p0/WR40_082019/Matfiles', ... % Dual recording with contra Cg silencing (checked)
     '/Volumes/Extreme SSD/js2p0/WR44_031020/Matfiles'};    % Dual recording with contra Cg delayed silencing (checked)
 
-mR2_tbyt = {}; 
-mR2_tbytStim = {}; 
-
 dims = 10; 
 folds = 10; 
 
+% preprocessing
+%for f = 1:length(filePaths)
+%    js2p0_tbytSpkHandJsPreprocess_50ms_stimPstim(filePaths{f})
+%end
+
+% train RRR with movement-potent corticostriatal activity and test them
+% for stim- and pseudo-stim aligned activity
 for f = 1:length(filePaths)
-    filePath = GrabFiles_sort_trials('js2p0_tbytSpkHandJsTrjBin_50ms_stimPstim_', 0, filePaths(f));
-    [~, rrrRezR2] = stimEffect_neuralTrj_cv_stim_pstim(filePath{1}, dims, folds); % args: dimensions and folds 
+    filePath = GrabFiles_sort_trials('js2p0_tbytSpkHandJsTrjBin_50ms_stimPstimPrep_', 0, filePaths(f));
+    [~, rrrRezR2] = stimEffect_neuralTrj_cv_stim_pstim_prep(filePath{1}, 20, 10); % args: dimensions and folds
 
-    % mean trial-by-trial
-    mR2_tbyt{f} = rrrRezR2.mR2_tbyt; 
-    mR2_tbytStim{f} = rrrRezR2.mR2_tbytStim; 
-    mR2_tbytpStim{f} = rrrRezR2.mR2_tbytPstim; 
+    % organize r2 results
+    mR2.noStim_tbyt{f} = rrrRezR2.mR2_tbyt;
+    mR2.stim_tbyt{f}   = rrrRezR2.mR2_tbytStim;
+    mR2.pStim_tbyt{f}  = rrrRezR2.mR2_tbytPstim;
+    mR2.prep_tbyt{f}   = rrrRezR2.mR2_tbytPrep; 
 
-    % mean across trials
-    mR2{f} = rrrRezR2.mR2; 
-    mR2_stim{f} = rrrRezR2.mR2_stim; 
-    mR2_pStim{f} = rrrRezR2.mR2_pStim;     
+    mR2.noStim{f} = rrrRezR2.mR2; 
+    mR2.stim{f} = rrrRezR2.mR2_stim; 
+    mR2.pStim{f} = rrrRezR2.mR2_pStim;
+    mR2.prep{f} = rrrRezR2.mR2_prep;
 
-    % median trial-by-trial
-    medR2_tbyt{f} = rrrRezR2.medR2_tbyt; 
-    medR2_tbytStim{f} = rrrRezR2.medR2_tbytStim; 
-    medR2_tbytpStim{f} = rrrRezR2.medR2_tbytPstim; 
+    medR2.noStim_tbyt{f} = rrrRezR2.medR2_tbyt;
+    medR2.stim_tbyt{f}   = rrrRezR2.medR2_tbytStim;
+    medR2.pStim_tbyt{f}  = rrrRezR2.medR2_tbytPstim;
+    medR2.prep_tbyt{f}   = rrrRezR2.medR2_tbytPrep; 
 
-    % median across trials
-    medR2{f} = rrrRezR2.medR2; 
-    medR2_stim{f} = rrrRezR2.medR2_stim; 
-    medR2_pStim{f} = rrrRezR2.medR2_pStim; 
-    
+    medR2.noStim{f} = rrrRezR2.medR2; 
+    medR2.stim{f} = rrrRezR2.medR2_stim; 
+    medR2.pStim{f} = rrrRezR2.medR2_pStim;
+    medR2.prep{f} = rrrRezR2.medR2_prep;
     fprintf("Completed file #%d\n", f)
 end
 
-save(fullfile('/Volumes/Extreme SSD/js2p0/collectData', ['stimEffect_neuralTrj_cv_collect_rez', sprintf('_Dims%d', dims), sprintf('_Folds%d', folds)]), 'mR2*', 'medR2*')
+save(fullfile('/Volumes/Extreme SSD/js2p0/collectData', ['stimEffect_neuralTrj_cv_collect_stimPstimPrepExt', sprintf('_Dims%d', dims), sprintf('_Folds%d', folds)]), 'mR2*', 'medR2*')
 
 %% Stats
 % prepare session-by-epoch data
-mR2_noStim_pStim_Stim = [cell2mat(mR2)', cell2mat(mR2_pStim)', cell2mat(mR2_stim)']; 
-mR2_tbyt_noStim_pStim_Stim = [cell2mat(mR2_tbyt)', cell2mat(mR2_tbytpStim)', cell2mat(mR2_tbytStim)']; 
-medR2_noStim_pStim_Stim = [cell2mat(medR2)', cell2mat(medR2_pStim)', cell2mat(medR2_stim)']; 
-medR2_tbyt_noStim_pStim_Stim = [cell2mat(medR2_tbyt)', cell2mat(medR2_tbytpStim)', cell2mat(medR2_tbytStim)']; 
+mR2_noStim_pStimPrep_stim = [cell2mat(mR2.noStim)', mean([cell2mat(mR2.pStim)', cell2mat(mR2.prep)'], 2), cell2mat(mR2.stim)']; 
+mR2_tbyt_noStim_pStimPrep_stim = [cell2mat(mR2.noStim_tbyt)', mean([cell2mat(mR2.pStim_tbyt)', cell2mat(mR2.prep_tbyt)'], 2), cell2mat(mR2.stim_tbyt)']; 
+medR2_noStim_pStimPrep_stim = [cell2mat(medR2.noStim)', mean([cell2mat(medR2.pStim)', cell2mat(medR2.prep)'], 2), cell2mat(medR2.stim)']; 
+medR2_tbyt_noStim_pStimPrep_stim = [cell2mat(medR2.noStim_tbyt)', mean([cell2mat(medR2.pStim_tbyt)', cell2mat(medR2.prep_tbyt)'], 2), cell2mat(medR2.stim_tbyt)']; 
 
 % run stats
-stat.mR2 = onewayANOVA_multiCompare(mR2_noStim_pStim_Stim); 
-stat.mR2_tbyt = onewayANOVA_multiCompare(mR2_tbyt_noStim_pStim_Stim); 
-stat.medR2 = onewayANOVA_multiCompare(medR2_noStim_pStim_Stim); 
-stat.medR2_tbyt = onewayANOVA_multiCompare(medR2_tbyt_noStim_pStim_Stim); 
+stat.mR2 = onewayANOVA_multiCompare(mR2_noStim_pStimPrep_stim); 
+stat.mR2_tbyt = onewayANOVA_multiCompare(mR2_tbyt_noStim_pStimPrep_stim); 
+stat.medR2 = onewayANOVA_multiCompare(medR2_noStim_pStimPrep_stim); 
+stat.medR2_tbyt = onewayANOVA_multiCompare(medR2_tbyt_noStim_pStimPrep_stim); 
 
-save(fullfile('/Volumes/Extreme SSD/js2p0/collectData', ['stimEffect_neuralTrj_cv_collect_rez', sprintf('_Dims%d', dims), sprintf('_Folds%d', folds)]), 'stat', '-append')
+save(fullfile('/Volumes/Extreme SSD/js2p0/collectData', ['stimEffect_neuralTrj_cv_collect_stimPstimPrepExt', sprintf('_Dims%d', dims), sprintf('_Folds%d', folds)]), 'stat', '-append')
 
 %% plot
 fig = scatter_row_by_row([cell2mat(mR2_pStim)', cell2mat(mR2)', cell2mat(mR2_stim)'], [0, 0.4]); 
@@ -172,3 +176,10 @@ ylabel('Mean Value');
 hold off;
 
 end
+
+
+
+
+
+
+

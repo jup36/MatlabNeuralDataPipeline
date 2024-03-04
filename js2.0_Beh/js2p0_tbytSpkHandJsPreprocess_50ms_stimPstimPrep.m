@@ -1,4 +1,4 @@
-function js2p0_tbytSpkHandJsPreprocess_50ms_stimPstim(filePath)
+function js2p0_tbytSpkHandJsPreprocess_50ms_stimPstimPrep(filePath)
 %This is a preprocessing function to first demarcate trials into blocks of
 % different joystick load & position combinations using the function 'jkvtBlockParse'.
 % Then it gets trial-by-trial binned (e.g. 20-ms bin) spike count matrices aligned to
@@ -152,7 +152,6 @@ for t = 1:size(jkvt,2)
         elseif jkvt(t).rStartToPull-jkvt(t).pLaserOn>2000 % ensure to exclude trials where reach initiated
             takePstimTrI = true;
         end
-        takePstimTrI = takePstimTrI && ~trI.toI(t); 
 
         if takePstimTrI
             if exist('spkTimesCellCTX')==1
@@ -304,7 +303,7 @@ if isfield(ss, 'blNumber')
     save(fullfile(filePath, strcat('blockNums', '_', saveName)), 'ss_blNumbs')
 end
 
-save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_50ms_stimPstimWoTo_',saveName)),'ss','jkvt','trI','spkTimesCell*','depth*')
+save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_50ms_stimPstim_',saveName)),'ss','jkvt','trI','spkTimesCell*','depth*')
 
 % save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'depthCtx','depthStr','-append')
 % save(fullfile('/Users/parkj/Dropbox (HHMI)/j2p0_dataShare/js2p0_tbytSpkHandJsTrjBin_WR40_081919.mat'),'depthCtx','depthStr','-append')

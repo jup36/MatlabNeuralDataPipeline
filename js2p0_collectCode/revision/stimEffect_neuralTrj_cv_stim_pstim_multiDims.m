@@ -1,16 +1,16 @@
-function [rrrCv, rrrRezR2] = stimEffect_neuralTrj_cv_stim_pstim(filePath, dims, folds)
+function [rrrCv, rrrRezR2] = stimEffect_neuralTrj_cv_stim_pstim_multiDims(filePath, folds)
 %This function is to run the reduced rank regression (RRR) with cross-validation,
 % which trains the RRR model that predicts the target (e.g., str) neural population activity
 % based on the source neural population activity (e.g., ctx) with cross validation.
 % The trained models are tested both on the held-out no-stim and stim
 % trials. The results of rrr and testing (r2) are saved and/or returned as
 % an output of this function.
+%filePath = '/Volumes/Extreme SSD/js2p0/WR40_081919/Matfiles/js2p0_tbytSpkHandJsTrjBin_50ms_stimPstim_WR40_081919.mat';
 
 saveNameIdx = strfind(filePath, 'WR');
 saveName = filePath(saveNameIdx(1):saveNameIdx(1)+10);
 saveDir = fileparts(filePath);
 
-%filePath = '/Volumes/Extreme SSD/js2p0/WR40_081919/Matfiles/js2p0_tbytSpkHandJsTrjBin_50ms_WR40_081919.mat';
 load(fullfile(filePath), 'ss')
 
 %% get indices
@@ -19,6 +19,7 @@ valRchTrI = cellfun(@(a) ~isempty(a), {ss.spkRchIdx});
 valPullTrI = cellfun(@(a) ~isempty(a), {ss.spkPullIdx});
 
 excludeNaNsInBothPops = @(a, b) sum(sum(isnan(full(a)), 2))==0 & sum(sum(isnan(full(b)), 2))==0;
+
 
 % stim trials
 stimTrI =  cellfun(@(a) ~isempty(a), {ss.utbCtxStimAlign}) & ...
@@ -53,7 +54,9 @@ Yc_stim = {ss(stimTrI).utbStrStimAlign};
 Xc_pStim = {ss(pStimTrI).utbCtxPstimAlign};
 Yc_pStim = {ss(pStimTrI).utbStrPstimAlign};
 
-rrrRez_dir = dir(fullfile(saveDir, ['rrrRezCV_stimPstim_' saveName, sprintf('_Dims%d', dims), sprintf('_Folds%d', folds), '.mat']));
+dims = [1:20, unique(cellfun(@(a) size(a, 1), Yc))]; % test dimensions (end: full)
+
+rrrRez_dir = dir(fullfile(saveDir, ['rrrRezCV_stimPstim_multiDim_' saveName, sprintf('_Folds%d', folds), '.mat']));
 if ~isempty(rrrRez_dir)
     load(fullfile(rrrRez_dir.folder, rrrRez_dir.name), 'rrrCv')
 else
@@ -71,41 +74,44 @@ for f = 1:size(rrrCv, 2)
     [rrrCv(f).Xcc_pStim, ~, rrrCv(f).numbTimePstim, rrrCv(f).numbTrial_pStim] = concatUnitTimeBCell(Xc_pStim);
     rrrCv(f).Ycc_pStim = concatUnitTimeBCell(Yc_pStim);
 
-    % get Yhat_stim (stim trials)
-    rrrCv(f).Yhat_stim = cell2mat(getYhatStackedBwithInterceptUpdate(rrrCv(f).Xcc_stim, rrrCv(f).Ycc_stim, rrrCv(f).B)); % yhat for reduced rank
-    rrrCv(f).YhatC_stim = reshapeYhatToUnitTimeBCell(rrrCv(f).Yhat_stim, rrrCv(f).numbUnitY, rrrCv(f).numbTimeStim, rrrCv(f).numbTrial_stim);
+    % get Yhat_stim (stim trials), Yhat_pStim (pseudo-stim trials)
+    rrrCv(f).Yhat_stim = cell2mat(getYhatStackedBwithInterceptUpdate(rrrCv(f).Xcc_stim, rrrCv(f).Ycc_stim, rrrCv(f).stackedB)); % yhat for reduced rank
+    rrrCv(f).Yhat_pStim = cell2mat(getYhatStackedBwithInterceptUpdate(rrrCv(f).Xcc_pStim, rrrCv(f).Ycc_pStim, rrrCv(f).stackedB)); % yhat for reduced rank
 
-    % get Yhat_pStim (pseudo-stim trials)
-    rrrCv(f).Yhat_pStim = cell2mat(getYhatStackedBwithInterceptUpdate(rrrCv(f).Xcc_pStim, rrrCv(f).Ycc_pStim, rrrCv(f).B)); % yhat for reduced rank
-    rrrCv(f).YhatC_pStim = reshapeYhatToUnitTimeBCell(rrrCv(f).Yhat_pStim, rrrCv(f).numbUnitY, rrrCv(f).numbTimePstim, rrrCv(f).numbTrial_pStim);
+    % calculate r2 stim and pStim
+    for dd = 1:size(rrrCv(f).Yhat_stim, 3)
+        % calculate R2 over all trials: rrrRez(f).r2_* will be dims-by-1
+        rrrCv(f).r2_stim(dd, 1) = calculateR2(rrrCv(f).Ycc_stim, rrrCv(f).Yhat_stim(:, :, dd));
+        rrrCv(f).r2_pStim(dd, 1) = calculateR2(rrrCv(f).Ycc_pStim, rrrCv(f).Yhat_pStim(:, :, dd));
+        % calculate R2 over each trial: rrrRez(ff).r2_*_tbyt will be dims-by-trials
+        rsYhatC_stim = reshapeYhatToUnitTimeBCell(rrrCv(f).Yhat_stim(:, :, dd), rrrCv(f).numbUnitY, rrrCv(f).numbTimeStim, rrrCv(f).numbTrial_stim);
+        rrrCv(f).r2_stim_tbyt(dd, :) = cell2mat(cellfun(@(a, b) calculateR2(a, b), Yc_stim, rsYhatC_stim', 'UniformOutput', false));
 
-    % calculate R2
-    rrrCv(f).r2_stim = calculateR2(rrrCv(f).Ycc_stim, rrrCv(f).Yhat_stim);
-    rrrCv(f).r2_pStim = calculateR2(rrrCv(f).Ycc_pStim, rrrCv(f).Yhat_pStim);
-    % calculate R2 trial by trial
-    rrrCv(f).r2_stim_tbyt = cell2mat(cellfun(@(a, b) calculateR2(a, b), Yc_stim, rrrCv(f).YhatC_stim', 'UniformOutput', false));
-    rrrCv(f).r2_pStim_tbyt = cell2mat(cellfun(@(a, b) calculateR2(a, b), Yc_pStim, rrrCv(f).YhatC_pStim', 'UniformOutput', false));
+        rsYhatC_pStim = reshapeYhatToUnitTimeBCell(rrrCv(f).Yhat_pStim(:, :, dd), rrrCv(f).numbUnitY, rrrCv(f).numbTimePstim, rrrCv(f).numbTrial_pStim);
+        rrrCv(f).r2_pStim_tbyt(dd, :) = cell2mat(cellfun(@(a, b) calculateR2(a, b), Yc_pStim, rsYhatC_pStim', 'UniformOutput', false));
+    end
 end
 
 % organize R2 results
-rrrRezR2.mR2_tbyt = nanmean(cell2mat(cellfun(@nanmean, {rrrCv.r2_tbyt}, 'UniformOutput', false)));
-rrrRezR2.mR2_tbytStim = nanmean(cell2mat(cellfun(@nanmean, {rrrCv.r2_stim_tbyt}, 'UniformOutput', false)));
-rrrRezR2.mR2_tbytPstim = nanmean(cell2mat(cellfun(@nanmean, {rrrCv.r2_pStim_tbyt}, 'UniformOutput', false)));
+rrrRezR2.R2_tbyt = {rrrCv.r2_tbyt};
+rrrRezR2.R2_tbytStim = {rrrCv.r2_stim_tbyt};
+rrrRezR2.R2_tbytPstim = {rrrCv.r2_pStim_tbyt};
 
-rrrRezR2.mR2 = nanmean([rrrCv.r2]);
-rrrRezR2.mR2_stim = nanmean([rrrCv.r2_stim]);
-rrrRezR2.mR2_pStim = nanmean([rrrCv.r2_pStim]);
+rrrRezR2.R2 = [rrrCv.r2];
+rrrRezR2.R2_stim = [rrrCv.r2_stim];
+rrrRezR2.R2_pStim = [rrrCv.r2_pStim];
 
-rrrRezR2.medR2_tbyt = nanmedian(cell2mat(cellfun(@nanmean, {rrrCv.r2_tbyt}, 'UniformOutput', false)));
-rrrRezR2.medR2_tbytStim = nanmedian(cell2mat(cellfun(@nanmean, {rrrCv.r2_stim_tbyt}, 'UniformOutput', false)));
-rrrRezR2.medR2_tbytPstim = nanmedian(cell2mat(cellfun(@nanmean, {rrrCv.r2_pStim_tbyt}, 'UniformOutput', false)));
+% plot R2 across dimensions relative to the mean full dimensional R2
+[rrrRezR2.meanR2, ~, rrrRezR2.semR2] = meanstdsem(rrrRezR2.R2');
+meanSemErrorbar(rrrRezR2.meanR2(1:20), rrrRezR2.semR2(1:20)); % plot dim 1 to 20
+hold on;
+plot(1:20, repmat(mean(rrrRezR2.R2(end, :)), 1, 20), ':') % plot mean full dim result
+set(gca, 'TickDir', 'out')
 
-rrrRezR2.medR2 = nanmedian([rrrCv.r2]);
-rrrRezR2.medR2_stim = nanmedian([rrrCv.r2_stim]);
-rrrRezR2.medR2_pStim = nanmedian([rrrCv.r2_pStim]);
+print(fullfile(fileparts(filePath), 'Figure', 'meanSEM_R2_multiDim'), '-vector', '-dpdf')
 
 %% save results
-save(fullfile(saveDir, ['rrrRezCV_stimPstimPrepExtWoTo_' saveName, sprintf('_Dims%d', dims), sprintf('_Folds%d', folds)]), 'rrrCv', 'rrrRezR2')
+save(fullfile(saveDir, ['rrrRezCV_stimPstim_multiDim_' saveName, sprintf('_Folds%d', folds)]), 'rrrCv', 'rrrRezR2')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -262,6 +268,37 @@ save(fullfile(saveDir, ['rrrRezCV_stimPstimPrepExtWoTo_' saveName, sprintf('_Dim
         end
 
     end
+
+    function fig = meanSemErrorbar(mean_values, sem_values)
+
+        fig = figure;
+        % Assuming mean_values and sem_values are already defined as 1x20 vectors
+
+        % Generate a vector for the x-axis
+        x_values = 1:length(mean_values);
+
+        % Plot filled circles for mean values
+        scatter(x_values, mean_values, 'filled', 'MarkerEdgeColor', 'b', 'MarkerFaceColor', 'b');
+
+        % Hold on to the current figure
+        hold on;
+
+        % Add error bars for standard error of the mean
+        errorbar(x_values, mean_values, sem_values, 'LineStyle', 'none', 'Color', 'r', 'CapSize', 10);
+
+        % Label the axes
+        xlabel('Dims');
+        ylabel('Mean Value');
+
+        % Add a title and a legend
+        %title('Mean Values with SEM');
+        %legend('Mean values', 'SEM', 'Location', 'best');
+
+        % Hold off to finish the plotting
+        hold off;
+
+    end
+
 end
 
 
