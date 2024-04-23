@@ -153,7 +153,7 @@ while ~userSatisfied
         else
             plot(corrRiseTS, ones(1, length(corrRiseTS)) .* thresTS, 'ob');
         end
-        title([saveName sprintf(' events detected with stdFactor = %.1f', stdFactor)])
+        title([saveName sprintf(': %d events detected with stdFactor = %.1f', length(corrRiseTS), stdFactor)])
         %xlim([0 round(length(timeseries) / 3)])
         hold off;
 
