@@ -11,8 +11,8 @@ if ~isempty(kfDir)
     wrI = strfind(filePath, 'WR');
     m_name = filePath(wrI:wrI+10);
     
-    load(fullfile(kfDir.folder,kfDir.name),'s')
-    
+    load(fullfile(filePath, strcat('rezKFdecodeHTrjCtxStrPosVel_reach_new_', saveName)), 's', 'rez_reach')
+
     ctx_record = isfield(s.dat, 'spkCtxR');
     str_record = isfield(s.dat, 'spkStrR');
     cg_record = isfield(s.dat, 'spkCgR');
