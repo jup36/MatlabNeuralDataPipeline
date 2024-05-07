@@ -12,13 +12,16 @@ pastel1 = slanCM('Pastel1', 10);
 controlRiI = cellfun(@(x) contains(x, 'ri'), rezCol.controlRsAlignRchAngTrId);
 controlLeI = cellfun(@(x) contains(x, 'le'), rezCol.controlRsAlignRchAngTrId);
 
-medianAngle = nanmean(rezCol.controlRsAlignRchAngRaw); % for median subtraction
+medianAngle = nanmean([rezCol.controlRsAlignRchAngRaw, rezCol.stimFullBtRchAngRaw]); % for median subtraction
 
 rezCol.controlRsAlignRchAngRaw = rezCol.controlRsAlignRchAngRaw-medianAngle; % for median subtraction 
 
 controlAngRi = rezCol.controlRsAlignRchAngRaw(controlRiI);
+mControlAngRi = nanmean(controlAngRi); 
 controlAngRi = controlAngRi(abs(controlAngRi)<70); 
+
 controlAngLe = rezCol.controlRsAlignRchAngRaw(controlLeI); 
+mControlAngLe = nanmean(controlAngLe); 
 controlAngLe = controlAngLe(abs(controlAngLe)<70); 
 
 % controlAngRi = rezCol.controlRsAlignRchAngRawMedSub(controlRiI);
@@ -28,8 +31,11 @@ controlAngLe = controlAngLe(abs(controlAngLe)<70);
 
 figRA_control = figure; % Create a new figure or get an existing figure handle
 hold on; 
-plotReachAnglesOnFig(figRA_control, {controlAngRi}, {pastel2(4,:)}, {pastel2(4,:)}, 0.25);
-plotReachAnglesOnFig(figRA_control, {controlAngLe}, {pastel1(1,:)}, {pastel1(1,:)}, 0.25);
+%plotReachAnglesOnFig(figRA_control, {controlAngRi}, {pastel2(4,:)}, {pastel2(4,:)}, 0.25);
+%plotReachAnglesOnFig(figRA_control, {controlAngLe}, {pastel1(1,:)}, {pastel1(1,:)}, 0.25);
+plotReachAnglesSeparateMeanOnFig(figRA_control, {controlAngRi}, {mControlAngRi}, {pastel2(4,:)}, {pastel2(4,:)}, 0.25);
+plotReachAnglesSeparateMeanOnFig(figRA_control, {controlAngLe}, {mControlAngLe}, {pastel1(1,:)}, {pastel1(1,:)}, 0.25);
+
 ylim([0 1])
 
 print(figRA_control, fullfile('/Volumes/Extreme SSD/js2p0/collectData/collectFigure', 'contolLeRiRA'), '-dpdf', '-vector')
@@ -41,14 +47,19 @@ stimFullBtLeI = cellfun(@(x) contains(x, 'le'), rezCol.stimFullBtRchAngTrId);
 rezCol.stimFullBtRchAngRaw = rezCol.stimFullBtRchAngRaw-medianAngle; 
 
 stimFullBtAngRi = rezCol.stimFullBtRchAngRaw(stimFullBtRiI);
+mStimFullBtAngRi = nanmean(stimFullBtAngRi); 
 stimFullBtAngRi = stimFullBtAngRi(abs(stimFullBtAngRi)<70);
+
 stimFullBtAngLe = rezCol.stimFullBtRchAngRaw(stimFullBtLeI);
+mStimFullBtAngLe = nanmean(stimFullBtAngLe); 
 stimFullBtAngLe = stimFullBtAngLe(abs(stimFullBtAngLe)<70);
 
 figRA_stim = figure; % Create a new figure or get an existing figure handle
 hold on; 
-plotReachAnglesOnFig(figRA_stim, {stimFullBtAngRi}, {pastel2(4,:)}, {pastel2(4,:)}, 0.25);
-plotReachAnglesOnFig(figRA_stim, {stimFullBtAngLe}, {pastel1(1,:)}, {pastel1(1,:)}, 0.25);
+%plotReachAnglesOnFig(figRA_stim, {stimFullBtAngRi}, {pastel2(4,:)}, {pastel2(4,:)}, 0.25);
+%plotReachAnglesOnFig(figRA_stim, {stimFullBtAngLe}, {pastel1(1,:)}, {pastel1(1,:)}, 0.25);
+plotReachAnglesSeparateMeanOnFig(figRA_stim, {stimFullBtAngRi}, {mStimFullBtAngRi}, {pastel2(4,:)}, {pastel2(4,:)}, 0.25);
+plotReachAnglesSeparateMeanOnFig(figRA_stim, {stimFullBtAngLe}, {mStimFullBtAngLe}, {pastel1(1,:)}, {pastel1(1,:)}, 0.25);
 ylim([0 1])
 
 print(figRA_stim, fullfile('/Volumes/Extreme SSD/js2p0/collectData/collectFigure', 'fullBtLeRiRA'), '-dpdf', '-vector')
@@ -75,16 +86,16 @@ stimAbsRA = rezCol.stimFullBtRchAng(rezCol.stimFullBtRchAng<70);
 %% draw reach angle vectors
 figRA_control = figure; % Create a new figure or get an existing figure handle
 hold on; 
-plotReachAnglesOnFig(figRA_control, {contolPosRA}, {pastel1(1,:)}, {pastel1(1,:)}, 0.25);
-plotReachAnglesOnFig(figRA_control, {contolNegRA}, {pastel2(4,:)}, {pastel2(4,:)}, 0.25);
+plotReachAnglesSeparateMeanOnFig(figRA_control, {contolPosRA}, {pastel1(1,:)}, {pastel1(1,:)}, 0.25);
+plotReachAnglesSeparateMeanOnFig(figRA_control, {contolNegRA}, {pastel2(4,:)}, {pastel2(4,:)}, 0.25);
 ylim([0 1])
 set(gca, 'TickDir', 'out')
 %print(figRA_control, fullfile('/Volumes/Extreme SSD/js2p0/collectData/collectFigure', 'contolPosNegRA'), '-dpdf', '-vector')
 
 figRA_stim = figure; 
 hold on; 
-plotReachAnglesOnFig(figRA_stim, {stimPosRA}, {pastel1(1,:)}, {pastel1(1,:)}, 0.25);
-plotReachAnglesOnFig(figRA_stim, {stimNegRA}, {pastel2(4,:)}, {pastel2(4,:)}, 0.25);
+plotReachAnglesSeparateMeanOnFig(figRA_stim, {stimPosRA}, {pastel1(1,:)}, {pastel1(1,:)}, 0.25);
+plotReachAnglesSeparateMeanOnFig(figRA_stim, {stimNegRA}, {pastel2(4,:)}, {pastel2(4,:)}, 0.25);
 ylim([0 1])
 set(gca, 'TickDir', 'out')
 hold off

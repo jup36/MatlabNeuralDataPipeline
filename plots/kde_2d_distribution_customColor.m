@@ -39,7 +39,8 @@ xlabel('X');
 ylabel('Y');
 xlim([-5 5])
 ylim([-5 5])
-clim([0 0.05])
+clim([0 0.03])
+pbaspect([1 1 1]);
 
 % Generate and apply the custom colormap
 cmap = customColormap(seedColor, targetColor, N);
