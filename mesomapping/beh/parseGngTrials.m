@@ -1,6 +1,5 @@
 function tbytDat = parseGngTrials(tbytDat)
 
-
 chunkCutoff = 0.4; % 0.4 s licks that occur within this cutoff from one another are chunked together
 for jj = 1:length(tbytDat)
     if ~isempty(tbytDat(jj).Lick)

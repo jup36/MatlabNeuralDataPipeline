@@ -3,6 +3,7 @@ function parse_tbyt_auditory_gng_behavior(filePath, varargin)
 % varargin = {'preToneWin', 1, 'postToneWin', 4}
 
 p = parseInput_tbyt_auditory_gng_behavior(filePath, varargin);
+% p = parseInput_tbyt_auditory_gng_behavior(filePath, {'preToneWin', 1, 'postToneWin', 4}); 
 
 %% locate the nidq folder
 filePath_nidq = GrabFiles_sort_trials('_g', 0, {filePath});
@@ -21,17 +22,43 @@ evtInS = timestamp_behav_events(filePath_nidq, false, 'cmosExp', 'lick', 'faceCa
 %% Load stimopts
 filePath_stim = GrabFiles_sort_trials('_stimInfo', 0, {filePath});
 if isempty(filePath_stim)
-    filePath_stim = uigetdir(filePath, 'Select the stimInfo file!');
+    [stimInfoName, stimInfoDir] = uigetfile(filePath, 'Select the stimInfo file!');
 end
 
 if length(filePath_stim) > 1
     warning("More than 1 stimInfo files found! Will run with the first one!")
 end
-filePath_stim = filePath_stim{1}; % just take the path
-load(fullfile(filePath_stim), 'stimopts')
+load(fullfile(stimInfoDir, stimInfoName), 'stimopts')
 
 %% Identify and sort events
-assert(size(evtInS.speaker, 1)==length(stimopts.stim_type), 'The number of recorded events and the number of events executed do not match!')
+%assert(size(evtInS.speaker, 1)==length(stimopts.stim_type), 'The number of recorded events and the number of events executed do not match!')
+% Get the sizes
+numRecordedEvents = size(evtInS.speaker, 1);
+numExecutedEvents = length(stimopts.stim_type);
+
+if numRecordedEvents ~= numExecutedEvents
+    if numRecordedEvents > numExecutedEvents
+        error('The number of recorded events exceeds the number of events executed!');
+    else
+        fprintf('The number of recorded events is less than the number of events executed.\n');
+        userDecision = input('Do you want to proceed by cropping the executed events to match the recorded events? Y/N: ', 's');
+        if strcmpi(userDecision, 'Y')
+            % Crop stimopts.stim_type to match the length of evtInS.speaker
+            stimopts.stim_type = stimopts.stim_type(1:numRecordedEvents);
+            stimopts.rewarded_stim = stimopts.rewarded_stim(1:numRecordedEvents); 
+            stimopts.punished_stim = stimopts.punished_stim(1:numRecordedEvents); 
+            stimopts.outcome_positive_stim = stimopts.outcome_positive_stim(1:sum(stimopts.stim_type==stimopts.positive_stim)); 
+            stimopts.outcome_negative_stim = stimopts.outcome_negative_stim(1:sum(stimopts.stim_type==stimopts.negative_stim)); 
+
+            fprintf('Proceeding with cropped stimopts!\n');
+        else
+            error('User opted not to proceed. Exiting.');
+        end
+    end
+else
+    fprintf('The number of recorded and executed events match.\n');
+end
+
 evts = evtInS.speaker;
 evts(:, 3) = stimopts.stim_type;
 
