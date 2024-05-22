@@ -1,5 +1,6 @@
-function hFig = plotMeanSem(meanData, semData, timeX, varargin)
+function hFig = plotMeanColorC(meanData, timeX, colorC, varargin)
 % varargin can provide names to be used for the figure legend
+% modified from plotMeanSem.m to use only a specified color
 
 numbGroups = size(meanData, 1); 
 
@@ -22,11 +23,6 @@ hold on;
 % Get the total number of cell arrays
 % (Assuming your timestamps are stored in a cell array called timeStampCells)
 
-% Use 'cool' colormap and sample it
-fullColormap = colormap('cool');
-cmapIndices = round(linspace(1, size(fullColormap, 1), numbGroups));
-cmap = fullColormap(cmapIndices, :);
-
 % Define the alpha level for the shaded SEM area
 alphaValue = 0.2;
 
@@ -41,12 +37,7 @@ for i = 1:numbGroups
     end
 
     % Plot the mean data
-    meanDataHandles(i) = plot(timeX, meanData(i, :), 'Color', cmap(i, :), 'LineWidth', 1.5);
-    
-    % Use fill to create the shaded SEM area
-    fillX = [timeX, fliplr(timeX)];
-    fillY = [meanData(i, :) + semData(i, :), fliplr(meanData(i, :) - semData(i, :))];
-    fill(fillX, fillY, cmap(i, :), 'FaceAlpha', alphaValue, 'EdgeColor', 'none');
+    meanDataHandles(i) = plot(timeX, meanData(i, :), 'Color', colorC{i}, 'LineWidth', 1.5);
 end
 
 xlabel('Time');

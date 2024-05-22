@@ -3,79 +3,88 @@ function tbytDat = parseAuditoryGngTrials(tbytDat)
 tbytDat = tbytDatRewardPunishI(tbytDat);
 
 chunkCutoff = 0.4; % 0.4 s licks that occur within this cutoff from one another are chunked together
-for jj = 1:length(tbytDat)
-    if ~isempty(tbytDat(jj).Lick)
-        refTime = tbytDat(jj).evtOn;
+for tt = 1:length(tbytDat)
+    if ~isempty(tbytDat(tt).Lick)
+        refTime = tbytDat(tt).evtOn;
 
         % Chunk licks
-        tbytDat(jj).LickChunk = chunkTimestamps(tbytDat(jj).Lick, chunkCutoff);
+        tbytDat(tt).LickChunk = chunkTimestamps(tbytDat(tt).Lick, chunkCutoff);
 
         % ITI (find lick chunks where every element belongs to ITI)
-        itiChunkI = cell2mat(cellfun(@(a) sum(a < tbytDat(jj).evtOn)==length(a), tbytDat(jj).LickChunk, 'UniformOutput', false));
-        tbytDat(jj).itiLickChunk = cellfun(@(a) a-refTime, tbytDat(jj).LickChunk(itiChunkI), 'UniformOutput', false);
+        itiChunkI = cell2mat(cellfun(@(a) sum(a < tbytDat(tt).evtOn)==length(a), tbytDat(tt).LickChunk, 'UniformOutput', false));
+        tbytDat(tt).itiLickChunk = cellfun(@(a) a-refTime, tbytDat(tt).LickChunk(itiChunkI), 'UniformOutput', false);
 
         %% classify types of licks in go/no-go trials
         % Hit
-        if (tbytDat(jj).pos_rwd_tr == 1 && ~isempty(tbytDat(jj).water)) || ...
-                (tbytDat(jj).pos_oms_tr == 1 && sum(tbytDat(jj).Lick>tbytDat(jj).evtOff)>0) || ...
-                (tbytDat(jj).pos_pns_tr == 1 && sum(tbytDat(jj).Lick>tbytDat(jj).evtOff)>0)
+        if (tbytDat(tt).pos_rwd_tr == 1 && ~isempty(tbytDat(tt).water)) || ...
+                (tbytDat(tt).pos_oms_tr == 1 && sum(tbytDat(tt).Lick>tbytDat(tt).evtOff)>0) || ...
+                (tbytDat(tt).pos_pns_tr == 1 && sum(tbytDat(tt).Lick>tbytDat(tt).evtOff)>0)
             % find the last lick before water delivery that likely triggered the reward
-            if ~isempty(tbytDat(jj).water)
-                lickBeforeWater = tbytDat(jj).Lick(find(tbytDat(jj).Lick < tbytDat(jj).water(1), 1, 'last'));
-                hitChunkI = cell2mat(cellfun(@(a) sum(a==lickBeforeWater)==1, tbytDat(jj).LickChunk, 'UniformOutput', false));
-                hitChunkLicks = tbytDat(jj).LickChunk{hitChunkI};
-                tbytDat(jj).hitLicks = hitChunkLicks(hitChunkLicks<=tbytDat(jj).water(1)) - refTime;
+            if ~isempty(tbytDat(tt).water)
+                lickBeforeWater = tbytDat(tt).Lick(find(tbytDat(tt).Lick <= tbytDat(tt).water(1), 1, 'last'));
+                if isempty(lickBeforeWater)
+                    lickBeforeWater = tbytDat(tt).Lick(1); 
+                    hitChunkI = cell2mat(cellfun(@(a) sum(a==lickBeforeWater)==1, tbytDat(tt).LickChunk, 'UniformOutput', false));
+                    hitChunkLicks = tbytDat(tt).LickChunk{hitChunkI};
+                    tbytDat(tt).hitLicks = hitChunkLicks(1) - refTime;
+                else
+                    hitChunkI = cell2mat(cellfun(@(a) sum(a==lickBeforeWater)==1, tbytDat(tt).LickChunk, 'UniformOutput', false));
+                    hitChunkLicks = tbytDat(tt).LickChunk{hitChunkI};
+                    tbytDat(tt).hitLicks = hitChunkLicks(hitChunkLicks<=tbytDat(tt).water(1)) - refTime;
+                end
             else
-                lickBeforeWater = tbytDat(jj).Lick(find(tbytDat(jj).Lick > tbytDat(jj).evtOff, 1, 'first'));
-                hitChunkI = cell2mat(cellfun(@(a) sum(a==lickBeforeWater)==1, tbytDat(jj).LickChunk, 'UniformOutput', false));
-                hitChunkLicks = tbytDat(jj).LickChunk{hitChunkI};
-                tbytDat(jj).hitLicks = hitChunkLicks - refTime;
+                lickBeforeWater = tbytDat(tt).Lick(find(tbytDat(tt).Lick > tbytDat(tt).evtOff, 1, 'first'));
+                hitChunkI = cell2mat(cellfun(@(a) sum(a==lickBeforeWater)==1, tbytDat(tt).LickChunk, 'UniformOutput', false));
+                hitChunkLicks = tbytDat(tt).LickChunk{hitChunkI};
+                tbytDat(tt).hitLicks = hitChunkLicks - refTime;
             end
 
             % find licks after the stim offset
-            lickAfterevtOffI = cell2mat(cellfun(@(a) sum(a>=tbytDat(jj).evtOff)==length(a), tbytDat(jj).LickChunk, 'UniformOutput', false));
-            tbytDat(jj).postStimChunk = cellfun(@(a) a-refTime, tbytDat(jj).LickChunk(lickAfterevtOffI), 'UniformOutput', false);
+            lickAfterevtOffI = cell2mat(cellfun(@(a) sum(a>=tbytDat(tt).evtOff)==length(a), tbytDat(tt).LickChunk, 'UniformOutput', false));
+            tbytDat(tt).postStimChunk = cellfun(@(a) a-refTime, tbytDat(tt).LickChunk(lickAfterevtOffI), 'UniformOutput', false);
 
-            if ~isempty(tbytDat(jj).water)
+            if ~isempty(tbytDat(tt).water)
                 % Consumptive licks
-                if sum(tbytDat(jj).Lick > tbytDat(jj).water(1))>0
+                if sum(tbytDat(tt).Lick > tbytDat(tt).water(1))>0
                     % find the first lick after water delivery
-                    lickAfterWater = tbytDat(jj).Lick(find(tbytDat(jj).Lick > tbytDat(jj).water(1), 1, 'first'));
-                    consumeChunkI = cell2mat(cellfun(@(a) sum(a==lickAfterWater)==1, tbytDat(jj).LickChunk, 'UniformOutput', false));
-                    consumeChunkLicks = tbytDat(jj).LickChunk{consumeChunkI};
-                    tbytDat(jj).consumeLicks = consumeChunkLicks(consumeChunkLicks>tbytDat(jj).water(1)) - refTime;
+                    lickAfterWater = tbytDat(tt).Lick(find(tbytDat(tt).Lick > tbytDat(tt).water(1), 1, 'first'));
+                    consumeChunkI = cell2mat(cellfun(@(a) sum(a==lickAfterWater)==1, tbytDat(tt).LickChunk, 'UniformOutput', false));
+                    consumeChunkLicks = tbytDat(tt).LickChunk{consumeChunkI};
+                    tbytDat(tt).consumeLicks = consumeChunkLicks(consumeChunkLicks>tbytDat(tt).water(1)) - refTime;
                 end
             else
-                tbytDat(jj).consumeLicks = []; 
+                tbytDat(tt).consumeLicks = []; 
             end
-            % False Alarm
-        elseif (tbytDat(jj).neg_rwd_tr == 1 && ~isempty(tbytDat(jj).water)) || ...
-                (tbytDat(jj).neg_oms_tr == 1 && sum(tbytDat(jj).Lick>tbytDat(jj).evtOff)>0) || ...
-                (tbytDat(jj).neg_pns_tr == 1 && sum(tbytDat(jj).Lick>tbytDat(jj).evtOff)>0)
+        % False Alarm
+        elseif (tbytDat(tt).neg_rwd_tr == 1 && ~isempty(tbytDat(tt).water)) || ...
+                (tbytDat(tt).neg_oms_tr == 1 && sum(tbytDat(tt).Lick>tbytDat(tt).evtOff)>0) || ...
+                (tbytDat(tt).neg_pns_tr == 1 && sum(tbytDat(tt).Lick>tbytDat(tt).evtOff)>0)
             % find the last lick before airpuff that likely triggered the
             % airpuff
-            if ~isempty(tbytDat(jj).airpuff)
-                lickBeforeAir = tbytDat(jj).Lick(find(tbytDat(jj).Lick < tbytDat(jj).airpuff(1), 1, 'last'));
-                faChunkI = cell2mat(cellfun(@(a) sum(a==lickBeforeAir)==1, tbytDat(jj).LickChunk, 'UniformOutput', false));
-                faChunkLicks = tbytDat(jj).LickChunk{faChunkI};
-                tbytDat(jj).faLicks = faChunkLicks(faChunkLicks<=tbytDat(jj).airpuff(1)) - refTime;
-            else
-                lickBeforeAir = tbytDat(jj).Lick(find(tbytDat(jj).Lick > tbytDat(jj).evtOff, 1, 'first'));
-                faChunkI = cell2mat(cellfun(@(a) sum(a==lickBeforeAir)==1, tbytDat(jj).LickChunk, 'UniformOutput', false));
-                faChunkLicks = tbytDat(jj).LickChunk{faChunkI};
-                tbytDat(jj).faLicks = faChunkLicks - refTime;
-            end
-
-            if ~isempty(tbytDat(jj).airpuff)
-                if sum(tbytDat(jj).Lick > tbytDat(jj).airpuff(1))>0
-                    % find the first lick after airpuff delivery
-                    lickAfterAir = tbytDat(jj).Lick(find(tbytDat(jj).Lick > tbytDat(jj).airpuff(1), 1, 'first'));
-                    postAirChunkI = cell2mat(cellfun(@(a) sum(a==lickAfterAir)==1, tbytDat(jj).LickChunk, 'UniformOutput', false));
-                    postAirChunkLicks = tbytDat(jj).LickChunk{postAirChunkI};
-                    tbytDat(jj).postAirLicks = postAirChunkLicks(postAirChunkLicks>tbytDat(jj).airpuff(1)) - refTime;
+            if ~isempty(tbytDat(tt).airpuff)
+                if tbytDat(tt).Lick(1) <= tbytDat(tt).airpuff(1)
+                    lickBeforeAir = tbytDat(tt).Lick(find(tbytDat(tt).Lick < tbytDat(tt).airpuff(1), 1, 'last'));
+                    faChunkI = cell2mat(cellfun(@(a) sum(a==lickBeforeAir)==1, tbytDat(tt).LickChunk, 'UniformOutput', false));
+                    faChunkLicks = tbytDat(tt).LickChunk{faChunkI};
+                    tbytDat(tt).faLicks = faChunkLicks(faChunkLicks<=tbytDat(tt).airpuff(1)) - refTime;
                 end
             else
-                tbytDat(jj).postAirLicks = []; 
+                lickBeforeAir = tbytDat(tt).Lick(find(tbytDat(tt).Lick > tbytDat(tt).evtOff, 1, 'first'));
+                faChunkI = cell2mat(cellfun(@(a) sum(a==lickBeforeAir)==1, tbytDat(tt).LickChunk, 'UniformOutput', false));
+                faChunkLicks = tbytDat(tt).LickChunk{faChunkI};
+                tbytDat(tt).faLicks = faChunkLicks - refTime;
+            end
+
+            if ~isempty(tbytDat(tt).airpuff)
+                if sum(tbytDat(tt).Lick > tbytDat(tt).airpuff(1))>0
+                    % find the first lick after airpuff delivery
+                    lickAfterAir = tbytDat(tt).Lick(find(tbytDat(tt).Lick > tbytDat(tt).airpuff(1), 1, 'first'));
+                    postAirChunkI = cell2mat(cellfun(@(a) sum(a==lickAfterAir)==1, tbytDat(tt).LickChunk, 'UniformOutput', false));
+                    postAirChunkLicks = tbytDat(tt).LickChunk{postAirChunkI};
+                    tbytDat(tt).postAirLicks = postAirChunkLicks(postAirChunkLicks>tbytDat(tt).airpuff(1)) - refTime;
+                end
+            else
+                tbytDat(tt).postAirLicks = []; 
             end
         end
     end
