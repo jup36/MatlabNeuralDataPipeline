@@ -107,6 +107,7 @@ end
 
 % trial-by-trial peri-stim Lick
 tbytLickLogic = arrayfun(@(a, b) a-5 <= evtInS.lick & evtInS.lick <= b+5, [tbytDat(:).evtOn], [tbytDat(:).evtOff], 'un', 0);
+%tbytLickLogic = arrayfun(@(a, b) a <= evtInS.lick & evtInS.lick <= b+5, [tbytDat(:).evtOff], [tbytDat(:).evtOff], 'un', 0);
 tbytLick = cellfun(@(a) evtInS.lick(a), tbytLickLogic, 'un', 0);
 [tbytDat(1:numbTr).Lick] = deal(tbytLick{:});
 

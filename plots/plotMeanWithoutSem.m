@@ -1,4 +1,4 @@
-function hFig = plotMeanSem(meanData, semData, timeX, varargin)
+function hFig = plotMeanWithoutSem(meanData, timeX, varargin)
 % varargin can provide names to be used for the figure legend
 
 numbGroups = size(meanData, 1); 
@@ -42,11 +42,6 @@ for i = 1:numbGroups
 
     % Plot the mean data
     meanDataHandles(i) = plot(timeX, meanData(i, :), 'Color', cmap(i, :), 'LineWidth', 1.5);
-    
-    % Use fill to create the shaded SEM area
-    fillX = [timeX, fliplr(timeX)];
-    fillY = [meanData(i, :) + semData(i, :), fliplr(meanData(i, :) - semData(i, :))];
-    fill(fillX, fillY, cmap(i, :), 'FaceAlpha', alphaValue, 'EdgeColor', 'none');
 end
 
 xlabel('Time');
