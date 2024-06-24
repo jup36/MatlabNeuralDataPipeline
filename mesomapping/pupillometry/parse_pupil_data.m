@@ -84,6 +84,7 @@ for t = 1:numel(tbytGng)
                 end              
             end
         end
+        
         % miss (just align to cue onset)
         if tbytGng(t).rewardTrI==1 && isempty(tbytGng(t).hitLicks)
             missTrials = [missTrials; t]; 

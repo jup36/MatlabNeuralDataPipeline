@@ -1,0 +1,32 @@
+function hFig = plotScatterDatArrayColormap(datArray, fullcmap)
+% varargin can provide names to be used for the figure legend
+
+numDatPoints = size(datArray, 1); 
+x = 1:numDatPoints; 
+
+% Create figure and axes
+hFig = figure; 
+hold on;
+
+cmapIndices = round(linspace(1, size(fullcmap, 1), numDatPoints));
+cmap = fullcmap(cmapIndices, :);
+
+% Define the alpha level for the shaded SEM area
+alphaValue = 0.2;
+
+% Array to store handles for the mean data plots
+plot(x, datA)
+
+for i = 1:numDatPoints
+    % Plot the mean data
+    datArrayHandles(i) = plot(timeX, datArray(i, :), 'Color', cmap(i, :), 'LineWidth', 1.5);
+end
+
+xlabel('Time');
+ylabel('Value');
+set(gca, 'XTick', ceil(timeX(1)):1:floor(timeX(end)))
+legend(datArrayHandles, legendLabel)
+
+hold off;
+
+end

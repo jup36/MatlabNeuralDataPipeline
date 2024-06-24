@@ -1,4 +1,4 @@
-function js2p0_tbytSpkHandJsPreprocess_50ms_stimPstimPrepExt(filePath)
+function js2p0_tbytSpkHandJsPreprocess_50ms_stimPstimPrepExt_forGPFA(filePath)
 %This is a preprocessing function to first demarcate trials into blocks of
 % different joystick load & position combinations using the function 'jkvtBlockParse'.
 % Then it gets trial-by-trial binned (e.g. 20-ms bin) spike count matrices aligned to
@@ -147,12 +147,12 @@ for t = 1:size(jkvt,2)
             end
         end
     else % control trial
-        if isempty(jkvt(t).rStartToPull)
-            takePstimTrI = true;
-        elseif jkvt(t).rStartToPull-jkvt(t).pLaserOn>3000 % ensure to exclude trials where reach initiated
-            takePstimTrI = true;
-        end
-        takePstimTrI = takePstimTrI && ~trI.toI(t); 
+%         if isempty(jkvt(t).rStartToPull)
+%             takePstimTrI = true;
+%         elseif jkvt(t).rStartToPull-jkvt(t).pLaserOn>3000 % ensure to exclude trials where reach initiated
+%             takePstimTrI = true;
+%         end
+        takePstimTrI = ~trI.toI(t); 
 
         if takePstimTrI
             if exist('spkTimesCellCTX')==1
