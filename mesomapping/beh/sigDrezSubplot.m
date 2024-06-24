@@ -39,7 +39,7 @@ end
 xlim([0.9 length(sigDrez)+0.1]);
 ylim([0 1]);
 
-set(gca, 'TickDir', 'out');
+set(gca, 'TickDir', 'out', 'Xtick', 0:1:10);
 xlabel('Blocks');
 ylabel('Rate');
 title(plotTitle);

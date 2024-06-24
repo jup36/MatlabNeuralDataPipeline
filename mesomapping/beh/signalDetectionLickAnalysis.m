@@ -2,9 +2,14 @@ function drez = signalDetectionLickAnalysis(tbytDat, trRwdI, trPnsI)
 %trRwdI = var.stimopts.rewarded_stim; %
 %trPnsI = var.stimopts.punished_stim;
 
+cueDur = nanmean(cell2mat(cellfun(@(a, b) a-b, {tbytDat(:).evtOff}, {tbytDat(:).evtOn}, 'UniformOutput', false))); 
+lickTimeC = cellfun(@(a, b) a-b, {tbytDat(:).Lick}, {tbytDat(:).evtOn}, 'UniformOutput', false); 
+valLickI = cell2mat(cellfun(@(a) ~isempty(a>cueDur), lickTimeC, 'UniformOutput', false)); 
+
+
 % classify trials
-rewarded = cell2mat(cellfun(@(a) ~isempty(a), {tbytDat.water}, 'un', 0));
-punished = cell2mat(cellfun(@(a) ~isempty(a), {tbytDat.airpuff}, 'un', 0));
+rewarded = valLickI(:) & trRwdI(:);
+punished = valLickI(:) & trPnsI(:);
 
 % compute overall hit, miss, fa, cr rates
 rawHitRate = sum(rewarded(:) & trRwdI(:))/sum(trRwdI); % raw hit rate

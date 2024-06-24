@@ -25,6 +25,7 @@ end
 ftI = frameT >= min(tF) & frameT <= max(tF);
 dffsOnTf = dffs(ftI);
 frameTOnTf = frameT(ftI);
+
 % Interpolate
 dffsOnTfItp = interp1(frameTOnTf, dffsOnTf, tF, 'linear', 'extrap');
 

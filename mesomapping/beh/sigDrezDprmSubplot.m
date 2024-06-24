@@ -16,9 +16,9 @@ if isfield(sigDrez{1}, 'dprime')
 end
 
 xlim([0.9 length(sigDrez)+0.1]);
-ylim([0 3]);
+ylim([0 max(3, max(dprime)+0.1)]);
 
-set(gca, 'TickDir', 'out');
+set(gca, 'TickDir', 'out', 'XTick', 1:1:10);
 xlabel('Blocks');
 ylabel('Rate');
 title(plotTitle);

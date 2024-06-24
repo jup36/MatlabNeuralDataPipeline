@@ -3,7 +3,7 @@
     % First lick latency across blocks
     blocks = divideTrials(length(tbytDat), 3, 10, 10);
 
-    lickTimeC = cellfun(@(a, b) a-b, {tbytDat.Lick}, {tbytDat.stimOn}, 'un', 0);
+    lickTimeC = cellfun(@(a, b) a-b, {tbytDat.Lick}, {tbytDat.evtOn}, 'un', 0);
 
     lickTimeCueC = cellfun(@(a) a(a>=cueWin(1) & a<=cueWin(2)), lickTimeC, 'UniformOutput', false);
 

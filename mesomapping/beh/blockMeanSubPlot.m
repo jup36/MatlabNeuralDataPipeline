@@ -39,7 +39,7 @@ ylim([minY - yMargin, maxY + yMargin]);
 % Set TickDir to 'out', YTick to have six ticks, and YTickLabels with one decimal point
 xTicks = 1:length(blockMeanC{i});
 yTicks = linspace(minY - yMargin, maxY + yMargin, 6);
-yTickLabels = arrayfun(@(x) sprintf('%.1f', x), yTicks, 'UniformOutput', false);
+yTickLabels = arrayfun(@(x) sprintf('%.2f', x), yTicks, 'UniformOutput', false);
 
 set(gca, 'TickDir', 'out', 'XTick', xTicks, 'YTick', yTicks, 'YTickLabel', yTickLabels) 
 

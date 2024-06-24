@@ -89,7 +89,7 @@ function gpfaEngine(seqTrain, seqTest, fname, varargin)
       seqTest = cosmoother_gpfa_viaOrth(seqTest, estParams, 1:xDim);
     end
     % Compute log-likelihood of test data
-    [blah, LLtest] = exactInferenceWithLL(seqTest, estParams);
+    [blah, LLtest] = exactInferenceWithLL(seqTest, estParams);RKERN
   end
   
   % =============
