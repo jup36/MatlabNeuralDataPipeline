@@ -121,7 +121,6 @@ for t = 1:size(jkvt,2)
     % get spike time bins and binned spike count matrices
     ss(t).spkTimeBins = ss(t).timeAlign + (spkBin(1):binSize:spkBin(end-1));
     %spkTime1msBins = ss(t).timeAlign + (spkBin(1):spkBin(end-1));
-
     if exist('spkTimesCellCTX')==1
         ss(t).unitTimeBCtx = psthBINcellPerTrial(spkTimesCellCTX, ss(t).timeAlign, binSize, [abs(spkBin(1)) abs(spkBin(end))]); % binned spikeCounts aligned to this trial
     end
@@ -134,6 +133,7 @@ for t = 1:size(jkvt,2)
 
     % align to laserOn, pLaserOn, or reachPrep (2s reach preparatory period)
     if ~isnan(jkvt(t).stimLaserOn) % stim trial
+        ss(t).spkTimeBinsStimLaserOn = jkvt(t).stimLaserOn + (0:binSize:3000-binSize);
         % select trials that had laser on for at least 2 sec
         if jkvt(t).stimLaserOff - jkvt(t).stimLaserOn > 3000
             if exist('spkTimesCellCTX')==1
@@ -153,8 +153,8 @@ for t = 1:size(jkvt,2)
 %             takePstimTrI = true;
 %         end
         takePstimTrI = ~trI.toI(t); 
-
         if takePstimTrI
+            ss(t).spkTimeBinsPstimLaserOn = jkvt(t).pLaserOn + (0:binSize:3000-binSize);
             if exist('spkTimesCellCTX')==1
                 ss(t).utbCtxPstimAlign = psthBINcellPerTrial(spkTimesCellCTX, jkvt(t).pLaserOn, binSize, [0 3000]); % binned spikeCounts aligned to this trial
             end
@@ -168,6 +168,7 @@ for t = 1:size(jkvt,2)
 
         if ~isempty(jkvt(t).rStartToPull) % align to pre-reach (right before reach start)
             prepStart = jkvt(t).rStartToPull-3000; 
+            ss(t).spkTimeBinsPrep = prepStart + (0:binSize:3000-binSize);  
             if exist('spkTimesCellCTX')==1
                 ss(t).utbCtxPrepAlign = psthBINcellPerTrial(spkTimesCellCTX, prepStart, binSize, [0 3000]); % binned spikeCounts aligned to this trial
             end
@@ -304,7 +305,7 @@ if isfield(ss, 'blNumber')
     save(fullfile(filePath, strcat('blockNums', '_', saveName)), 'ss_blNumbs')
 end
 
-save(fullfile(filePath, strcat('js2p0_tbytSpkHandJsTrjBin_50ms_stimPstimPrepExtWoTo_',saveName)),'ss','jkvt','spkTimesCell*','depth*')
+save(fullfile(filePath, strcat('js2p0_tbytSpkHandJsTrjBin_50ms_stimPstimPrepExtWoTo_GPFA_',saveName)),'ss','jkvt','spkTimesCell*','depth*')
 
 % save(fullfile(filePath,strcat('js2p0_tbytSpkHandJsTrjBin_',saveName)),'depthCtx','depthStr','-append')
 % save(fullfile('/Users/parkj/Dropbox (HHMI)/j2p0_dataShare/js2p0_tbytSpkHandJsTrjBin_WR40_081919.mat'),'depthCtx','depthStr','-append')
