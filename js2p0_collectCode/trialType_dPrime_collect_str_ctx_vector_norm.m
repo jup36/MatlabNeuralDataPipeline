@@ -281,7 +281,8 @@ for tt = 1:8 % trial types counter-clockwise from left-low
 end
 hold off
 %print(fullfile('/Volumes/Extreme SSD/js2p0/collectData/collectFigure','dPrime_Ctx_vec_norm_proportionPie'),'-dpdf','-painters')
-dPrmType_Ctx_distribution = cell2mat(cellfun(@(a) size(a,1), dPrmTtC_ctx, 'un', 0))./ttNumbCtx;
+dPrmType_Ctx_distribution = cell2mat(cellfun(@(a) size(a,1), dPrmTtC_ctx, 'un', 0)); 
+dPrmType_Ctx_distribution_proportion = cell2mat(cellfun(@(a) size(a,1), dPrmTtC_ctx, 'un', 0))./ttNumbCtx;
 
 
 figure(6); hold on;
@@ -306,9 +307,19 @@ for tt = 1:8 % trial types counter-clockwise from left-low
 end
 hold off
 %print(fullfile('/Volumes/Extreme SSD/js2p0/collectData/collectFigure','dPrime_Str_vec_norm_proportionPie'),'-dpdf','-painters')
-dPrmType_Str_distribution = cell2mat(cellfun(@(a) size(a,1), dPrmTtC_str, 'un', 0))./ttNumbStr;
+dPrmType_Str_distribution = cell2mat(cellfun(@(a) size(a,1), dPrmTtC_str, 'un', 0)); 
+dPrmType_Str_distribution_proportion = cell2mat(cellfun(@(a) size(a,1), dPrmTtC_str, 'un', 0))./ttNumbStr;
 
 %save(fullfile('/Volumes/Extreme SSD/js2p0/collectData','dPrime_CtxStr_vec_norm_collectRez'),'dPrmTtC_str','dPrmTtC_ctx','dPrmTtC','-append')
+
+%% Contingency table - encoding neuron distribution across 8 groups
+[fisher.pureLoad.pVal, fisher.pureLoad.stat] = fisherExactTestTwoDistributions(dPrmType_Ctx_distribution, dPrmType_Str_distribution, [4, 8]); 
+[fisher.pureDir.pVal, fisher.pureDir.stat] = fisherExactTestTwoDistributions(dPrmType_Ctx_distribution, dPrmType_Str_distribution, [2, 6]); 
+[fisher.mixed.pVal, fisher.mixed.stat] = fisherExactTestTwoDistributions(dPrmType_Ctx_distribution, dPrmType_Str_distribution, [1, 3, 5, 7]); 
+
+[chi.pureLoad.pVal, chi.pureLoad.stat, chi.pureLoad.df] = chiSquareTestTwoDistributions(dPrmType_Ctx_distribution, dPrmType_Str_distribution, [4, 8]); 
+[chi.pureDir.pVal, chi.pureDir.stat, chi.pureDir.df] = chiSquareTestTwoDistributions(dPrmType_Ctx_distribution, dPrmType_Str_distribution, [2, 6]); 
+[chi.mixed.pVal, chi.mixed.stat, chi.mixed.df] = chiSquareTestTwoDistributions(dPrmType_Ctx_distribution, dPrmType_Str_distribution, [1, 3, 5, 7]); 
 
 %% plot representative dPrm trajectories
 plot2d = @(m)plot(m(:,1), m(:,2)); 
