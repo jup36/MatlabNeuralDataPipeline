@@ -8,7 +8,7 @@ function behaviorTimestampsPP(p)
 % To convert datenum to datetime use, datetime(vFronFileStartDatenum(tempVFronI),'ConvertFrom','datenum')
 
 cd(p.Results.filePath)
-% 
+
 % check the folder whether there's rez file already
 if ~isempty(dir(fullfile(p.Results.filePath,'BehVariablesPP.mat'))) % if the BehVariablesPP.mat file already exists in the filePath
     answer = questdlg('BehVariablesPP.mat already exists, Would you like to replace it?','Choice','Replace','Cancel','Cancel');
@@ -39,96 +39,149 @@ if ~isempty(dir(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat'))) && p.R
     load(fullfile(p.Results.filePath,'gainCorrectRawTraces.mat')) % if there are gaincorrectedrawtraces already saved, just load them
 else
     % Specify the relevant behavioral channel numbers
-    cmosExpCh    = channels{1}+p.Results.cmosExpCh;   % ai0
-    cmosTrigCh   = channels{1}+p.Results.cmosTrigCh;  % ai1
-    speakerCh    = channels{1}+p.Results.speakerCh;   % ai3
-    lickCh       = channels{1}+p.Results.lickCh;      % ai4
-    lick2Ch      = channels{1}+p.Results.lick2Ch;     % ai6
-    bodyCamCh    = channels{1}+p.Results.bodyCamCh;   % ai5
-    faceCamCh    = channels{1}+p.Results.faceCamCh;   % ai7
-    photoDiodeCh = channels{1}+p.Results.photoDiodeCh; % ai14
-    digitCh       = channels{1}+p.Results.digitCh;     % 17 when there are 16 analog inputs recorded
+    cmosTrigCh   = channels{1}+p.Results.cmosTrigCh;  % ai0
+    faceCamCh    = channels{1}+p.Results.faceCamCh;   % ai1
+    speakerCh    = channels{1}+p.Results.speakerCh;   % ai2
+    treadMillCh  = channels{1}+p.Results.treadMillCh; % ai4
+    sideGreenCh  = channels{1}+p.Results.sideGreenCh; % ai6
+    topRedCh     = channels{1}+p.Results.topRedCh;    % ai7
+
+    digitCh      = channels{1}+p.Results.digitCh;     % 9 when there are 8 analog inputs recorded
 
     % preallocate the behavioral data arrays
-    cmosExp    = zeros(1,floor(totalTimeSecs*nSamp));
-    cmosTrig  = zeros(1,floor(totalTimeSecs*nSamp));
-    speaker    = zeros(1,floor(totalTimeSecs*nSamp));
-    lick       = zeros(1,floor(totalTimeSecs*nSamp));
-    lick2      = zeros(1,floor(totalTimeSecs*nSamp));
-    bodyCam    = zeros(1,floor(totalTimeSecs*nSamp));
+    cmosTrig   = zeros(1,floor(totalTimeSecs*nSamp));
     faceCam    = zeros(1,floor(totalTimeSecs*nSamp));
-    photoDiode = zeros(1,floor(totalTimeSecs*nSamp));
+    speaker    = zeros(1,floor(totalTimeSecs*nSamp));
+    treadMill  = zeros(1,floor(totalTimeSecs*nSamp));
+    sideGreen  = zeros(1,floor(totalTimeSecs*nSamp));
+    topRed     = zeros(1,floor(totalTimeSecs*nSamp));
+
     digit      = zeros(1,floor(totalTimeSecs*nSamp));
 
     for i = 0:totalTimeSecs-1 % read second-by-second incrementally to avoid a memory issue
         start = floor(i * nSamp);
         last  = floor((i+1) * nSamp);
 
-        tempDataArray   = ReadBin(start, nSamp, meta, binName, p.Results.filePath); % read bin data for each second
-        tempCmosExp     = tempDataArray(cmosExpCh, :);    
-        tempCmosTrig    = tempDataArray(cmosTrigCh, :); 
-        tempSpeaker     = tempDataArray(speakerCh, :);    
-        tempLick        = tempDataArray(lickCh, :);       
-        tempLick2       = tempDataArray(lick2Ch, :);     
-        tempBodyCam     = tempDataArray(bodyCamCh, :);    
-        tempFaceCam     = tempDataArray(faceCamCh, :);    
-        tempPhotoDiode  = tempDataArray(photoDiodeCh, :); 
-        tempDigit       = tempDataArray(digitCh, :); 
+        tempDataArray = ReadBin(start, nSamp, meta, binName, p.Results.filePath); % read bin data for each second
+        tempCmosTrig  = tempDataArray(cmosTrigCh, :);
+        tempFaceCam   = tempDataArray(faceCamCh, :);
+        tempSpeaker   = tempDataArray(speakerCh, :);
+        tempTreadMill = tempDataArray(treadMillCh, :);
+        tempSideGreen = tempDataArray(sideGreenCh, :);
+        tempTopRed    = tempDataArray(topRedCh, :);
+        tempDigit       = tempDataArray(digitCh, :);
 
-        cmosExp(1,start+1:last)     = tempCmosExp; % accumulated the decimated data second-by-second
         cmosTrig(1,start+1:last)    = tempCmosTrig;
-        speaker(1,start+1:last)     = tempSpeaker;
-        lick(1,start+1:last)        = tempLick;
-        lick2(1,start+1:last)       = tempLick2;
-        bodyCam(1,start+1:last)     = tempBodyCam;
         faceCam(1,start+1:last)     = tempFaceCam;
-        photoDiode(1,start+1:last)  = tempPhotoDiode;
-        digit(1, start+1:last)      = tempDigit; 
+        speaker(1,start+1:last)     = tempSpeaker;
+        treadMill(1,start+1:last)   = tempTreadMill;
+        sideGreen(1,start+1:last)   = tempSideGreen;
+        topRed(1,start+1:last)      = tempTopRed;
+        digit(1, start+1:last)      = tempDigit;
         fprintf('processed %d\n', i+1)
     end
     clearvars i
-    
-    %digitBin = dec2bin(digit);
-    %water = str2num(digitBin(:, 1)); %'str2double' doesn't work here! 
-    %airpuff = str2num(digitBin(:, 2)); 
-    
-    % note that the water strobe is connected to p0.2, and the airpuff
-    % strobe is connected to p0.1. As the airpuff channel comes first
-    % ordinally, it's counterintuitive that water is assigned to be '2' and
-    % the airpuff is assigned to be '4'. (That said, it happens to be the case.)  
-    digit_norm = digit - mode(digit); 
-    digit_norm(digit_norm<0)=0; % replace negative values, a rare artifact, with 0. 
-    
-    if size(unique(digit_norm),2)==3 % p0.1 -> 2^1, p0.2 -> 2^2, others -> zero
-      water = digit_norm==2;   % p0.2 -> 2^2
-      airpuff = digit_norm==4; % p0.1 -> 2^1
-    elseif size(unique(digit_norm),2)==2 % most likely, p0.2 -> 2^1, others -> zero
-      water = digit_norm==2;   % p0.2 -> 2^2
-      airpuff=[];
-    elseif size(unique(digit_norm),2)==1 % most likely, no digital input used
-      water = []; 
-      airpuff = []; 
-    else
-        error("Digit channels have an unknown input(s) or artifact(s)!"); 
-    end
 
-%     figure; hold on; 
-%     plot(water); 
-%     plot(airpuff); 
-% 
-    % Gain correction for analog channnels 
-    cmosExp     = GainCorrectNI(cmosExp, 1, meta);      
-    cmosTrig    = GainCorrectNI(cmosTrig, 1, meta); 
-    speaker     = GainCorrectNI(speaker, 1, meta);   
-    lick        = GainCorrectNI(lick, 1, meta);   
-    lick2       = GainCorrectNI(lick2, 1, meta);  
-    bodyCam     = GainCorrectNI(bodyCam, 1, meta);
+    % parse digits
+    digit_norm = digit - mode(digit);
+    digit_norm(digit_norm<0)=0; % replace negative values, a rare artifact, with 0.
+
+    digitC = digit_decompose(digit_norm, nSamp);
+    fprintf("Finished parsing digital channels!\n")
+
+    water = digitC{1,1};
+    airpuff = digitC{2,1};
+    blueLED = digitC{3,1};
+    limeLED = digitC{4,1};
+    greenLED = digitC{5,1};
+    redLED = digitC{6,1};
+    lick = digitC{7,1};
+    manualWater = digitC{8,1};
+
+    % Gain correction for analog channnels
+    cmosTrig    = GainCorrectNI(cmosTrig, 1, meta);
     faceCam     = GainCorrectNI(faceCam, 1, meta);
-    photoDiode  = GainCorrectNI(photoDiode, 1, meta);
+    speaker     = GainCorrectNI(speaker, 1, meta);
+    treadMill   = GainCorrectNI(treadMill, 1, meta);
+    sideGreen   = GainCorrectNI(sideGreen, 1, meta);
+    topRed      = GainCorrectNI(topRed, 1, meta);
+
     clearvars temp*
-    save(fullfile(p.Results.filePath, 'gainCorrectRawTraces'), 'meta', 'cmosExp', 'cmosTrig', 'speaker', 'lick', 'lick2', ...
-        'bodyCam', 'faceCam', 'photoDiode', 'digit', 'water', 'airpuff')
+    save(fullfile(p.Results.filePath, 'gainCorrectRawTraces'), 'meta', ...
+        'cmosTrig', 'faceCam', 'speaker', 'treadMill', 'topRed', 'sideGreen', ...
+        'digit_norm', 'water', 'airpuff', 'blueLED', 'limeLED', 'greenLED', 'redLED', ...
+        'lick', 'manualWater');
 end
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % This function parses the data stream in the digit channel
+    function [out_timeseries] = digit_decompose(digit_norm, nSamp)
+        % Decompose a time series with sums of 2^0, 2^1, ..., 2^7 into 8 time series
+        % and filter out values that last shorter than nSamp/10.
+        % Inputs:
+        %   digit_norm - input time series (vector)
+        %   nSamp - sampling rate
+        % Outputs:
+        %   out_timeseries - cell array of 8 time series vectors (binary), where each
+        %                    indicates the presence of each respective power of 2.
+
+        % Define the minimum duration (in samples) that a value must last
+        min_duration = round(nSamp / 200); % to cutoff short noises that last less than 5ms
+
+        % Initialize a filtered version of digit_norm
+        digit_filtered = digit_norm;
+
+        % Find changes in the input time series
+        changes = [1, find(diff(digit_norm) ~= 0) + 1, length(digit_norm) + 1];
+
+        % Filter out any segment that lasts shorter than min_duration
+        for ii = 1:(length(changes) - 1)
+            segment_start = changes(ii);
+            segment_end = changes(ii+1) - 1;
+            if (segment_end - segment_start + 1) < min_duration
+                % Set the values of this short segment to 0 (treated as noise)
+                digit_filtered(segment_start:segment_end) = 0;
+            end
+        end
+
+        % Define the 8 powers of 2 (2^0, 2^1, ..., 2^7)
+        powers_of_2 = 2.^(0:7);
+
+        % Initialize output timeseries as a matrix with 8 rows (one for each power of 2)
+        out_timeseries = zeros(8, length(digit_filtered));
+
+        % Iterate only at change points
+        for ii = 1:(length(changes) - 1)
+            segment_start = changes(ii);
+            segment_end = changes(ii+1) - 1;
+            value = digit_filtered(segment_start);
+
+            if value == 0
+                % If value is zero, all powers of 2 are zero
+                current_decomposition = zeros(8, 1);
+            elseif all(ismember(dec2bin(value), ['0', '1'])) && value >= 0 && value < 256
+                % Decompose the value only if it's valid
+                current_decomposition = bitand(value, powers_of_2) ~= 0;
+            else
+                % Treat it as noise, skip decomposition
+                current_decomposition = zeros(8, 1);
+            end
+
+            % Assign the current decomposition to the timeseries for the current segment
+            for t = segment_start:segment_end
+                if t == segment_start
+                    % For the first point in the segment, use current decomposition
+                    out_timeseries(:, t) = current_decomposition;
+                else
+                    % For subsequent points in the segment, inherit the previous values
+                    out_timeseries(:, t) = out_timeseries(:, t-1);
+                end
+            end
+        end
+
+        % Convert the output matrix to a cell array with 8 separate timeseries
+        out_timeseries = mat2cell(out_timeseries, ones(1,8), length(digit_filtered));
+    end
 
 
 end

@@ -135,7 +135,7 @@ while ~userSatisfied
         mkdir(fullfile(filePath, 'Figure'))
     end
 
-    if p.Results.plotRez
+    %if p.Results.plotRez
         f = figure; hold on;
         plot(timeseries);
         plot(corrFallTS, ones(1, length(corrFallTS)) .* thresTS, '*r');
@@ -157,7 +157,7 @@ while ~userSatisfied
             'MenuBar', 'none', 'Name', 'User Input', 'NumberTitle', 'off', 'WindowStyle', 'normal');
 
         uicontrol('Style', 'text', 'String', 'Do you accept the pulse detection result?', ...
-            'Position', [15, 140, 270, 30], 'HorizontalAlignment', 'center', 'FontName', 'Arial', 'FontSize', 12);
+            'Position', [15, 110, 270, 50], 'HorizontalAlignment', 'center', 'FontName', 'Arial', 'FontSize', 12);
 
         numEvents = length(corrRiseTS); 
 
@@ -168,17 +168,17 @@ while ~userSatisfied
 
         % "Yes" button callback using a function handle
         yesCallback = @(src,event) dealWithYesButton(src);
-        uicontrol('Style', 'pushbutton', 'String', 'Yes', 'Position', [45, 110, 100, 40], 'Callback', yesCallback);
+        uicontrol('Style', 'pushbutton', 'String', 'Yes', 'Position', [45, 80, 90, 30], 'Callback', yesCallback);
 
         % "No" button callback
         stdFactorLabel = uicontrol('Style', 'text', 'String', 'Input the new StdFactor:', ...
-            'Position', [15, 80, 270, 20], 'HorizontalAlignment', 'center', 'FontSize', 12, 'Visible', 'off');
-        stdFactorField = uicontrol('Style', 'edit', 'Position', [100, 60, 100, 25], 'Visible', 'off');
-        submitButton = uicontrol('Style', 'pushbutton', 'String', 'Submit', 'Position', [200, 60, 80, 25], ...
+            'Position', [15, 50, 270, 20], 'HorizontalAlignment', 'center', 'FontSize', 12, 'Visible', 'off');
+        stdFactorField = uicontrol('Style', 'edit', 'Position', [100, 20, 100, 25], 'Visible', 'off');
+        submitButton = uicontrol('Style', 'pushbutton', 'String', 'Submit', 'Position', [200, 20, 80, 25], ...
             'Callback', @(src,event) dealWithSubmitButton(src, stdFactorField), 'Visible', 'off');
 
         noCallback = @(src,event) dealWithNoButton(src, stdFactorLabel, stdFactorField, submitButton);
-        uicontrol('Style', 'pushbutton', 'String', 'No', 'Position', [155, 110, 100, 40], 'Callback', noCallback);
+        uicontrol('Style', 'pushbutton', 'String', 'No', 'Position', [155, 80, 90, 30], 'Callback', noCallback);
 
         set(uf, 'UserData', struct('buttonPressed', 'none', 'stdFactorValue', NaN));
         uiwait(uf);
@@ -199,7 +199,7 @@ while ~userSatisfied
             end
             fprintf('Redetecting events with the new stdFactor (threshold)!\n')
         end
-    end
+    %end
 end % end of while loop
 
 %Save the figure to the 'Figure' directory in the specified filePath

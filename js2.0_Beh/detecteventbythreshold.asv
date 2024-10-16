@@ -7,16 +7,9 @@ function [corrRiseTS, corrFallTS, pulseTrainIdx] = detecteventbythreshold(filePa
 p = parse_input_detectevent( filePath, timeseries, sampFreq, detectTimeout, saveName, varargin ); % parse input
 %p = parse_input_detectevent( timeseries, sampFreq, detectTimeout, varargin ); % parse input
 
-% if p.Results.filterArtifact
-%     [b, a] = butter(4, p.Results.lowpassCutoff/(p.Results.sigFreq/2), 'low'); % 4th order Butterworth high-pass
-%     timeseries = filter(b, a, timeseries);
-% end
-
 if p.Results.filterArtifact
-    timeseries = timeseries-min(timeseries);
-    [b, a] = butter(4, p.Results.lowpassCutoff/p.Results.nyquist, 'low'); % 4th order Butterworth high-pass
-    filtered_timeseries = filter(b, a, timeseries);
-    timeseries = timeseries-filtered_timeseries;
+    [b, a] = butter(4, p.Results.lowpassCutoff/(p.Results.sigFreq/2), 'low'); % 4th order Butterworth high-pass
+    timeseries = filter(b, a, timeseries);
 end
 
 if p.Results.useAudioConvolution
@@ -111,7 +104,7 @@ if p.Results.plotRez
     if exist(fullfile(filePath, 'Figure'), 'dir') ~= 7
         mkdir(fullfile(filePath, 'Figure'))
     end
-    savefig(f, fullfile(filePath, 'Figure', [p.Results.saveName, '.fig']));
+    savefig(f, fullfile(filePath, 'Figure', [p.Results.saveName, '.fig'])); 
     %print(f, fullfile(filePath, 'Figure', [p.Results.saveName]));
     close(f)
 end
@@ -123,8 +116,8 @@ end
         default_plotRez = false;        % boolean for plotting
         default_chunkPulses = true;     % boolean for pulse chunking to get trial-by-trial pulses
         default_chunkInterval = 1000;   % interval by which chunking pulses (in ms)
-        default_detectLater = 0;        % detect events later than a certain timepoint to prevent detection of premature events
-        default_detectEarlier = 0; % detect events earlier than a certain timepoint to preclude late events
+        default_detectLater = 1;        % detect events later than a certain timepoint to prevent detection of premature events
+        default_detectEarlier = length(timeseries); % detect events earlier than a certain timepoint to preclude late events
         default_correctLongPulse = false; % correct for the possible long pulses, especially in the trEnd
         default_manualthresTS = [];     % manual threshold
         default_cutoffShort = false;
@@ -135,8 +128,6 @@ end
         default_lowpassCutoff = 5;      % 5Hz
         default_nyquist = 100;          % the frequency of the main signal to be detected (e.g., faceCam pulses are 200Hz)
         default_removeOffTrainPulses = false; % to remove lone artifact pulses outside of the train pulses
-        default_useAudioConvolution = false; % to use convolution to facilitate precise detection of tones
-        default_freqForConvolution = [1000, 5000]; % frequency to be used for convolution and detection (these are the low frequency components of the two tone)
 
         p = inputParser; % create parser object
         addRequired(p,'filePath')

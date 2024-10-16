@@ -1,0 +1,7 @@
+function runBehaviorTimestampsPP(filePath) 
+%filePath = ''; 
+
+p = parse_input_PP(filePath, {});
+behaviorTimestampsPP(p);
+
+end

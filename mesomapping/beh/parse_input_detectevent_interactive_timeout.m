@@ -17,7 +17,7 @@ function p = parse_input_detectevent_interactive_timeout(filePath, timeseries, s
         default_nyquist = 100;          % the frequency of the main signal to be detected (e.g., faceCam pulses are 200Hz)
         default_removeOffTrainPulses = false; % to remove lone artifact pulses outside of the train pulses
         default_useAudioConvolution = false; % to use convolution to facilitate precise detection of tones
-        default_freqForConvolution = [2093, 3951]; % frequency to be used for convolution and detection (these are the low frequency components of each tone)
+        default_freqForConvolution = [1000, 5000]; % frequency to be used for convolution and detection (these are the low frequency components of each tone)
 
         p = inputParser; % create parser object
         addRequired(p,'filePath')
