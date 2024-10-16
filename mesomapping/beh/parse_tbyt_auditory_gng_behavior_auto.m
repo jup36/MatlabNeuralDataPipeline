@@ -1,4 +1,4 @@
-function parse_tbyt_auditory_gng_behavior(filePath, varargin)
+function parse_tbyt_auditory_gng_behavior_auto(filePath, varargin)
 % filePath = '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA017/DA017_041624';
 % varargin = {'preToneWin', 1, 'postToneWin', 4}
 
@@ -17,7 +17,7 @@ end
 filePath_nidq = filePath_nidq{1}; % just take the path
  
 %% Load evtInS or create one
-evtInS = timestamp_behav_events(filePath_nidq, false, 'cmosTrig', 'faceCam', 'speaker', ...
+evtInS = timestamp_behav_events_auto(filePath_nidq, false, 'cmosTrig', 'faceCam', 'speaker', ...
     'treadMill', 'topRed', 'sideGreen', 'water', 'airpuff', ...
     'blueLED', 'limeLED', 'greenLED', 'redLED', 'lick', 'manualWater'); % behavioral events
 

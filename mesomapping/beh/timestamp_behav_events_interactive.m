@@ -1,4 +1,4 @@
-function evtInS = timestamp_behav_events(path_raw, redetect_logic, varargin)
+function evtInS = timestamp_behav_events_interactive(path_raw, redetect_logic, varargin)
 %This function takes the number of behavioral variables as varargin and
 % gets the timestamps (in sec) of the variables and saves them as a
 % structure named evtInS in the files origianl nidq directory.
