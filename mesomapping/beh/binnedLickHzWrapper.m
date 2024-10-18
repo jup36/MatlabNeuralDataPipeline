@@ -154,10 +154,11 @@ end
         for i = 1:numTrials
             % Bin the lick timestamps for the trial
             binCounts = histc(timeStampC{i}, binEdges);
-
-            % Exclude the last bin
-            binCounts = binCounts(1:end-1);
-            binCountsTrials(i, :) = binCounts;
+            if ~isempty(binCounts)
+                % Exclude the last bin
+                binCounts = binCounts(1:end-1);
+                binCountsTrials(i, :) = binCounts;
+            end
         end
 
         % convert to Hz
