@@ -2,6 +2,13 @@ function tbytDat = parseAuditoryGngTrials(tbytDat)
 
 tbytDat = tbytDatRewardPunishI(tbytDat);
 
+%lickRelToToneOn = cellfun(@(a, b) a-b, {tbytDat.Lick}, {tbytDat.evtOn}, 'UniformOutput', false); 
+lickRelToToneOff = cellfun(@(a, b) a-b, {tbytDat.Lick}, {tbytDat.evtOff}, 'UniformOutput', false); 
+
+% take the valid licks that belong to the trial 
+valLickC = cellfun(@(a, b) a(b>0 & b<4), {tbytDat.Lick}, lickRelToToneOff, 'UniformOutput', false); 
+[tbytDat.Lick] = deal(valLickC{:});
+
 chunkCutoff = 0.4; % 0.4 s licks that occur within this cutoff from one another are chunked together
 for tt = 1:length(tbytDat)
     if ~isempty(tbytDat(tt).Lick)

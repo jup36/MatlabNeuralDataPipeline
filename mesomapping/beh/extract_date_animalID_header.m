@@ -6,9 +6,10 @@ function header = extract_date_animalID_header(filepath)
     % Output:
     %   header - the extracted string 'preceding_string_6digit_date'
     
-    % Define the regex pattern: look for '\anyString_6digit' pattern
-    pattern = '[\\]([a-zA-Z0-9]+_[0-9]{6})[\\]';
-    
+    % Define the regex pattern: look for either '\' or '/' followed by
+    % 'anyString_6digit', accounting for both Windows and Mac path separators.
+    pattern = '[\\/](\w+_[0-9]{6})[\\/]';
+
     % Use the regexp function to search and return the matched string
     match = regexp(filepath, pattern, 'tokens');
     
@@ -19,3 +20,4 @@ function header = extract_date_animalID_header(filepath)
         header = ''; % Return an empty string if no match is found
     end
 end
+
