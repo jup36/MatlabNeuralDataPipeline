@@ -9,7 +9,7 @@ if exist(figSaveDir, 'dir')==0
     mkdir(figSaveDir)
 end
 
-for f = 2:length(filePaths)    
+for f = 1:length(filePaths)    
     [~, mID] = fileparts(filePaths{f});
 
     % prepare colormaps

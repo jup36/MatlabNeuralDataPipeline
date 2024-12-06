@@ -55,9 +55,11 @@ for fr = 1:size(csvTable, 1)
 
     if length(X) > 5 && length(Y) > 5
         ellipse_fit = fit_ellipse(X, Y);
-        ellipse_center(fr, 1) = ellipse_fit.X0_in * pixelToMmRatio; 
-        ellipse_center(fr, 2) = ellipse_fit.Y0_in * pixelToMmRatio;  
-        ellipse_area(fr) = ellipse_fit.long_axis * ellipse_fit.short_axis * pi * pixelToMmRatio^2;
+        if isempty(ellipse_fit.status)
+            ellipse_center(fr, 1) = ellipse_fit.X0_in * pixelToMmRatio; 
+            ellipse_center(fr, 2) = ellipse_fit.Y0_in * pixelToMmRatio;  
+            ellipse_area(fr) = ellipse_fit.long_axis * ellipse_fit.short_axis * pi * pixelToMmRatio^2;
+        end
     end
 end
 

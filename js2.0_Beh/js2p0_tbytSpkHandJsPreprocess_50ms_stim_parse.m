@@ -192,8 +192,8 @@ ctx_base_std = nanstd(full(cell2mat(cellfun(@(a) a(:, 1:19), {ss.unitTimeBCtx}, 
 str_base_mean = nanmean(full(cell2mat(cellfun(@(a) a(:, 1:19), {ss.unitTimeBStr}, 'UniformOutput', false))), 2); 
 str_base_std = nanstd(full(cell2mat(cellfun(@(a) a(:, 1:19), {ss.unitTimeBStr}, 'UniformOutput', false))), 0, 2); 
 
-cg_base_mean = nanmean(full(cell2mat(cellfun(@(a) a(:, 1:19), {ss.unitTimeBCg}, 'UniformOutput', false))), 2); 
-cg_base_std = nanstd(full(cell2mat(cellfun(@(a) a(:, 1:19), {ss.unitTimeBCg}, 'UniformOutput', false))), 0, 2); 
+%cg_base_mean = nanmean(full(cell2mat(cellfun(@(a) a(:, 1:19), {ss.unitTimeBCg}, 'UniformOutput', false))), 2); 
+%cg_base_std = nanstd(full(cell2mat(cellfun(@(a) a(:, 1:19), {ss.unitTimeBCg}, 'UniformOutput', false))), 0, 2); 
 
 for t = 1:length(ss)
     if ~isempty(ss(t).utbCtxStimAlign)

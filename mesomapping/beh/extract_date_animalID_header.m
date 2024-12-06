@@ -8,7 +8,8 @@ function header = extract_date_animalID_header(filepath)
     
     % Define the regex pattern: look for either '\' or '/' followed by
     % 'anyString_6digit', accounting for both Windows and Mac path separators.
-    pattern = '[\\/](\w+_[0-9]{6})[\\/]';
+    pattern = '[\\/](\w+_[0-9]{6})';
+    %pattern = '[\\/](\w+_[0-9]{6})[\\/]';
 
     % Use the regexp function to search and return the matched string
     match = regexp(filepath, pattern, 'tokens');

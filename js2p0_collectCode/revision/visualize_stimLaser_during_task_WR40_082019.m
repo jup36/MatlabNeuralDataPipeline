@@ -1,5 +1,4 @@
 % For visualization, this needs to be run first: js2p0_tbytSpkHandJsPreprocess_50ms_stim_parse(filePath)
-
 filePath = '/Volumes/Extreme SSD/js2p0/WR40_082019/Matfiles'; 
 load(fullfile(filePath, strcat('js2p0_tbytSpkHandJsTrjBin_50ms_stimParse_', 'WR40_082019')),'ss', 'jkvt'); 
 load(fullfile('/Volumes/Extreme SSD/js2p0/collectData', 'js2p0_behavior_stat_rez_inactivation.mat'), 'rezCol', 'rez', 'stat', 'trI') 

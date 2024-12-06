@@ -1,16 +1,30 @@
-function [ meanmat, stdmat, semmat ] = meanstdsem( inputmat )
-%This function receives a single or multiple column(s), and returns mean,
-% std, and sem of each column vector.  
+function [meanmat, stdmat, semmat] = meanstdsem(inputmat)
+% This function computes the mean, standard deviation, and standard error
+% of the mean (SEM) for each column of the input matrix.
+% 
+% INPUT:
+%   inputmat: A matrix where statistics are calculated column-wise.
+%
+% OUTPUT:
+%   meanmat: Row vector containing the mean of each column.
+%   stdmat: Row vector containing the standard deviation of each column.
+%   semmat: Row vector containing the SEM of each column.
 
-numbcol = size(inputmat,2);     % # of columns 
-meanmat = nanmean(inputmat,1);      % get mean 
-stdmat = nanstd(inputmat,0,1);      % get std
+% Calculate the number of columns
+numbcol = size(inputmat, 2);     
 
-for i = 1:numbcol
-    nmat(1,i) = size(find(isnan(inputmat(:,i))==0),1);      % get the valid # of elements
+% Compute the mean of each column, ignoring NaNs
+meanmat = nanmean(inputmat, 1);     
+
+% Compute the standard deviation of each column, ignoring NaNs
+stdmat = nanstd(inputmat, 0, 1);     
+
+% Count the valid (non-NaN) elements in each column
+nmat = sum(~isnan(inputmat), 1);
+
+% Compute the standard error of the mean
+semmat = stdmat ./ sqrt(nmat);
+
 end
 
-semmat = stdmat./sqrt(nmat);
-
-end
 

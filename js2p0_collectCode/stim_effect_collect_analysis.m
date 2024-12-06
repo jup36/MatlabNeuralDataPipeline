@@ -12,7 +12,8 @@ filePath_delayed_cg = {'/Volumes/Extreme SSD/js2p0/WR37_022719/Matfiles', ... % 
 filePath_m1 = {'/Volumes/Extreme SSD/js2p0/WR38_050119/Matfiles', ...  % M1 silencing
                '/Volumes/Extreme SSD/js2p0/WR38_052419/Matfiles', ...  % Corticostriatal recording M1 silencing, Trj checked     
                '/Volumes/Extreme SSD/js2p0/WR40_082219/Matfiles', ...
-               '/Volumes/Extreme SSD/js2p0/WR45_030220'};     % M1 silencing
+               '/Volumes/Extreme SSD/js2p0/WR45_030220', ...
+               '/Volumes/Extreme SSD/js2p0/WR46_012520'};     % M1 silencing
 
 %% Cg stim without delay
 reach_prob.cg_no_delay.dat = nan(length(filePath_cg), 2); 
@@ -45,9 +46,12 @@ end
 [~, reach_prob.cg_with_delay.p, ~, reach_prob.cg_with_delay.stats] = ttest(reach_prob.cg_with_delay.dat(:, 1), reach_prob.cg_with_delay.dat(:, 2)); 
 reach_prob_scatter_plot(reach_prob.cg_with_delay.dat)
 %print(fullfile('/Volumes/Extreme SSD/js2p0/collectData/collectFigure', 'reach_prob_cg_with_delay'), '-painters', '-dpdf')
-    
+
 [~, reach_prob.cg_with_or_without_delay.p, ~, reach_prob.cg_with_or_without_delay.stats] = ...
     ttest([reach_prob.cg_no_delay.dat(:, 1); reach_prob.cg_with_delay.dat(:, 1)], [reach_prob.cg_no_delay.dat(:, 2); reach_prob.cg_with_delay.dat(:, 2)]); 
+
+% Wilcoxon signed-rank test (for paired data)
+[reach_prob.cg_with_or_without_delay.p_signedrank, ~, reach_prob.cg_with_or_without_delay.stats_signedrank] = signrank([reach_prob.cg_no_delay.dat(:, 1); reach_prob.cg_with_delay.dat(:, 1)], [reach_prob.cg_no_delay.dat(:, 2); reach_prob.cg_with_delay.dat(:, 2)], 'tail', 'right');
 
 reach_prob_scatter_plot([reach_prob.cg_no_delay.dat; reach_prob.cg_with_delay.dat])
 %print(fullfile('/Volumes/Extreme SSD/js2p0/collectData/collectFigure', 'reach_prob_cg_with_and_without_delay'), '-painters', '-dpdf')
@@ -65,8 +69,13 @@ end
 
 % paired t-test
 [~, reach_prob.m1.p, ~, reach_prob.m1.stats] = ttest(reach_prob.m1.dat(:, 1), reach_prob.m1.dat(:, 2)); 
+% Wilcoxon signed-rank test (for paired data)
+[reach_prob.m1.p_signedrank, ~, reach_prob.m1.stats_signedrank] = signrank(reach_prob.m1.dat(:, 1), reach_prob.m1.dat(:, 2), 'tail', 'right');
+% Wilcoxon rank-sum test (for independent data)
+%[reach_prob.m1.p_ranksum, ~, reach_prob.m1.stats_ranksum] = ranksum(reach_prob.m1.dat(:, 1), reach_prob.m1.dat(:, 2));
+
 reach_prob_scatter_plot(reach_prob.m1.dat)
-%print(fullfile('/Volumes/Extreme SSD/js2p0/collectData/collectFigure', 'reach_prob_m1'), '-painters', '-dpdf')
+%print(fullfile('/Volumes/Extreme SSD/js2p0/collectData/collectFigure', 'reach_prob_m1_updated'), '-painters', '-dpdf')
     
 %% Independent t-test between M1 vs. Cg
 reach_prob.cg_no_delay.stim_effect_size = reach_prob.cg_no_delay.dat(:, 2)-reach_prob.cg_no_delay.dat(:, 1);  
