@@ -31,6 +31,7 @@ set(gca, 'TickDir', 'out', 'XTick', 1:2:100);
 xlabel('Blocks/Sessions');
 ylabel('dPrime');
 title(plotTitle);
+pbaspect([3 1 1]); 
 hold off;
 
 % Add legend using only the scatter plot handles

@@ -1,8 +1,8 @@
 function [licksOnTf, lickBoxOnTf, dffsOnTfItp, tF] = alignDffAndLickBouts(lickBouts, dffs, frameT, timeW)
-% lickBouts = tbytDat(t).LickBoutRel;
+% lickBouts = tbytDat(1).LickChunkRel;
 % dffs = dffM1;
-% frameT = tbytDat(t).frameTrel;
-% timeW = [-0.9 5];
+% frameT = tbytDat(1).frameTrel;
+% timeW = [-5 5];
 
 % get licks on the specified time frame
 tF = timeW(1):0.001:timeW(end); % time frame
@@ -26,16 +26,8 @@ ftI = frameT >= min(tF) & frameT <= max(tF);
 dffsOnTf = dffs(ftI);
 frameTOnTf = frameT(ftI);
 
-% Define the valid range based on frameTOnTf
-validIdx = tF >= min(frameTOnTf) & tF <= max(frameTOnTf);
-
-% Curtail tF to only valid indices
-tF = tF(validIdx);
-licksOnTf = licksOnTf(validIdx); 
-lickBoxOnTf = lickBoxOnTf(validIdx); 
-
-% Perform strict interpolation (no extrapolation)
-dffsOnTfItp = interp1(frameTOnTf, dffsOnTf, tF, 'linear');
+% Interpolate
+dffsOnTfItp = interp1(frameTOnTf, dffsOnTf, tF, 'linear', 'extrap');
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     function loc = locateOnArray(array, target)

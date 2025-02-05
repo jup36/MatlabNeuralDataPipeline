@@ -1,17 +1,18 @@
 
-filePaths = {'/Volumes/buschman/Rodent Data/dualImaging_parkj/m1237_GCAMP', ...
-    '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1092_jRGECO', ...
-    '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1094_jRGECO'};
+filePaths = {'/Volumes/buschman/Rodent Data/dualImaging_parkj/m1044_jRGEGO_GRABda', ...
+    '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1045_jRGECO_GRABda', ...
+    '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1048_jRGECO_GRABda', ...
+    '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1049_jRGECO_GRABda'};
 
 % prepare colormaps
 blueShades = generateColormap([176 226 255]./255, [0 0 128]./255, 200); % for blocks
 cool = colormap('cool'); % for Go/No-Go
 pastels = slanCM('Pastel1', 7); % for sigD data
 
-redetectLogic = true;
+%redetectLogic = false; 
 
 %% Main Loop
-for f = 1:length(filePaths)
+for f = 3:length(filePaths)
     subFolders = find_keyword_folder(filePaths{f}, 'task');
     for ff = 1:length(subFolders)
         rez = struct;
@@ -30,15 +31,28 @@ for f = 1:length(filePaths)
         end
 
         filePathDat = GrabFiles_sort_trials('_tbytDat.mat', 0, {fullfile(subFolders{ff}, 'Matfiles')});
-        if ~isempty(filePathDat)
+        filePathDatParseGng = GrabFiles_sort_trials('_tbytDat_parseGng', 0, {fullfile(subFolders{ff}, 'Matfiles')});
+        if ~isempty(filePathDatParseGng) %|| redetectLogic==false
+            load(filePathDatParseGng{1}, 'tbytDat')
+        elseif ~isempty(filePathDat)
+            load(filePathDat{1}, 'tbytDat')
+            if isfield(tbytDat, 'pos_rwd_tr')
+                tbytDat = parseAuditoryGngTrials(tbytDat);
+                save(fullfile(subFolders{ff}, 'Matfiles', strcat(header, '_tbytDat_parseGng')), 'tbytDat')
+            end
+        end
+
+        if ~isempty(filePathDat) && isfield(tbytDat, 'pos_rwd_tr')
             hfig = figure;
             filePathDatParseGng = GrabFiles_sort_trials('_tbytDat_parseGng', 0, {fullfile(subFolders{ff}, 'Matfiles')});
             if ~isempty(filePathDatParseGng) || redetectLogic==false
                 load(filePathDatParseGng{1}, 'tbytDat')
             else
                  load(filePathDat{1}, 'tbytDat')
-                 tbytDat = parseAuditoryGngTrials(tbytDat);
-                 save(fullfile(subFolders{ff}, 'Matfiles', strcat(header, '_tbytDat_parseGng')), 'tbytDat')
+                 if isfield(tbytDat, 'pos_rwd_tr')
+                     tbytDat = parseAuditoryGngTrials(tbytDat);
+                     save(fullfile(subFolders{ff}, 'Matfiles', strcat(header, '_tbytDat_parseGng')), 'tbytDat')
+                 end
             end
 
             rewardTrI = [tbytDat(:).rewardTrI];

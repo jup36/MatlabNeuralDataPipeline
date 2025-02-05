@@ -9,13 +9,13 @@ filePaths = {'/Volumes/buschman/Rodent Data/dualImaging_parkj/m1045_jRGECO_GRABd
              '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1045_jRGECO_GRABda/m1045_122324/task', ...
              '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1045_jRGECO_GRABda/m1045_122424/task', ...
              };
-% filePaths = {'/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA019/DA019_041924', ...
-%              '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA019/DA019_2_042024', ...
-%              '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA019/DA019_042224', ...
-%              '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA019/DA019_042624'}; 
 
-figSaveDir = fullfile(fileparts(filePaths{1}), 'collectFigure'); 
-mID = regexp(filePaths{1}, 'DA\d{1,3}', 'match', 'once');
+figSaveDir = fullfile('/Volumes/buschman/Rodent Data/dualImaging_parkj/m1045_jRGECO_GRABda', 'collectFigure'); 
+if exist(figSaveDir, "dir")~=7
+    mkdir(figSaveDir)
+end
+
+mID = regexp(filePaths{1}, 'm\d{1,4}', 'match', 'once');
 
 % prepare colormaps
 blueShades = generateColormap([176 226 255]./255, [0 0 128]./255, 200); % for blocks
@@ -26,10 +26,10 @@ dPrmC = cell(length(filePaths), 2);
 dPrmTot = zeros(length(filePaths), 1); 
 
 %% Main Loop
-for f = 1:length(filePaths)
-    
+for f = 1:length(filePaths) 
     % load rez of LickAnalysis
-    [~, header] = fileparts(filePaths{f});
+    %[~, header] = fileparts(filePaths{f});
+    header = regexp(filePaths{f}, 'm\d{1,4}_\d{6}', 'match', 'once'); 
     load(fullfile(filePaths{f}, 'Matfiles', [header, '_LickAnalysis']), 'rez', 'var');
     
     dPrmTot(f, 1) = rez.sigD.dprime; 

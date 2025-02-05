@@ -1,19 +1,27 @@
 function [evtAlignedDffTs, evtAlignedTs] = alignToEvent(dffTs, eventTimeToAlign, frameT, timeWin)
-        
-        win = timeWin + eventTimeToAlign; 
+% NOTE: Modified the function to return outcomes even if the timeWin goes
+% out of bounds of the frame time! (2/4/2025, Junchol Park)
 
-        if min(win) >= min(frameT) && max(win) <= max(frameT)    
-          frameI = frameT >= min(win) & frameT <= max(win); 
-          evtAlignedDffTs = dffTs(frameI); 
-          evtAlignedDffTs = evtAlignedDffTs(:).'; % make it a row vector
-          evtAlignedTs = frameT(frameI);  
-          evtAlignedTs = evtAlignedTs(:).'; % make it a row vector  
-        else
-          warning("The peri-event window goes out of bound!")
-          evtAlignedDffTs = []; 
-          evtAlignedTs = []; 
-        end
-       
+win = timeWin + eventTimeToAlign;
+
+frameI = frameT >= min(win) & frameT <= max(win);
+evtAlignedDffTs = dffTs(frameI);
+evtAlignedDffTs = evtAlignedDffTs(:).'; % make it a row vector
+evtAlignedTs = frameT(frameI);
+evtAlignedTs = evtAlignedTs(:).'; % make it a row vector
+
+% if min(win) >= min(frameT) && max(win) <= max(frameT)
+%     frameI = frameT >= min(win) & frameT <= max(win);
+%     evtAlignedDffTs = dffTs(frameI);
+%     evtAlignedDffTs = evtAlignedDffTs(:).'; % make it a row vector
+%     evtAlignedTs = frameT(frameI);
+%     evtAlignedTs = evtAlignedTs(:).'; % make it a row vector
+% else
+%     warning("The peri-event window goes out of bound!")
+%     evtAlignedDffTs = [];
+%     evtAlignedTs = [];
+% end
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function [imagStackMaskedMean, imgStackMasked] = apply2DMaskTo3DStack(imgStack, mask2D)
 %     % Replicate the 2D mask to match the 3D stack dimensions
