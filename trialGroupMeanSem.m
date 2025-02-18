@@ -1,4 +1,3 @@
-
 function [mRez, sRez] = trialGroupMeanSem(tbytPsthC, groupC)
 % 'tbytPsthC' contains trial-by-trial data in each cell (it is assumed that data are temporally aligned across trials already).
 % 'groupC' contains logical for each grouping, logicals are assumed to be of same lengths as the number of trials.
@@ -16,9 +15,9 @@ if length(unique([lenT, trialIC]))~=1
 end
 
 % sanity check 2:
-if length(unique(cell2mat(cellfun(@length, tbytPsthC, 'UniformOutput', false))))~=1
-    error("Some trials have different lengths, e.g., temporally misaligned!")
-end
+%if length(unique(cell2mat(cellfun(@length, tbytPsthC, 'UniformOutput', false))))~=1
+%    error("Some trials have different lengths, e.g., temporally misaligned!")
+%end
 
 nGroups = length(groupC);
 

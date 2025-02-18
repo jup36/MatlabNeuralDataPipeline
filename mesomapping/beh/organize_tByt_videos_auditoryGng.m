@@ -19,7 +19,7 @@ filePath_raw_vid = findFolderWithString(filePath, '_vid');
 if isempty(filePath_raw_vid)
     filePath_raw_vid = uigetdir(filePath); 
 end
-vidFiles = GrabFiles_sort_trials('behvid', 0, {filePath_raw_vid}); 
+vidFiles = GrabFiles_sort_trials('behvid', 0, {filePath_raw_vid}); organize_tByt_videos_auditoryGng
 if numel(tbytDat) == numel(vidFiles)    
     vidTrialC = cellfun(@(a) regexp(a, '_([0-9.]+)\.', 'tokens'), vidFiles, 'un', 0); 
     vidTrial = cell2mat(cellfun(@(c) str2double(c{1}{1}), vidTrialC, 'un', 0));

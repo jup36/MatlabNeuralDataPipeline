@@ -1,0 +1,243 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WorkflowBuilder Version="2.5.1"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns:rx="clr-namespace:Bonsai.Reactive;assembly=Bonsai.Core"
+                 xmlns:npm="clr-namespace:Neurophotometrics;assembly=Neurophotometrics"
+                 xmlns="https://bonsai-rx.org/2018/workflow">
+  <Workflow>
+    <Nodes>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:Timer">
+          <rx:DueTime>PT2S</rx:DueTime>
+          <rx:Period>PT0S</rx:Period>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="npm:AcquisitionControl">
+        <npm:Streams>Photometry</npm:Streams>
+        <npm:Mode>Start</npm:Mode>
+      </Expression>
+      <Expression xsi:type="SubscribeSubject">
+        <Name>File_pref</Name>
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="FileName" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="ExternalizedMapping">
+        <Property Name="DueTime" DisplayName="time_photo" />
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:Timer">
+          <rx:DueTime>PT30M5S</rx:DueTime>
+          <rx:Period>PT0S</rx:Period>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="npm:AcquisitionControl">
+        <npm:Streams>Photometry</npm:Streams>
+        <npm:Mode>Stop</npm:Mode>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:Merge" />
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="npm:FP3002">
+          <npm:PortName>COM11</npm:PortName>
+          <npm:Regions>
+            <npm:RotatedRect>
+              <npm:Center>
+                <npm:X>1086.5</npm:X>
+                <npm:Y>431</npm:Y>
+              </npm:Center>
+              <npm:Size>
+                <npm:Width>73</npm:Width>
+                <npm:Height>76</npm:Height>
+              </npm:Size>
+              <npm:Angle>0</npm:Angle>
+            </npm:RotatedRect>
+            <npm:RotatedRect>
+              <npm:Center>
+                <npm:X>1085</npm:X>
+                <npm:Y>531</npm:Y>
+              </npm:Center>
+              <npm:Size>
+                <npm:Width>72</npm:Width>
+                <npm:Height>72</npm:Height>
+              </npm:Size>
+              <npm:Angle>0</npm:Angle>
+            </npm:RotatedRect>
+            <npm:RotatedRect>
+              <npm:Center>
+                <npm:X>998.5</npm:X>
+                <npm:Y>515.5</npm:Y>
+              </npm:Center>
+              <npm:Size>
+                <npm:Width>73</npm:Width>
+                <npm:Height>69</npm:Height>
+              </npm:Size>
+              <npm:Angle>0</npm:Angle>
+            </npm:RotatedRect>
+            <npm:RotatedRect>
+              <npm:Center>
+                <npm:X>995.5</npm:X>
+                <npm:Y>423</npm:Y>
+              </npm:Center>
+              <npm:Size>
+                <npm:Width>75</npm:Width>
+                <npm:Height>74</npm:Height>
+              </npm:Size>
+              <npm:Angle>0</npm:Angle>
+            </npm:RotatedRect>
+            <npm:RotatedRect>
+              <npm:Center>
+                <npm:X>385.5</npm:X>
+                <npm:Y>432</npm:Y>
+              </npm:Center>
+              <npm:Size>
+                <npm:Width>67</npm:Width>
+                <npm:Height>66</npm:Height>
+              </npm:Size>
+              <npm:Angle>0</npm:Angle>
+            </npm:RotatedRect>
+            <npm:RotatedRect>
+              <npm:Center>
+                <npm:X>384.5</npm:X>
+                <npm:Y>522</npm:Y>
+              </npm:Center>
+              <npm:Size>
+                <npm:Width>71</npm:Width>
+                <npm:Height>70</npm:Height>
+              </npm:Size>
+              <npm:Angle>0</npm:Angle>
+            </npm:RotatedRect>
+            <npm:RotatedRect>
+              <npm:Center>
+                <npm:X>307</npm:X>
+                <npm:Y>501.5</npm:Y>
+              </npm:Center>
+              <npm:Size>
+                <npm:Width>72</npm:Width>
+                <npm:Height>69</npm:Height>
+              </npm:Size>
+              <npm:Angle>0</npm:Angle>
+            </npm:RotatedRect>
+            <npm:RotatedRect>
+              <npm:Center>
+                <npm:X>309</npm:X>
+                <npm:Y>419</npm:Y>
+              </npm:Center>
+              <npm:Size>
+                <npm:Width>66</npm:Width>
+                <npm:Height>68</npm:Height>
+              </npm:Size>
+              <npm:Angle>0</npm:Angle>
+            </npm:RotatedRect>
+            <npm:RotatedRect>
+              <npm:Center>
+                <npm:X>950</npm:X>
+                <npm:Y>40</npm:Y>
+              </npm:Center>
+              <npm:Size>
+                <npm:Width>4</npm:Width>
+                <npm:Height>4</npm:Height>
+              </npm:Size>
+              <npm:Angle>0</npm:Angle>
+            </npm:RotatedRect>
+            <npm:RotatedRect>
+              <npm:Center>
+                <npm:X>1135.5</npm:X>
+                <npm:Y>494.5</npm:Y>
+              </npm:Center>
+              <npm:Size>
+                <npm:Width>1</npm:Width>
+                <npm:Height>1</npm:Height>
+              </npm:Size>
+              <npm:Angle>0</npm:Angle>
+            </npm:RotatedRect>
+          </npm:Regions>
+          <npm:AutoCrop>true</npm:AutoCrop>
+          <npm:AcquisitionMode>StartPhotometry</npm:AcquisitionMode>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="npm:PhotometryData" />
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="npm:PhotometryWriter">
+          <npm:FileName>C:\Users\aDMIN\Desktop\Joaquim\Flavor_nutrient_conditioning\data\Photo\M25602_M25603_2022-05-07-133037_Photo_data.csv</npm:FileName>
+          <npm:Suffix>None</npm:Suffix>
+          <npm:Buffered>true</npm:Buffered>
+          <npm:Overwrite>true</npm:Overwrite>
+          <npm:IncludeRegions>true</npm:IncludeRegions>
+          <npm:IncludeChart>false</npm:IncludeChart>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="npm:PhotometryData">
+          <npm:Filter>L470</npm:Filter>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="npm:VisualizeROI">
+          <npm:TimeAxisUnits>SysWorkflowStart</npm:TimeAxisUnits>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="npm:PhotometryData">
+          <npm:Filter>L410</npm:Filter>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="npm:VisualizeROI">
+          <npm:TimeAxisUnits>SysWorkflowStart</npm:TimeAxisUnits>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:Delay">
+          <rx:DueTime>PT1S</rx:DueTime>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="WorkflowOutput" />
+      <Expression xsi:type="GroupWorkflow">
+        <Name>Constants</Name>
+        <Workflow>
+          <Nodes>
+            <Expression xsi:type="ExternalizedMapping">
+              <Property Name="Value" DisplayName="File_photo" />
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="StringProperty">
+                <Value>C:\Users\aDMIN\Desktop\Joaquim\Flavor_nutrient_conditioning\data\Photo\M25602_M25603_2022-05-07-133037_Photo_data.csv</Value>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="BehaviorSubject">
+              <Name>File_pref</Name>
+            </Expression>
+          </Nodes>
+          <Edges>
+            <Edge From="0" To="1" Label="Source1" />
+            <Edge From="1" To="2" Label="Source1" />
+          </Edges>
+        </Workflow>
+      </Expression>
+    </Nodes>
+    <Edges>
+      <Edge From="0" To="1" Label="Source1" />
+      <Edge From="1" To="7" Label="Source1" />
+      <Edge From="2" To="3" Label="Source1" />
+      <Edge From="3" To="10" Label="Source2" />
+      <Edge From="4" To="5" Label="Source1" />
+      <Edge From="5" To="6" Label="Source1" />
+      <Edge From="5" To="15" Label="Source1" />
+      <Edge From="6" To="7" Label="Source2" />
+      <Edge From="7" To="8" Label="Source1" />
+      <Edge From="8" To="9" Label="Source1" />
+      <Edge From="8" To="11" Label="Source1" />
+      <Edge From="8" To="13" Label="Source1" />
+      <Edge From="9" To="10" Label="Source1" />
+      <Edge From="11" To="12" Label="Source1" />
+      <Edge From="13" To="14" Label="Source1" />
+      <Edge From="15" To="16" Label="Source1" />
+    </Edges>
+  </Workflow>
+</WorkflowBuilder>
