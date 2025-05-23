@@ -4,7 +4,7 @@ function drez = signalDetectionLickAnalysis(tbytDat, trRwdI, trPnsI)
 
 cueDur = nanmean(cell2mat(cellfun(@(a, b) a-b, {tbytDat(:).evtOff}, {tbytDat(:).evtOn}, 'UniformOutput', false))); 
 lickTimeC = cellfun(@(a, b) a-b, {tbytDat(:).Lick}, {tbytDat(:).evtOn}, 'UniformOutput', false); 
-valLickI = cell2mat(cellfun(@(a) ~isempty(a>cueDur), lickTimeC, 'UniformOutput', false)); 
+valLickI = cell2mat(cellfun(@(a) ~any(a>cueDur), lickTimeC, 'UniformOutput', false)); 
 
 
 % classify trials

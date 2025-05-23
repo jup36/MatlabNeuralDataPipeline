@@ -1,4 +1,3 @@
-
 filePaths = {'/Volumes/buschman/Rodent Data/dualImaging_parkj/m1048_jRGECO_GRABda/m1048_121724/task', ...
              '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1048_jRGECO_GRABda/m1048_121824/task', ...
              '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1048_jRGECO_GRABda/m1048_122024/task', ...
@@ -8,6 +7,7 @@ filePaths = {'/Volumes/buschman/Rodent Data/dualImaging_parkj/m1048_jRGECO_GRABd
              '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1048_jRGECO_GRABda/m1048_122724/task', ...
              };
 
+fileSaveDir = '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1048_jRGECO_GRABda'; 
 figSaveDir = fullfile('/Volumes/buschman/Rodent Data/dualImaging_parkj/m1048_jRGECO_GRABda', 'collectFigure'); 
 if exist(figSaveDir, "dir")~=7
     mkdir(figSaveDir)
@@ -20,40 +20,59 @@ blueShades = generateColormap([176 226 255]./255, [0 0 128]./255, 200); % for bl
 cool = colormap('cool'); % for Go/No-Go
 pastels = slanCM('Pastel1', 7); % for sigD data
 
-dPrmC = cell(length(filePaths), 2); 
-dPrmTot = zeros(length(filePaths), 1); 
+rezB.dPrmC = cell(length(filePaths), 2); 
+rezT.dPrmTot = zeros(length(filePaths), 1); 
+
+rezB.crC = cell(length(filePaths), 2); 
+rezT.crRateTot = zeros(length(filePaths), 1); 
+
+rezB.hitC = cell(length(filePaths), 2); 
+rezT.hitRateTot = zeros(length(filePaths), 1); 
 
 %% Main Loop
 for f = 1:length(filePaths) 
     % load rez of LickAnalysis
     %[~, header] = fileparts(filePaths{f});
-    header = regexp(filePaths{f}, 'm\d{1,4}_\d{6}', 'match', 'once'); 
+    header = extract_date_animalID_header(filePaths{f}); 
     load(fullfile(filePaths{f}, 'Matfiles', [header, '_LickAnalysis']), 'rez', 'var');
     
-    dPrmTot(f, 1) = rez.sigD.dprime; 
+    rezT.dPrmTot(f, 1) = rez.sigD.dprime; 
+    rezT.hitRateTot(f, 1) = rez.sigD.hitRate; 
+    rezT.crRateTot(f, 1) = rez.sigD.CrRate; 
 
     % collect dPrime data 
-    dPrmC{f, 1} = header; 
-    dPrmC{f, 2} = cell2mat(cellfun(@(a) a.dprime, rez.sigDBlocks, 'UniformOutput', false)); 
+    rezB.dPrmC{f, 1} = header; 
+    rezB.dPrmC{f, 2} = cell2mat(cellfun(@(a) a.dprime, rez.sigDBlocks, 'UniformOutput', false)); 
 
+    % collect correct rejection data 
+    rezB.crC{f, 1} = header; 
+    rezB.crC{f, 2} = cell2mat(cellfun(@(a) a.CrRate, rez.sigDBlocks, 'UniformOutput', false)); 
+
+    % collect hit data
+    rezB.hitC{f, 1} = header; 
+    rezB.hitC{f, 2} = cell2mat(cellfun(@(a) a.hitRate, rez.sigDBlocks, 'UniformOutput', false)); 
+    
     % collect latency data 
-    latGoC{f, 1} = header; 
-    latGoC{f, 2} = rez.lat.rwdFstLatBlockMean; 
+    rezB.latGoC{f, 1} = header; 
+    rezB.latGoC{f, 2} = rez.lat.rwdFstLatBlockMean; 
 
-    latNogoC{f, 1} = header;
-    latNogoC{f, 2} = rez.lat.pnsFstLatBlockMean; 
+    rezB.latNogoC{f, 1} = header;
+    rezB.latNogoC{f, 2} = rez.lat.pnsFstLatBlockMean; 
     
     fprintf('Completed file #%d\n', f); 
 end
 
 %% plot
 % plot dPrime
-hfig = sigDrezDprmPlotAcrossSession('dPrime Across Session', dPrmC(:, 2), blueShades); 
-print(hfig, fullfile(figSaveDir, [mID, '_LickAnalysis_acrossSession_dPrime']), '-dpdf', '-vector');
+%hfig = sigDrezDprmPlotAcrossSession('dPrime Across Session', rezB.dPrmC(:, 2), blueShades); 
+%print(hfig, fullfile(figSaveDir, [mID, '_LickAnalysis_acrossSession_dPrime']), '-dpdf', '-vector');
 
 % plot first lick latency
-hLat = firstLatencyPlotGngAcrossSession('first lick latency across session', latGoC(:, 2), latNogoC(:, 2), cool); 
-print(hLat, fullfile(figSaveDir, [mID, '_LickAnalysis_acrossSession_firstLickLatencyGoNogo']), '-dpdf', '-vector');
+%hLat = firstLatencyPlotGngAcrossSession('first lick latency across session', rezB.latGoC(:, 2), rezB.latNogoC(:, 2), cool); 
+%print(hLat, fullfile(figSaveDir, [mID, '_LickAnalysis_acrossSession_firstLickLatencyGoNogo']), '-dpdf', '-vector');
+
+%% save
+save(fullfile(fileSaveDir, [mID, '_blockWise_behavior']), 'rezB', 'rezT'); 
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

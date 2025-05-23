@@ -26,10 +26,10 @@ rezB.dPrmC = cell(length(filePaths), 2);
 rezT.dPrmTot = zeros(length(filePaths), 1); 
 
 rezB.crC = cell(length(filePaths), 2); 
-rezT.crRateTot = zeros(length(filePaths), 1); 
+rezT.crTot = zeros(length(filePaths), 1); 
 
 rezB.hitC = cell(length(filePaths), 2); 
-rezT.hitRateTot = zeros(length(filePaths), 1); 
+rezT.hitTot = zeros(length(filePaths), 1); 
 
 %% Main Loop
 for f = 1:length(filePaths) 
@@ -39,8 +39,8 @@ for f = 1:length(filePaths)
     load(fullfile(filePaths{f}, 'Matfiles', [header, '_LickAnalysis']), 'rez', 'var');
     
     rezT.dPrmTot(f, 1) = rez.sigD.dprime; 
-    rezT.hitRateTot(f, 1) = rez.sigD.hitRate; 
-    rezT.crRateTot(f, 1) = rez.sigD.CrRate; 
+    rezT.hitRate(f, 1) = rez.sigD.hitRate; 
+    rezT.CrRate(f, 1) = rez.sigD.CrRate; 
 
     % collect dPrime data 
     rezB.dPrmC{f, 1} = header; 
@@ -66,12 +66,12 @@ end
 
 %% plot
 % plot dPrime
-%hfig = sigDrezDprmPlotAcrossSession('dPrime Across Session', rezB.dPrmC(:, 2), blueShades); 
-%print(hfig, fullfile(figSaveDir, [mID, '_LickAnalysis_acrossSession_dPrime']), '-dpdf', '-vector');
+hfig = sigDrezDprmPlotAcrossSession('dPrime Across Session', dPrmC(:, 2), blueShades); 
+print(hfig, fullfile(figSaveDir, [mID, '_LickAnalysis_acrossSession_dPrime']), '-dpdf', '-vector');
 
 % plot first lick latency
-%hLat = firstLatencyPlotGngAcrossSession('first lick latency across session', rezB.latGoC(:, 2), rezB.latNogoC(:, 2), cool); 
-%print(hLat, fullfile(figSaveDir, [mID, '_LickAnalysis_acrossSession_firstLickLatencyGoNogo']), '-dpdf', '-vector');
+hLat = firstLatencyPlotGngAcrossSession('first lick latency across session', latGoC(:, 2), latNogoC(:, 2), cool); 
+print(hLat, fullfile(figSaveDir, [mID, '_LickAnalysis_acrossSession_firstLickLatencyGoNogo']), '-dpdf', '-vector');
 
 %% save
 save(fullfile(fileSaveDir, [mID, '_blockWise_behavior']), 'rezB', 'rezT'); 
