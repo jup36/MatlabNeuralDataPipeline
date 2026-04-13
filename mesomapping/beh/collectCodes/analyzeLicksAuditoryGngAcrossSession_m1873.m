@@ -1,62 +1,83 @@
 
-filePaths = {'/Volumes/buschman/Rodent Data/dualImaging_parkj/m1045_jRGECO_GRABda/m1045_121124/task', ...
-             '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1045_jRGECO_GRABda/m1045_121324/task', ...
-             '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1045_jRGECO_GRABda/m1045_121624/task', ...
-             '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1045_jRGECO_GRABda/m1045_121724/task', ...
-             '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1045_jRGECO_GRABda/m1045_121824/task', ...
-             '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1045_jRGECO_GRABda/m1045_121924/task', ...
-             '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1045_jRGECO_GRABda/m1045_122024/task', ...
-             '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1045_jRGECO_GRABda/m1045_122324/task', ...
-             '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1045_jRGECO_GRABda/m1045_122424/task', ...
-             };
-% filePaths = {'/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA019/DA019_041924', ...
-%              '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA019/DA019_2_042024', ...
-%              '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA019/DA019_042224', ...
-%              '/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA019/DA019_042624'}; 
+filePath_base = compatiblepath('Z:\Rodent Data\dualImaging_parkj\m1873_jRGECO_GRABda');
+animalID  = cell2mat(regexp(filePath_base, 'm\d{4}', 'match'));
+subFolders = GrabFiles_sort_trials(animalID, 0, {filePath_base});
+figSaveDir = compatiblepath(fullfile('/Volumes/buschman/Rodent Data/dualImaging_parkj/m1873_jRGECO_GRABda', 'collectFigure'));
+if exist(figSaveDir, "dir")~=7
+    mkdir(figSaveDir)
+end
 
-figSaveDir = fullfile(fileparts(filePaths{1}), 'collectFigure'); 
-mID = regexp(filePaths{1}, 'DA\d{1,3}', 'match', 'once');
+mID = regexp(filePath_base, 'm\d{1,4}', 'match', 'once');
+filePaths = GrabFiles_sort_trials(animalID, 0, {filePath_base});
 
 % prepare colormaps
 blueShades = generateColormap([176 226 255]./255, [0 0 128]./255, 200); % for blocks
 cool = colormap('cool'); % for Go/No-Go
 pastels = slanCM('Pastel1', 7); % for sigD data
 
-dPrmC = cell(length(filePaths), 2); 
-dPrmTot = zeros(length(filePaths), 1); 
+% rezB.dPrmC = cell(length(filePaths), 2);
+% rezT.dPrmTot = NaN(length(filePaths), 1);
+% 
+% rezB.crC = cell(length(filePaths), 2);
+% rezT.crRateTot = NaN(length(filePaths), 1);
+% 
+% rezB.hitC = cell(length(filePaths), 2);
+% rezT.hitRateTot = NaN(length(filePaths), 1);
 
 %% Main Loop
-for f = 1:length(filePaths)
-    
+count = 0; 
+for f = 1:19
+    taskDirC = GrabFiles_sort_trials('task', 0, filePaths(f));
+    if isempty(taskDirC); continue; end
+    imgDirC = GrabFiles_sort_trials('img', 0, taskDirC);
+    if isempty(imgDirC); continue; end
+    day = str2double(regexp(imgDirC{1}, 'day(\d)', 'tokens', 'once'));
+    if day<4; continue; end
+    count = count+1; 
     % load rez of LickAnalysis
-    [~, header] = fileparts(filePaths{f});
-    load(fullfile(filePaths{f}, 'Matfiles', [header, '_LickAnalysis']), 'rez', 'var');
-    
-    dPrmTot(f, 1) = rez.sigD.dprime; 
+    %[~, header] = fileparts(filePaths{f});
+    taskDir = taskDirC{1}; 
+    header = extract_date_animalID_header(filePaths{f});
+    load(fullfile(taskDir, 'Matfiles', [header, '_LickAnalysis']), 'rez', 'var');
 
-    % collect dPrime data 
-    dPrmC{f, 1} = header; 
-    dPrmC{f, 2} = cell2mat(cellfun(@(a) a.dprime, rez.sigDBlocks, 'UniformOutput', false)); 
+    rezT.dPrmTot(count, 1) = rez.sigD.dprime;
+    rezT.hitRateTot(count, 1) = rez.sigD.hitRate;
+    rezT.crRateTot(count, 1) = rez.sigD.CrRate;
 
-    % collect latency data 
-    latGoC{f, 1} = header; 
-    latGoC{f, 2} = rez.lat.rwdFstLatBlockMean; 
+    % collect dPrime data
+    rezB.dPrmC{count,  1} = header;
+    rezB.dPrmC{count,  2} = cell2mat(cellfun(@(a) a.dprime, rez.sigDBlocks, 'UniformOutput', false));
 
-    latNogoC{f, 1} = header;
-    latNogoC{f, 2} = rez.lat.pnsFstLatBlockMean; 
-    
-    fprintf('Completed file #%d\n', f); 
+    % collect correct rejection data
+    rezB.crC{count,  1} = header;
+    rezB.crC{count,  2} = cell2mat(cellfun(@(a) a.CrRate, rez.sigDBlocks, 'UniformOutput', false));
+
+    % collect hit data
+    rezB.hitC{count,  1} = header;
+    rezB.hitC{count,  2} = cell2mat(cellfun(@(a) a.hitRate, rez.sigDBlocks, 'UniformOutput', false));
+
+    % collect latency data
+    rezB.latGoC{count,  1} = header;
+    rezB.latGoC{count,  2} = rez.lat.rwdFstLatBlockMean;
+
+    rezB.latNogoC{count,  1} = header;
+    rezB.latNogoC{count,  2} = rez.lat.pnsFstLatBlockMean;
+
+    fprintf('Completed file #%d\n', f);
 end
 
 %% plot
 % plot dPrime
-hfig = sigDrezDprmPlotAcrossSession('dPrime Across Session', dPrmC(:, 2), blueShades); 
-print(hfig, fullfile(figSaveDir, [mID, '_LickAnalysis_acrossSession_dPrime']), '-dpdf', '-vector');
+%hfig = sigDrezDprmPlotAcrossSession('dPrime Across Session', rezB.dPrmC(:, 2), blueShades);
+%print(hfig, fullfile(figSaveDir, [mID, '_LickAnalysis_acrossSession_dPrime']), '-dpdf', '-vector');
 
 % plot first lick latency
-hLat = firstLatencyPlotGngAcrossSession('first lick latency across session', latGoC(:, 2), latNogoC(:, 2), cool); 
-print(hLat, fullfile(figSaveDir, [mID, '_LickAnalysis_acrossSession_firstLickLatencyGoNogo']), '-dpdf', '-vector');
+%hLat = firstLatencyPlotGngAcrossSession('first lick latency across session', rezB.latGoC(:, 2), rezB.latNogoC(:, 2), cool);
+%print(hLat, fullfile(figSaveDir, [mID, '_LickAnalysis_acrossSession_firstLickLatencyGoNogo']), '-dpdf', '-vector');
 
+%% save
+save(fullfile(filePath_base, [mID, '_blockWise_behavior']), 'rezB', 'rezT');
+% load(fullfile(fileSaveDir, [mID, '_blockWise_behavior']), 'rezB', 'rezT');
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -717,7 +738,7 @@ xTicks = 1:length(blockMeanC{i});
 yTicks = linspace(minY - yMargin, maxY + yMargin, 6);
 yTickLabels = arrayfun(@(x) sprintf('%.1f', x), yTicks, 'UniformOutput', false);
 
-set(gca, 'TickDir', 'out', 'XTick', xTicks, 'YTick', yTicks, 'YTickLabel', yTickLabels) 
+set(gca, 'TickDir', 'out', 'XTick', xTicks, 'YTick', yTicks, 'YTickLabel', yTickLabels)
 
 hold off;
 %print(h, fullfile('/Volumes/buschman/Rodent Data/Behavioral_dynamics_cj/DA008/DA008_101723', 'Figure', 'firstLickLatencyBlocks'), '-dpdf', '-vector');  % '-painters' ensures the output is vector graphics

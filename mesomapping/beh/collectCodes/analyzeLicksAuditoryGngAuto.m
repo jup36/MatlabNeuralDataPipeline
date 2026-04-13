@@ -1,144 +1,169 @@
 
-filePaths = {'/Volumes/buschman/Rodent Data/dualImaging_parkj/m1237_GCAMP', ...
-    '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1092_jRGECO', ...
-    '/Volumes/buschman/Rodent Data/dualImaging_parkj/m1094_jRGECO'};
+% Define the base path
+filePath_base = compatiblepath('/Volumes/buschman/Rodent Data/dualImaging_parkj');
+dirInfo = dir(filePath_base);
+isMatch = @(name) ~isempty(regexp(name, '^m\d{4}', 'once')); % Use regex to find folders starting with 'm' followed by 4 digits
+matchedDirs = dirInfo([dirInfo.isdir] & cellfun(isMatch, {dirInfo.name})); % Filter for directories that match the pattern
+filePaths = fullfile(filePath_base, {matchedDirs.name}); % Create full paths
 
 % prepare colormaps
 blueShades = generateColormap([176 226 255]./255, [0 0 128]./255, 200); % for blocks
 cool = colormap('cool'); % for Go/No-Go
 pastels = slanCM('Pastel1', 7); % for sigD data
 
-redetectLogic = true;
+%redetectLogic = false;
 
 %% Main Loop
 for f = 1:length(filePaths)
-    subFolders = find_keyword_folder(filePaths{f}, 'task');
+    animalID  = cell2mat(regexp(filePaths{f}, 'm\d{4}', 'match'));
+    subFolders = GrabFiles_sort_trials(animalID, 0, filePaths(f));
+
     for ff = 1:length(subFolders)
-        rez = struct;
-        var = struct;
+        taskDirC = GrabFiles_sort_trials('task', 0, subFolders(ff));
+        task6OHDAdirC = GrabFiles_sort_trials('6OHDA', 0, taskDirC);
 
-        var.binSize = 0.1; % 100 ms
-        var.prePostWinSize = 3; % 3 s
-        %var.simRep = 1000; % 1000 repetitions for lick simulations
-        %var.simBinSize = 1; % 1 s (binSize to calculate lambda and poisson pdf for lick simulations)
+        if ~isempty(taskDirC) && isempty(task6OHDAdirC)
+            taskDir = taskDirC{1}; 
 
-        % load tbytDat
-        header = extract_date_animalID_header(subFolders{ff});
+            rez = struct;
+            var = struct;
 
-        if exist(fullfile(subFolders{ff}, 'Matfiles'), 'dir')==0
-            mkdir(fullfile(subFolders{ff}, 'Matfiles'))
-        end
+            var.binSize = 0.1; % 100 ms
+            var.prePostWinSize = 3; % 3 s
+            %var.simRep = 1000; % 1000 repetitions for lick simulations
+            %var.simBinSize = 1; % 1 s (binSize to calculate lambda and poisson pdf for lick simulations)
 
-        filePathDat = GrabFiles_sort_trials('_tbytDat.mat', 0, {fullfile(subFolders{ff}, 'Matfiles')});
-        if ~isempty(filePathDat)
-            hfig = figure;
-            filePathDatParseGng = GrabFiles_sort_trials('_tbytDat_parseGng', 0, {fullfile(subFolders{ff}, 'Matfiles')});
-            if ~isempty(filePathDatParseGng) || redetectLogic==false
+            % load tbytDat
+            header = extract_date_animalID_header(taskDir);
+
+            if exist(fullfile(taskDir, 'Matfiles'), 'dir')==0
+                mkdir(fullfile(taskDir, 'Matfiles'))
+            end
+
+            filePathDat = GrabFiles_sort_trials('_tbytDat.mat', 0, {fullfile(taskDir, 'Matfiles')});
+            filePathDatParseGng = GrabFiles_sort_trials('_tbytDat_parseGng', 0, {fullfile(taskDir, 'Matfiles')});
+            if ~isempty(filePathDatParseGng) %|| redetectLogic==false
                 load(filePathDatParseGng{1}, 'tbytDat')
-            else
-                 load(filePathDat{1}, 'tbytDat')
-                 tbytDat = parseAuditoryGngTrials(tbytDat);
-                 save(fullfile(subFolders{ff}, 'Matfiles', strcat(header, '_tbytDat_parseGng')), 'tbytDat')
+            elseif ~isempty(filePathDat)
+                load(filePathDat{1}, 'tbytDat')
+                if isfield(tbytDat, 'pos_rwd_tr')
+                    tbytDat = parseAuditoryGngTrials(tbytDat);
+                    save(fullfile(taskDir, 'Matfiles', strcat(header, '_tbytDat_parseGng')), 'tbytDat')
+                end
             end
 
-            rewardTrI = [tbytDat(:).rewardTrI];
-            punishTrI = [tbytDat(:).punishTrI];
-
-            assert(isequal(length(tbytDat), length(rewardTrI), length(punishTrI)));
-
-            %% prep variables and data
-            var.trDur = round(nanmean(cell2mat(cellfun(@(a, b)  b-a, {tbytDat.evtOn}, {tbytDat.evtOff}, 'un', 0)))); % trial duration
-            var.minMaxTpre = [-2 0];
-            var.minMaxTcue = [0 var.trDur];
-            var.minMaxTpost = [var.trDur var.trDur+var.prePostWinSize];
-
-            % lick timestamps aligned to the cue onset
-            rez.lickTimeC = cellfun(@(a, b) a-b, {tbytDat.Lick}, {tbytDat.evtOn}, 'un', 0);
-
-            % divide trials into blocks excluding first 10 and last 10 trials
-            var.blocks = divideTrialsIntoBlocks(length(tbytDat), ceil(length(tbytDat)/100), 100, 0, 0);
-            var.gngTrials = {find(rewardTrI), find(punishTrI)}; % Go and NoGo trials
-
-            %% (Skip for now) lick simulations blocks
-            %[rez.lickSimInC, rez.lickSimOutC, rez.lickCntC] = lickSimWrapper(var, rez);
-
-            %% Analyze and plot
-            totNumAirPuffs = sum(cell2mat(cellfun(@(a) ~isempty(a), {tbytDat.airpuff}, 'UniformOutput', false)));
-            if sum(punishTrI) >= 10  % Go-NoGo sessions with airpuffs length(tbytDat)>150 && totNumAirPuffs>1
-                % z-scored lick counts
-                var.rwdPnsTrials = cellfun(@logical, {rewardTrI, punishTrI}, 'UniformOutput', false); % Go, No-Go trial indices
-                [rez.rezGngLickHz, var.rezGngLickHz] = binnedLickHzWrapper(var, rez.lickTimeC, var.rwdPnsTrials);
-                % plot z-score normalized lick counts
-                hAxZ = plotMeanSemSubplot('Lick counts Go/NoGo (Hz)', rez.rezGngLickHz.mLickHz, rez.rezGngLickHz.sLickHz, ...
-                    var.rezGngLickHz.timeX_binnedLickHz, [2, 3, 1], cool, {'Go', 'NoGo'});
-
-                % lick raster plot blocks
-                rez.lickTimeGngC = cellfun(@(a) rez.lickTimeC(a), var.gngTrials, 'UniformOutput', false);
-                hAxR = rasterPlotCellSubplot('Lick rasters Go/NoGo trials', rez.lickTimeGngC, [2, 3, 4], cool, 0.8);
-                xlim(hAxR, [-0.2 5]);
-                xticks(hAxR, -2:1:6);
-
-                % signal detection theoretic analysis of licking
-                [rez.sigD] = signalDetectionLickAnalysis(tbytDat, rewardTrI, punishTrI);
-
-                rez.sigDBlocks = cell(1, length(var.blocks));
-                for tt = 1:length(var.blocks)
-                    tI = var.blocks{tt};
-                    rez.sigDBlocks{tt} = signalDetectionLickAnalysis(tbytDat(tI), rewardTrI(tI), punishTrI(tI));
-                end
-                hAxD = sigDrezSubplot('SigD blocks', rez.sigDBlocks, [2, 3, 2], pastels);
-                hAxDp = sigDrezDprmSubplot('dPrime blocks', rez.sigDBlocks, [2, 3, 5], pastels);
-
-                % first lick latency
-                [rez.lat] = latencyOfFirstLicksBlocks(tbytDat, rewardTrI, punishTrI, var.blocks, var.minMaxTcue);
-                hAxL = blockMeanSubPlot('First lick latency', {rez.lat.rwdFstLatBlockMean, rez.lat.pnsFstLatBlockMean}, [2, 3, 3], cool, {'Go', 'NoGo'});
-                xlabel(hAxL, 'Block');
-                ylabel(hAxL, 'Latency (s)');
-
-            else % training sessions without airpuffs
-                % z-score normalization blocks
-                [rez.rezBlocksHz, var.rezBlocksHz] =  binnedLickHzWrapper(var, rez.lickTimeC, var.blocks);
-
-                blockNameC = cell(1, length(var.blocks));
-                for bb = 1:length(blockNameC)
-                    blockNameC{1, bb} = sprintf("Block %d", bb);
+            if ~isempty(filePathDat) && isfield(tbytDat, 'pos_rwd_tr')
+                hfig = figure;
+                filePathDatParseGng = GrabFiles_sort_trials('_tbytDat_parseGng', 0, {fullfile(taskDir, 'Matfiles')});
+                if ~isempty(filePathDatParseGng) || redetectLogic==false
+                    load(filePathDatParseGng{1}, 'tbytDat')
+                else
+                    load(filePathDat{1}, 'tbytDat')
+                    if isfield(tbytDat, 'pos_rwd_tr')
+                        tbytDat = parseAuditoryGngTrials(tbytDat);
+                        save(fullfile(taskDir, 'Matfiles', strcat(header, '_tbytDat_parseGng')), 'tbytDat')
+                    end
                 end
 
-                % plot z-score normalized lick counts
-                hAxZ = plotMeanSemSubplot('Lick counts blocks (z)', rez.rezBlocksHz.mLickHz, rez.rezBlocksHz.sLickHz, ...
-                    var.rezBlocksHz.timeX_binnedLickHz, [2, 2, 1], blueShades, blockNameC);
+                rewardTrI = [tbytDat(:).rewardTrI];
+                punishTrI = [tbytDat(:).punishTrI];
 
-                % lick raster plot blocks
-                rez.lickTimeBlockC = cellfun(@(a) rez.lickTimeC(a), var.blocks, 'UniformOutput', false);
-                hAxR = rasterPlotCellSubplot('Lick rasters blocks', rez.lickTimeBlockC, [2, 2, 3], blueShades, 0.8);
+                assert(isequal(length(tbytDat), length(rewardTrI), length(punishTrI)));
 
-                % signal detection theoretic analysis of licking
-                [rez.sigD] = signalDetectionLickAnalysis(tbytDat, rewardTrI, punishTrI);
+                %% prep variables and data
+                var.trDur = round(nanmean(cell2mat(cellfun(@(a, b)  b-a, {tbytDat.evtOn}, {tbytDat.evtOff}, 'un', 0)))); % trial duration
+                var.minMaxTpre = [-2 0];
+                var.minMaxTcue = [0 var.trDur];
+                var.minMaxTpost = [var.trDur var.trDur+var.prePostWinSize];
 
-                rez.sigDBlocks = cell(1, length(var.blocks));
-                for tt = 1:length(var.blocks)
-                    tI = var.blocks{tt};
-                    rez.sigDBlocks{tt} = signalDetectionLickAnalysis(tbytDat(tI), rewardTrI(tI), punishTrI(tI));
+                % lick timestamps aligned to the cue onset
+                rez.lickTimeC = cellfun(@(a, b) a-b, {tbytDat.Lick}, {tbytDat.evtOn}, 'un', 0);
+
+                % divide trials into blocks excluding first 10 and last 10 trials
+                var.blocks = divideTrialsIntoBlocks(length(tbytDat), ceil(length(tbytDat)/100), 100, 0, 0);
+                var.gngTrials = {find(rewardTrI), find(punishTrI)}; % Go and NoGo trials
+
+                %% (Skip for now) lick simulations blocks
+                %[rez.lickSimInC, rez.lickSimOutC, rez.lickCntC] = lickSimWrapper(var, rez);
+
+                %% Analyze and plot
+                totNumAirPuffs = sum(cell2mat(cellfun(@(a) ~isempty(a), {tbytDat.airpuff}, 'UniformOutput', false)));
+                if sum(punishTrI) >= 10  % Go-NoGo sessions with airpuffs length(tbytDat)>150 && totNumAirPuffs>1
+                    % z-scored lick counts
+                    var.rwdPnsTrials = cellfun(@logical, {rewardTrI, punishTrI}, 'UniformOutput', false); % Go, No-Go trial indices
+                    [rez.rezGngLickHz, var.rezGngLickHz] = binnedLickHzWrapper(var, rez.lickTimeC, var.rwdPnsTrials);
+                    % plot z-score normalized lick counts
+                    hAxZ = plotMeanSemSubplot('Lick counts Go/NoGo (Hz)', rez.rezGngLickHz.mLickHz, rez.rezGngLickHz.sLickHz, ...
+                        var.rezGngLickHz.timeX_binnedLickHz, [2, 3, 1], cool, {'Go', 'NoGo'});
+
+                    % lick raster plot blocks
+                    rez.lickTimeGngC = cellfun(@(a) rez.lickTimeC(a), var.gngTrials, 'UniformOutput', false);
+                    hAxR = rasterPlotCellSubplot('Lick rasters Go/NoGo trials', rez.lickTimeGngC, [2, 3, 4], cool, 0.8);
+                    xlim(hAxR, [-0.2 5]);
+                    xticks(hAxR, -2:1:6);
+
+                    % signal detection theoretic analysis of licking
+                    [rez.sigD] = signalDetectionLickAnalysis(tbytDat, rewardTrI, punishTrI);
+
+                    rez.sigDBlocks = cell(1, length(var.blocks));
+                    for tt = 1:length(var.blocks)
+                        tI = var.blocks{tt};
+                        rez.sigDBlocks{tt} = signalDetectionLickAnalysis(tbytDat(tI), rewardTrI(tI), punishTrI(tI));
+                    end
+                    hAxD = sigDrezSubplot('SigD blocks', rez.sigDBlocks, [2, 3, 2], pastels);
+                    hAxDp = sigDrezDprmSubplot('dPrime blocks', rez.sigDBlocks, [2, 3, 5], pastels);
+
+                    % first lick latency
+                    [rez.lat] = latencyOfFirstLicksBlocks(tbytDat, rewardTrI, punishTrI, var.blocks, var.minMaxTcue);
+                    hAxL = blockMeanSubPlot('First lick latency', {rez.lat.rwdFstLatBlockMean, rez.lat.pnsFstLatBlockMean}, [2, 3, 3], cool, {'Go', 'NoGo'});
+                    xlabel(hAxL, 'Block');
+                    ylabel(hAxL, 'Latency (s)');
+
+                else % training sessions without airpuffs
+                    % z-score normalization blocks
+                    [rez.rezBlocksHz, var.rezBlocksHz] =  binnedLickHzWrapper(var, rez.lickTimeC, var.blocks);
+
+                    blockNameC = cell(1, length(var.blocks));
+                    for bb = 1:length(blockNameC)
+                        blockNameC{1, bb} = sprintf("Block %d", bb);
+                    end
+
+                    % plot z-score normalized lick counts
+                    hAxZ = plotMeanSemSubplot('Lick counts blocks (z)', rez.rezBlocksHz.mLickHz, rez.rezBlocksHz.sLickHz, ...
+                        var.rezBlocksHz.timeX_binnedLickHz, [2, 2, 1], blueShades, blockNameC);
+
+                    % lick raster plot blocks
+                    rez.lickTimeBlockC = cellfun(@(a) rez.lickTimeC(a), var.blocks, 'UniformOutput', false);
+                    hAxR = rasterPlotCellSubplot('Lick rasters blocks', rez.lickTimeBlockC, [2, 2, 3], blueShades, 0.8);
+
+                    % signal detection theoretic analysis of licking
+                    [rez.sigD] = signalDetectionLickAnalysis(tbytDat, rewardTrI, punishTrI);
+
+                    rez.sigDBlocks = cell(1, length(var.blocks));
+                    for tt = 1:length(var.blocks)
+                        tI = var.blocks{tt};
+                        rez.sigDBlocks{tt} = signalDetectionLickAnalysis(tbytDat(tI), rewardTrI(tI), punishTrI(tI));
+                    end
+                    hAxD = sigDrezSubplot('SigD blocks', rez.sigDBlocks, [2, 2, 2], pastels);
+
+                    % latency of the first licks
+                    [rez.lat] = latencyOfFirstLicksBlocks(tbytDat, rewardTrI, punishTrI, var.blocks, var.minMaxTcue);
+                    hAxL = blockMeanSubPlot('First lick latency', {rez.lat.rwdFstLatBlockMean}, [2, 2, 4], cool, {'Go'});
+                    xlabel(hAxL, 'Block');
+                    ylabel(hAxL, 'Latency (s)');
                 end
-                hAxD = sigDrezSubplot('SigD blocks', rez.sigDBlocks, [2, 2, 2], pastels);
 
-                % latency of the first licks
-                [rez.lat] = latencyOfFirstLicksBlocks(tbytDat, rewardTrI, punishTrI, var.blocks, var.minMaxTcue);
-                hAxL = blockMeanSubPlot('First lick latency', {rez.lat.rwdFstLatBlockMean}, [2, 2, 4], cool, {'Go'});
-                xlabel(hAxL, 'Block');
-                ylabel(hAxL, 'Latency (s)');
+                %% save and print
+                if exist(fullfile(taskDir, 'Figure'), 'dir')==0
+                    mkdir(fullfile(taskDir, 'Figure'))
+                end
+
+                print(hfig, fullfile(taskDir, 'Figure', [header, '_LickAnalysis']), '-dpdf', '-vector');
+
+                save(fullfile(taskDir, 'Matfiles', [header, '_LickAnalysis']), 'rez', 'var');
+
+                fprintf('Completed session#%d of file#%d\n', ff, f);
             end
-
-            %% save and print
-            if exist(fullfile(subFolders{ff}, 'Figure'), 'dir')==0
-                mkdir(fullfile(subFolders{ff}, 'Figure'))
-            end
-
-            print(hfig, fullfile(subFolders{ff}, 'Figure', [header, '_LickAnalysis']), '-dpdf', '-vector');
-
-            save(fullfile(subFolders{ff}, 'Matfiles', [header, '_LickAnalysis']), 'rez', 'var');
-
-            fprintf('Completed session#%d of file#%d\n', ff, f);
         end
     end
 end

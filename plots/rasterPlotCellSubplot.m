@@ -42,7 +42,12 @@ function hAx = rasterPlotCellSubplot(plotTitle, timeStampCells, subPlotSet, full
     % Set the y-axis to display trials from top to bottom
     title(plotTitle)
     set(gca, 'YDir', 'reverse', 'TickDir', 'out');
-    xlim([trialLineLength, ceil(max(cell2mat(cellfun(@(x) max(cell2mat(x(:))), timeStampCells, 'UniformOutput', false))))]);
+    % assume each element is a cell of numbers (your original assumption)
+    isEmpty = cellfun(@(x) isempty(cell2mat(x(:))), timeStampCells);
+    vals = nan(size(timeStampCells));                  % prefill with NaN
+    vals(~isEmpty) = cellfun(@(x) max(cell2mat(x(:))), timeStampCells(~isEmpty));
+
+    xlim([trialLineLength, ceil(max(vals))]);
     ylim([0, currentTrialOffset + 1]);
     xlabel('Time (s)');
     ylabel('# Trial');

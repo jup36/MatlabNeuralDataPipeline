@@ -33,8 +33,12 @@ yMargin = 0.1 * (maxY - minY);
 
 title(plotTitle)
 % Update xlim and ylim with the new ranges
-xlim([minX - xMargin, maxX + xMargin]);
-ylim([minY - yMargin, maxY + yMargin]);
+if minX~=maxX
+    xlim([minX - xMargin, maxX + xMargin]);
+end
+if minY~=maxY
+    ylim([minY - yMargin, maxY + yMargin]);
+end
 
 % Set TickDir to 'out', YTick to have six ticks, and YTickLabels with one decimal point
 xTicks = 1:length(blockMeanC{i});
